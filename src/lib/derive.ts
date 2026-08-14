@@ -185,3 +185,37 @@ export function getFechamentoCaixa(
     total: avulso + produtos + assinaturaTotal,
   }
 }
+
+/** Faturamento acumulado real (avulso + produtos) dia a dia, só até hoje —
+ * sem projetar os dias que ainda não aconteceram. */
+export function getFaturamentoAcumuladoPorDia(
+  agendamentos: Agendamento[],
+  servicos: Servico[],
+  vendas: Venda[],
+  mesReferencia: string,
+  hojeISO: string,
+): Array<{ dia: number; valor: number }> {
+  const ultimoDia = hojeISO.startsWith(mesReferencia) ? Number(hojeISO.slice(8, 10)) : 1
+
+  const porDia = new Map<number, number>()
+  agendamentos
+    .filter((a) => a.status === 'confirmado' && mesReferenciaDeData(a.data) === mesReferencia)
+    .forEach((a) => {
+      const dia = Number(a.data.slice(8, 10))
+      porDia.set(dia, (porDia.get(dia) ?? 0) + precoServico(servicos, a.servicoId))
+    })
+  vendas
+    .filter((v) => mesReferenciaDeData(v.data) === mesReferencia)
+    .forEach((v) => {
+      const dia = Number(v.data.slice(8, 10))
+      porDia.set(dia, (porDia.get(dia) ?? 0) + v.valorTotal)
+    })
+
+  const pontos: Array<{ dia: number; valor: number }> = []
+  let acumulado = 0
+  for (let dia = 1; dia <= ultimoDia; dia++) {
+    acumulado += porDia.get(dia) ?? 0
+    pontos.push({ dia, valor: acumulado })
+  }
+  return pontos
+}
