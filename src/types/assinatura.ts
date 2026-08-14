@@ -15,4 +15,5 @@ export interface Assinatura {
   proximaCobranca: string
   cartaoRecusado?: boolean
   ultimoReenvioEm?: string
+  criadoEm: string
 }

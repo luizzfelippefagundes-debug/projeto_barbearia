@@ -119,6 +119,7 @@ export const assinaturas = pgTable('assinaturas', {
   proximaCobranca: date('proxima_cobranca').notNull(),
   cartaoRecusado: boolean('cartao_recusado').notNull().default(false),
   ultimoReenvioEm: timestamp('ultimo_reenvio_em'),
+  criadoEm: timestamp('criado_em').notNull().defaultNow(),
 })
 
 export const agendamentos = pgTable(
