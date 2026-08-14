@@ -13,7 +13,7 @@ export function StatusPill({ status, label, className }: StatusPillProps) {
   return (
     <span
       className={cn(
-        'inline-flex items-center gap-1.5 rounded border px-2 py-0.5 text-xs font-medium tracking-wide uppercase',
+        'inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs font-medium',
         visual.text,
         visual.bg,
         visual.border,

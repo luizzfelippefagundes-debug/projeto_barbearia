@@ -40,7 +40,7 @@ export function CashClosingSummary({
         <Linha label="Produtos" valor={fechamento.produtos} />
         <Linha label="Serviços avulsos" valor={fechamento.avulso} />
         <div className="flex items-center justify-between px-4 py-3">
-          <span className="font-heading text-sm tracking-wide text-text-primary uppercase">Total</span>
+          <span className="font-heading text-sm font-bold text-text-primary">Total</span>
           <span className="mono-value text-lg text-accent">{formatBRL(fechamento.total)}</span>
         </div>
       </Card>

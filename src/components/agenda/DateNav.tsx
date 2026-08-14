@@ -10,26 +10,26 @@ export function DateNav({ dataISO }: { dataISO: string }) {
       <Link
         href={`/admin/agenda?data=${addDays(dataISO, -1)}`}
         aria-label="Dia anterior"
-        className="flex h-9 w-9 items-center justify-center rounded border border-border text-text-secondary hover:border-brass hover:text-brass"
+        className="flex h-9 w-9 items-center justify-center rounded-full border border-border text-text-secondary hover:border-accent hover:text-accent"
       >
         <ChevronLeft size={16} aria-hidden="true" />
       </Link>
       <div className="min-w-[10rem] text-center">
-        <p className="font-heading text-sm tracking-wide text-text-primary uppercase">
+        <p className="font-heading text-sm font-bold text-text-primary capitalize">
           {formatDateDisplay(dataISO)}
         </p>
       </div>
       <Link
         href={`/admin/agenda?data=${addDays(dataISO, 1)}`}
         aria-label="Próximo dia"
-        className="flex h-9 w-9 items-center justify-center rounded border border-border text-text-secondary hover:border-brass hover:text-brass"
+        className="flex h-9 w-9 items-center justify-center rounded-full border border-border text-text-secondary hover:border-accent hover:text-accent"
       >
         <ChevronRight size={16} aria-hidden="true" />
       </Link>
       {dataISO !== hoje && (
         <Link
           href="/admin/agenda"
-          className="rounded border border-transparent px-3 py-1.5 text-sm text-text-secondary hover:text-text-primary"
+          className="rounded-full border border-transparent px-3 py-1.5 text-sm text-text-secondary hover:text-text-primary"
         >
           Hoje
         </Link>

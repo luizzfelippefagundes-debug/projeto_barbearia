@@ -1,13 +1,13 @@
 import type { Metadata } from "next";
-import { Oswald, Inter, JetBrains_Mono } from "next/font/google";
+import { Plus_Jakarta_Sans, Inter, JetBrains_Mono } from "next/font/google";
 import { ClerkProvider } from "@clerk/nextjs";
 import "./globals.css";
 import { NOME_BARBEARIA } from "../lib/constants";
 
-const oswald = Oswald({
-  variable: "--font-oswald",
+const headingFont = Plus_Jakarta_Sans({
+  variable: "--font-heading-display",
   subsets: ["latin"],
-  weight: ["400", "500", "600", "700"],
+  weight: ["600", "700", "800"],
 });
 
 const inter = Inter({
@@ -33,26 +33,27 @@ export default function RootLayout({
   return (
     <html
       lang="pt-BR"
-      className={`${oswald.variable} ${inter.variable} ${jetbrainsMono.variable}`}
+      className={`${headingFont.variable} ${inter.variable} ${jetbrainsMono.variable}`}
     >
       <body className="bg-bg text-text-primary antialiased">
         <ClerkProvider
           appearance={{
             variables: {
-              colorPrimary: "#c4432b",
-              colorBackground: "#211c16",
-              colorForeground: "#f2ede4",
-              colorMutedForeground: "#9c948a",
-              colorInput: "#17140f",
-              colorInputForeground: "#f2ede4",
-              colorBorder: "#3a322a",
-              colorDanger: "#d14b3c",
-              colorSuccess: "#4c8b5b",
-              colorWarning: "#c99a3c",
+              colorPrimary: "#4756e6",
+              colorBackground: "#ffffff",
+              colorForeground: "#12131a",
+              colorMutedForeground: "#6b7280",
+              colorInput: "#ffffff",
+              colorInputForeground: "#12131a",
+              colorBorder: "#e5e7f0",
+              colorDanger: "#dc2626",
+              colorSuccess: "#16a34a",
+              colorWarning: "#d97706",
+              borderRadius: "14px",
               fontFamily: "var(--font-inter), sans-serif",
             },
             elements: {
-              card: "border border-[#3a322a]",
+              card: "border border-[#e5e7f0] shadow-md",
             },
           }}
         >

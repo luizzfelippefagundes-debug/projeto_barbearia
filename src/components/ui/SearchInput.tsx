@@ -13,7 +13,7 @@ export function SearchInput({ className, ...props }: InputHTMLAttributes<HTMLInp
       <input
         type="search"
         className={cn(
-          'w-full rounded border border-border bg-surface py-2 pr-3 pl-9 text-sm text-text-primary placeholder:text-text-secondary focus:border-brass',
+          'w-full rounded-full border border-border bg-surface py-2.5 pr-3 pl-9 text-sm text-text-primary placeholder:text-text-secondary focus:border-accent focus:ring-2 focus:ring-accent-muted outline-none transition-colors',
           className,
         )}
         {...props}

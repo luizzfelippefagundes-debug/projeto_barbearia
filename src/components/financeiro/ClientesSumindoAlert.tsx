@@ -17,7 +17,7 @@ export function ClientesSumindoAlert({ clientes }: { clientes: Cliente[] }) {
           description={`Todos voltaram em menos de ${CLIENTE_SUMINDO_DIAS} dias (ou ainda não há histórico suficiente).`}
         />
       ) : (
-        <Card className="border-status-amber bg-status-amber-muted">
+        <Card className="border-status-amber/30 bg-status-amber-muted">
           {sumindo.map(({ cliente, diasSemVisita }) => (
             <div
               key={cliente.id}

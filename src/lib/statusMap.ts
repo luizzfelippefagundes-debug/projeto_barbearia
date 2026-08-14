@@ -8,14 +8,14 @@ export interface StatusVisual {
 const NEUTRAL: StatusVisual = {
   label: 'Livre',
   text: 'text-text-secondary',
-  bg: 'bg-surface-raised',
+  bg: 'bg-bg',
   border: 'border-border',
 }
 
 const BLOQUEADO: StatusVisual = {
   label: 'Ocupado',
   text: 'text-text-secondary',
-  bg: 'bg-surface-raised',
+  bg: 'bg-bg',
   border: 'border-border',
 }
 

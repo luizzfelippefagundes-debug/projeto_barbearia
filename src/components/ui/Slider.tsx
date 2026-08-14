@@ -17,7 +17,7 @@ export function Slider({ label, className, id, ...props }: SliderProps) {
         id={id}
         type="range"
         className={cn(
-          'h-1.5 w-full cursor-pointer appearance-none rounded bg-surface-raised accent-brass',
+          'h-1.5 w-full cursor-pointer appearance-none rounded-full bg-surface-raised accent-brass',
           className,
         )}
         {...props}

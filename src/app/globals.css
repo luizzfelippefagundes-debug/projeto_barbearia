@@ -1,35 +1,35 @@
 @import "tailwindcss";
 
 @theme {
-  --color-bg: #17140f;
+  --color-bg: #f3f4fa;
 
-  --color-surface: #211c16;
-  --color-surface-raised: #2a241c;
+  --color-surface: #ffffff;
+  --color-surface-raised: #f6f7fb;
 
-  --color-border: #3a322a;
+  --color-border: #e5e7f0;
 
-  --color-accent: #c4432b;
-  --color-accent-hover: #d65038;
-  --color-accent-muted: #c4432b1a;
+  --color-accent: #4756e6;
+  --color-accent-hover: #3a46c4;
+  --color-accent-muted: #eef0fd;
 
-  --color-brass: #b08d57;
-  --color-brass-muted: #b08d571a;
+  --color-brass: #0ea5a0;
+  --color-brass-muted: #e3f7f5;
 
-  --color-text-primary: #f2ede4;
-  --color-text-secondary: #9c948a;
+  --color-text-primary: #12131a;
+  --color-text-secondary: #6b7280;
 
-  --color-status-green: #4c8b5b;
-  --color-status-green-muted: #4c8b5b1a;
-  --color-status-amber: #c99a3c;
-  --color-status-amber-muted: #c99a3c1a;
-  --color-status-red: #d14b3c;
-  --color-status-red-muted: #d14b3c1a;
+  --color-status-green: #16a34a;
+  --color-status-green-muted: #dcfce7;
+  --color-status-amber: #d97706;
+  --color-status-amber-muted: #fef3c7;
+  --color-status-red: #dc2626;
+  --color-status-red-muted: #fee2e2;
 
-  --font-heading: var(--font-oswald), sans-serif;
+  --font-heading: var(--font-heading-display), var(--font-inter), sans-serif;
   --font-body: var(--font-inter), sans-serif;
   --font-mono: var(--font-jetbrains-mono), monospace;
 
-  --radius-DEFAULT: 4px;
+  --radius-DEFAULT: 14px;
 }
 
 @layer base {
@@ -47,21 +47,21 @@
   h4,
   h5,
   h6 {
-    @apply font-heading uppercase tracking-wide;
+    @apply font-heading font-bold tracking-tight;
   }
 
   :focus-visible {
-    @apply outline outline-2 outline-offset-2 outline-brass;
+    @apply outline outline-2 outline-offset-2 outline-accent;
   }
 }
 
 @layer components {
   .card {
-    @apply rounded border border-border bg-surface;
+    @apply rounded-2xl border border-border bg-surface shadow-sm;
   }
 
   .card-raised {
-    @apply rounded border border-border bg-surface-raised;
+    @apply rounded-2xl border border-border bg-surface shadow-xl;
   }
 
   .divider-thin {

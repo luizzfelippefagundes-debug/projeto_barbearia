@@ -25,7 +25,7 @@ export function SubscriptionSavingsBlock({
   if (economia <= 0) return null
 
   return (
-    <div className="flex items-center gap-3 rounded border border-status-green bg-status-green-muted p-4">
+    <div className="flex items-center gap-3 rounded-2xl border border-status-green/30 bg-status-green-muted p-4">
       <PiggyBank size={24} className="shrink-0 text-status-green" aria-hidden="true" />
       <p className="text-sm text-text-primary">
         Você já economizou{' '}

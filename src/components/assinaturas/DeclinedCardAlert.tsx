@@ -19,10 +19,10 @@ export function DeclinedCardAlert({
   if (recusados.length === 0) return null
 
   return (
-    <Card className="border-status-red bg-status-red-muted p-4">
+    <Card className="border-status-red/30 bg-status-red-muted p-4">
       <div className="mb-3 flex items-center gap-2 text-status-red">
         <AlertTriangle size={18} aria-hidden="true" />
-        <p className="font-heading text-sm tracking-wide uppercase">
+        <p className="font-heading text-sm font-bold">
           {recusados.length} {recusados.length === 1 ? 'cartão recusado' : 'cartões recusados'}
         </p>
       </div>

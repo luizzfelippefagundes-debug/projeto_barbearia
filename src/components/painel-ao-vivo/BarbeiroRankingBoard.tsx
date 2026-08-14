@@ -19,7 +19,7 @@ export function BarbeiroRankingBoard({
 
   return (
     <div className="flex flex-col gap-3">
-      <h2 className="font-heading text-2xl tracking-wide text-brass uppercase">Ranking do mês</h2>
+      <h2 className="font-heading text-2xl font-bold text-white/70">Ranking do mês</h2>
       {ranking.length === 0 ? (
         <EmptyState title="Sem barbeiros cadastrados" />
       ) : (
@@ -28,23 +28,21 @@ export function BarbeiroRankingBoard({
             <div
               key={entry.barbeiro.id}
               className={cn(
-                'flex items-center justify-between gap-4 rounded border px-6 py-4',
-                idx === 0 ? 'border-accent bg-accent-muted' : 'border-border bg-surface',
+                'flex items-center justify-between gap-4 rounded-2xl border px-6 py-4',
+                idx === 0 ? 'border-accent/50 bg-accent/15' : 'border-white/10 bg-white/5',
               )}
             >
               <div className="flex items-center gap-5">
                 <span
-                  className={cn('font-heading text-4xl', idx === 0 ? 'text-accent' : 'text-text-secondary')}
+                  className={cn('font-heading text-4xl font-bold', idx === 0 ? 'text-accent' : 'text-white/40')}
                 >
                   #{idx + 1}
                 </span>
-                <span className="font-heading text-3xl tracking-wide text-text-primary uppercase">
-                  {entry.barbeiro.nome}
-                </span>
+                <span className="font-heading text-3xl font-bold text-white">{entry.barbeiro.nome}</span>
               </div>
               <div className="text-right">
-                <p className="mono-value text-3xl text-text-primary">{formatBRL(entry.faturamento)}</p>
-                <p className="text-sm text-text-secondary">{entry.cortes} cortes</p>
+                <p className="mono-value text-3xl text-white">{formatBRL(entry.faturamento)}</p>
+                <p className="text-sm text-white/50">{entry.cortes} cortes</p>
               </div>
             </div>
           ))}
