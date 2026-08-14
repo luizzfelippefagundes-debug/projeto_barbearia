@@ -1,4 +1,6 @@
-export const HOJE_ISO = '2026-08-12'
+export function getHojeISO(): string {
+  return toISO(new Date())
+}
 
 export const TIME_SLOTS = [
   '09:00',
@@ -57,18 +59,10 @@ export function formatDateDisplay(dataISO: string): string {
   return `${diaSemana}, ${date.getDate()} de ${mes}`
 }
 
-export function isSameDate(a: string, b: string): boolean {
-  return a === b
+export function mesReferenciaDeData(dataISO: string): string {
+  return dataISO.slice(0, 7)
 }
 
-/** Simple deterministic string hash, used to pseudo-randomly but repeatably
- * derive mock statuses/assignments for dates outside the curated "hoje" dataset. */
-export function hashSeed(...parts: string[]): number {
-  const str = parts.join('|')
-  let hash = 0
-  for (let i = 0; i < str.length; i++) {
-    hash = (hash << 5) - hash + str.charCodeAt(i)
-    hash |= 0
-  }
-  return Math.abs(hash)
+export function isSameDate(a: string, b: string): boolean {
+  return a === b
 }
