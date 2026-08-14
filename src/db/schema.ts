@@ -184,3 +184,10 @@ export const vendas = pgTable('vendas', {
   data: date('data').notNull(),
   valorTotal: money('valor_total').notNull(),
 })
+
+/** Linha única de configurações do negócio (id fixo 'default') — hoje só
+ * guarda a meta de faturamento mensal usada no Painel ao Vivo. */
+export const configuracoes = pgTable('configuracoes', {
+  id: text('id').primaryKey().default('default'),
+  metaFaturamentoMensal: money('meta_faturamento_mensal'),
+})
