@@ -32,3 +32,36 @@ export async function getAgendamentosDoDia(dataISO: string): Promise<Agendamento
   const rows = await getDb().select().from(agendamentos).where(eq(agendamentos.data, dataISO))
   return rows.map(toAppAgendamento)
 }
+
+/** Monta a grade real do dia: barbeiros ativos × horários fixos, usando os
+ * agendamentos que existem no banco e sintetizando "livre" (sem gravar nada)
+ * para toda combinação sem registro. Nada aqui é fabricado com dados falsos —
+ * um slot sem linha no banco é genuinamente livre. */
+export async function getGradeAgendaDoDia(
+  dataISO: string,
+  barbeiroIds: string[],
+  timeSlots: string[],
+): Promise<Agendamento[]> {
+  const existentes = await getAgendamentosDoDia(dataISO)
+  const porChave = new Map(existentes.map((a) => [`${a.barbeiroId}|${a.hora}`, a]))
+
+  const grade: Agendamento[] = []
+  for (const hora of timeSlots) {
+    for (const barbeiroId of barbeiroIds) {
+      const chave = `${barbeiroId}|${hora}`
+      const existente = porChave.get(chave)
+      if (existente) {
+        grade.push(existente)
+      } else {
+        grade.push({
+          id: `livre-${barbeiroId}-${hora}`,
+          data: dataISO,
+          hora,
+          barbeiroId,
+          status: 'livre',
+        })
+      }
+    }
+  }
+  return grade
+}
