@@ -1,9 +1,22 @@
 import { eq } from 'drizzle-orm'
 import { getDb } from '../index'
 import { barbeiros } from '../schema'
+import { nullToUndefined } from '../../lib/db-map'
+import type { Barbeiro } from '../../types'
 
-export async function getBarbeiros() {
-  return getDb().select().from(barbeiros).orderBy(barbeiros.nome)
+function toAppBarbeiro(row: typeof barbeiros.$inferSelect): Barbeiro {
+  return {
+    id: row.id,
+    nome: row.nome,
+    avatarUrl: nullToUndefined(row.avatarUrl),
+    comissaoPercent: row.comissaoPercent,
+    ativo: row.ativo,
+  }
+}
+
+export async function getBarbeiros(): Promise<Barbeiro[]> {
+  const rows = await getDb().select().from(barbeiros).orderBy(barbeiros.nome)
+  return rows.map(toAppBarbeiro)
 }
 
 export async function getBarbeiroByClerkId(clerkUserId: string) {

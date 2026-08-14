@@ -29,3 +29,13 @@ export async function requireAdminAccess() {
 
   redirect('/sem-acesso')
 }
+
+/** Usado dentro de Server Actions — elas são endpoints públicos, então cada
+ * uma precisa revalidar autenticação por conta própria, sem depender só do proxy. */
+export async function assertAdmin() {
+  const { userId } = await auth()
+  if (!userId) throw new Error('Não autenticado')
+  const barbeiro = await getBarbeiroByClerkId(userId)
+  if (!barbeiro) throw new Error('Sem acesso ao painel administrativo')
+  return barbeiro
+}

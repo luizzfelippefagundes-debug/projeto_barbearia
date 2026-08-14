@@ -6,7 +6,6 @@ export interface Barbeiro {
   avatarUrl?: string
   comissaoPercent: number
   ativo: boolean
-  produtoMaisVendidoId?: string
 }
 
 export interface PayoutBarbeiro {
