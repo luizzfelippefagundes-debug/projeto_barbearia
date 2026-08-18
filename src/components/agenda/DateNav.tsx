@@ -2,13 +2,13 @@ import Link from 'next/link'
 import { ChevronLeft, ChevronRight } from 'lucide-react'
 import { addDays, formatDateDisplay, getHojeISO } from '../../lib/dateUtils'
 
-export function DateNav({ dataISO }: { dataISO: string }) {
+export function DateNav({ dataISO, basePath = '/admin/agenda' }: { dataISO: string; basePath?: string }) {
   const hoje = getHojeISO()
 
   return (
     <div className="flex items-center gap-3">
       <Link
-        href={`/admin/agenda?data=${addDays(dataISO, -1)}`}
+        href={`${basePath}?data=${addDays(dataISO, -1)}`}
         aria-label="Dia anterior"
         className="flex h-9 w-9 items-center justify-center rounded-full border border-border text-text-secondary hover:border-accent hover:text-accent"
       >
@@ -20,7 +20,7 @@ export function DateNav({ dataISO }: { dataISO: string }) {
         </p>
       </div>
       <Link
-        href={`/admin/agenda?data=${addDays(dataISO, 1)}`}
+        href={`${basePath}?data=${addDays(dataISO, 1)}`}
         aria-label="Próximo dia"
         className="flex h-9 w-9 items-center justify-center rounded-full border border-border text-text-secondary hover:border-accent hover:text-accent"
       >
@@ -28,7 +28,7 @@ export function DateNav({ dataISO }: { dataISO: string }) {
       </Link>
       {dataISO !== hoje && (
         <Link
-          href="/admin/agenda"
+          href={basePath}
           className="rounded-full border border-transparent px-3 py-1.5 text-sm text-text-secondary hover:text-text-primary"
         >
           Hoje

@@ -8,3 +8,4 @@ export type CanalIndicacao =
   | 'passou_na_rua'
   | 'outro'
 export type ThumbUpDown = 'up' | 'down' | null
+export type PapelBarbeiro = 'dono' | 'barbeiro'

@@ -4,12 +4,13 @@ import { barbeiros } from '../schema'
 import { nullToUndefined } from '../../lib/db-map'
 import type { Barbeiro } from '../../types'
 
-function toAppBarbeiro(row: typeof barbeiros.$inferSelect): Barbeiro {
+export function toAppBarbeiro(row: typeof barbeiros.$inferSelect): Barbeiro {
   return {
     id: row.id,
     nome: row.nome,
     avatarUrl: nullToUndefined(row.avatarUrl),
     comissaoPercent: row.comissaoPercent,
+    papel: row.papel,
     ativo: row.ativo,
   }
 }
@@ -33,10 +34,10 @@ export async function countBarbeiros(): Promise<number> {
   return rows.length
 }
 
-export async function criarBarbeiroComClerkId(clerkUserId: string, nome: string) {
+export async function criarDonoComClerkId(clerkUserId: string, nome: string) {
   const rows = await getDb()
     .insert(barbeiros)
-    .values({ clerkUserId, nome, comissaoPercent: 40 })
+    .values({ clerkUserId, nome, comissaoPercent: 40, papel: 'dono' })
     .returning()
   return rows[0]
 }

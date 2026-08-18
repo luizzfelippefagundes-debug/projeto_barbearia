@@ -39,6 +39,8 @@ export const canalIndicacaoEnum = pgEnum('canal_indicacao', [
 
 export const avaliacaoEnum = pgEnum('avaliacao', ['up', 'down'])
 
+export const papelBarbeiroEnum = pgEnum('papel_barbeiro', ['dono', 'barbeiro'])
+
 const money = (col: string) => numeric(col, { precision: 10, scale: 2, mode: 'number' })
 
 export const servicos = pgTable('servicos', {
@@ -67,6 +69,7 @@ export const barbeiros = pgTable('barbeiros', {
   nome: text('nome').notNull(),
   avatarUrl: text('avatar_url'),
   comissaoPercent: integer('comissao_percent').notNull().default(40),
+  papel: papelBarbeiroEnum('papel').notNull().default('barbeiro'),
   ativo: boolean('ativo').notNull().default(true),
   criadoEm: timestamp('criado_em').notNull().defaultNow(),
 })

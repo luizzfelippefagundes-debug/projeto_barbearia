@@ -1,10 +1,11 @@
-import type { StatusPayout } from './common'
+import type { PapelBarbeiro, StatusPayout } from './common'
 
 export interface Barbeiro {
   id: string
   nome: string
   avatarUrl?: string
   comissaoPercent: number
+  papel: PapelBarbeiro
   ativo: boolean
 }
 
