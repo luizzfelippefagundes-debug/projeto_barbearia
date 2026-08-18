@@ -12,7 +12,7 @@ import {
  * no primeiro login. */
 export async function requireBarbeiroAccess() {
   const { userId } = await auth()
-  if (!userId) redirect('/sign-in')
+  if (!userId) redirect('/entrar/barbeiro')
 
   const existente = await getBarbeiroByClerkId(userId)
   if (existente) return existente

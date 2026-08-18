@@ -11,7 +11,7 @@ import { getClienteComHistorico } from '../db/queries/clientes'
  * a consulta quando layout e página chamam isso na mesma requisição. */
 export const requireClienteAtual = cache(async function requireClienteAtual() {
   const { userId } = await auth()
-  if (!userId) redirect('/sign-in')
+  if (!userId) redirect('/entrar/cliente')
 
   let clienteRow = await getClienteRowByClerkId(userId)
   if (!clienteRow) {

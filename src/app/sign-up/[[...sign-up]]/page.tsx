@@ -1,9 +1,5 @@
-import { SignUp } from '@clerk/nextjs'
+import { EscolhaAcesso } from '../../../components/auth/EscolhaAcesso'
 
 export default function Page() {
-  return (
-    <div className="flex min-h-screen items-center justify-center bg-bg p-4">
-      <SignUp />
-    </div>
-  )
+  return <EscolhaAcesso modo="cadastro" />
 }

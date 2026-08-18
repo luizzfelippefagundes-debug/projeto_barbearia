@@ -2,6 +2,7 @@ import Link from 'next/link'
 import { Scissors } from 'lucide-react'
 import { UserButton } from '@clerk/nextjs'
 import { NOME_BARBEARIA } from '../../lib/constants'
+import { SairButton } from '../../components/auth/SairButton'
 
 export default function PublicLayout({ children }: { children: React.ReactNode }) {
   return (
@@ -14,7 +15,10 @@ export default function PublicLayout({ children }: { children: React.ReactNode }
             </span>
             <span className="font-heading text-sm font-bold text-text-primary">{NOME_BARBEARIA}</span>
           </Link>
-          <UserButton />
+          <div className="flex items-center gap-2">
+            <UserButton />
+            <SairButton redirectUrl="/entrar/cliente" />
+          </div>
         </div>
       </header>
 

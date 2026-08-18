@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Plus_Jakarta_Sans, Inter, JetBrains_Mono } from "next/font/google";
 import { ClerkProvider } from "@clerk/nextjs";
+import { ptBR } from "@clerk/localizations";
 import "./globals.css";
 import { NOME_BARBEARIA } from "../lib/constants";
 
@@ -37,6 +38,7 @@ export default function RootLayout({
     >
       <body className="bg-bg text-text-primary antialiased">
         <ClerkProvider
+          localization={ptBR}
           appearance={{
             variables: {
               colorPrimary: "#4756e6",
@@ -54,6 +56,8 @@ export default function RootLayout({
             },
             elements: {
               card: "border border-[#e5e7f0] shadow-md",
+              headerTitle: "hidden",
+              headerSubtitle: "hidden",
             },
           }}
         >

@@ -12,7 +12,7 @@ import {
  * Um barbeiro comum (papel !== 'dono') é redirecionado pra própria área. */
 export async function requireAdminAccess() {
   const { userId } = await auth()
-  if (!userId) redirect('/sign-in')
+  if (!userId) redirect('/entrar/dono')
 
   const existente = await getBarbeiroByClerkId(userId)
   if (existente) {
