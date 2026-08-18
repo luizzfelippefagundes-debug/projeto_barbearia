@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import { Loader2, Sparkles } from 'lucide-react'
 import type { Servico } from '../../types'
 import { Button, Select } from '../../components/ui'
 import { PhotoUploadDropzone } from './PhotoUploadDropzone'
@@ -9,7 +10,17 @@ import { PreviewResultCard } from './PreviewResultCard'
 export function AiHaircutPreviewClient({ servicos }: { servicos: Servico[] }) {
   const [foto, setFoto] = useState<string | undefined>(undefined)
   const [servicoId, setServicoId] = useState(servicos[0]?.id ?? '')
+  const [gerando, setGerando] = useState(false)
   const [resultadoGerado, setResultadoGerado] = useState(false)
+
+  function handleGerar() {
+    setGerando(true)
+    setResultadoGerado(false)
+    setTimeout(() => {
+      setGerando(false)
+      setResultadoGerado(true)
+    }, 1400)
+  }
 
   return (
     <div className="flex flex-col gap-4">
@@ -26,11 +37,21 @@ export function AiHaircutPreviewClient({ servicos }: { servicos: Servico[] }) {
             setResultadoGerado(false)
           }}
         />
-        {resultadoGerado ? (
-          <PreviewResultCard />
+        {resultadoGerado && foto ? (
+          <PreviewResultCard fotoUrl={foto} />
         ) : (
-          <div className="flex aspect-square w-full items-center justify-center rounded border border-dashed border-border text-center text-xs text-text-secondary">
-            O resultado aparece aqui
+          <div className="flex aspect-square w-full flex-col items-center justify-center gap-2 rounded border border-dashed border-border text-center text-xs text-text-secondary">
+            {gerando ? (
+              <>
+                <Loader2 size={22} className="animate-spin text-accent" aria-hidden="true" />
+                <span>Gerando prévia...</span>
+              </>
+            ) : (
+              <>
+                <Sparkles size={20} aria-hidden="true" />
+                <span>O resultado aparece aqui</span>
+              </>
+            )}
           </div>
         )}
       </div>
@@ -45,8 +66,8 @@ export function AiHaircutPreviewClient({ servicos }: { servicos: Servico[] }) {
         </Select>
       )}
 
-      <Button disabled={!foto} onClick={() => setResultadoGerado(true)}>
-        Gerar preview
+      <Button disabled={!foto || gerando} onClick={handleGerar}>
+        {gerando ? 'Gerando...' : 'Gerar preview'}
       </Button>
     </div>
   )
