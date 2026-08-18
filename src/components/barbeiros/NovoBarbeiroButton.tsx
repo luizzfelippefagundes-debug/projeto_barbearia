@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { Plus } from 'lucide-react'
+import { CheckCircle2, Plus } from 'lucide-react'
 import { Button, Input, Modal } from '../../components/ui'
 import { criarBarbeiro } from '../../actions/barbeiros.actions'
 
@@ -12,6 +12,16 @@ export function NovoBarbeiroButton() {
   const [comissao, setComissao] = useState(40)
   const [salvando, setSalvando] = useState(false)
   const [erro, setErro] = useState<string | null>(null)
+  const [sucesso, setSucesso] = useState<{ nome: string; conviteEnviado: boolean } | null>(null)
+
+  function fecharTudo() {
+    setOpen(false)
+    setNome('')
+    setEmail('')
+    setComissao(40)
+    setSucesso(null)
+    setErro(null)
+  }
 
   async function handleSalvar() {
     if (!nome.trim()) {
@@ -25,11 +35,8 @@ export function NovoBarbeiroButton() {
     setSalvando(true)
     setErro(null)
     try {
-      await criarBarbeiro(nome, comissao, email)
-      setNome('')
-      setEmail('')
-      setComissao(40)
-      setOpen(false)
+      const resultado = await criarBarbeiro(nome, comissao, email)
+      setSucesso({ nome: resultado.nome, conviteEnviado: resultado.conviteEnviado })
     } catch {
       setErro('Não foi possível salvar. Tente de novo.')
     } finally {
@@ -44,43 +51,59 @@ export function NovoBarbeiroButton() {
         Novo barbeiro
       </Button>
 
-      <Modal open={open} onClose={() => setOpen(false)} title="Novo barbeiro">
-        <div className="flex flex-col gap-4">
-          <Input
-            label="Nome"
-            value={nome}
-            onChange={(e) => setNome(e.target.value)}
-            placeholder="Nome do barbeiro"
-          />
-          <Input
-            label="E-mail (o barbeiro vai entrar com esse e-mail)"
-            type="email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            placeholder="barbeiro@email.com"
-          />
-          <Input
-            label="Comissão inicial (%)"
-            type="number"
-            min={20}
-            max={70}
-            value={comissao}
-            onChange={(e) => setComissao(Number(e.target.value))}
-          />
-          {erro && <p className="text-xs text-status-red">{erro}</p>}
-          <p className="text-xs text-text-secondary">
-            Depois de salvar, avise o barbeiro pra criar a conta em {typeof window !== 'undefined' ? window.location.origin : ''}
-            /sign-up usando esse mesmo e-mail — o acesso é ligado automaticamente no primeiro login.
-          </p>
-          <div className="flex justify-end gap-2">
-            <Button variant="ghost" onClick={() => setOpen(false)}>
-              Cancelar
-            </Button>
-            <Button onClick={handleSalvar} disabled={salvando}>
-              {salvando ? 'Salvando...' : 'Salvar'}
+      <Modal open={open} onClose={fecharTudo} title="Novo barbeiro">
+        {sucesso ? (
+          <div className="flex flex-col items-center gap-3 py-4 text-center">
+            <CheckCircle2 size={32} className="text-status-green" aria-hidden="true" />
+            <div>
+              <p className="text-sm text-text-primary">{sucesso.nome} foi cadastrado.</p>
+              <p className="mt-1 text-xs text-text-secondary">
+                {sucesso.conviteEnviado
+                  ? 'Um e-mail de convite foi enviado — ele só consegue criar a conta pelo link desse e-mail.'
+                  : 'Não deu pra enviar o e-mail agora (talvez esse e-mail já tenha conta). O acesso continua ligado automaticamente no primeiro login dele.'}
+              </p>
+            </div>
+            <Button size="sm" onClick={fecharTudo}>
+              Entendi
             </Button>
           </div>
-        </div>
+        ) : (
+          <div className="flex flex-col gap-4">
+            <Input
+              label="Nome"
+              value={nome}
+              onChange={(e) => setNome(e.target.value)}
+              placeholder="Nome do barbeiro"
+            />
+            <Input
+              label="E-mail (vamos convidar por aqui)"
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              placeholder="barbeiro@email.com"
+            />
+            <Input
+              label="Comissão inicial (%)"
+              type="number"
+              min={20}
+              max={70}
+              value={comissao}
+              onChange={(e) => setComissao(Number(e.target.value))}
+            />
+            {erro && <p className="text-xs text-status-red">{erro}</p>}
+            <p className="text-xs text-text-secondary">
+              O cadastro de barbeiro não é aberto — só entra quem recebe o convite por e-mail.
+            </p>
+            <div className="flex justify-end gap-2">
+              <Button variant="ghost" onClick={fecharTudo}>
+                Cancelar
+              </Button>
+              <Button onClick={handleSalvar} disabled={salvando}>
+                {salvando ? 'Enviando convite...' : 'Cadastrar e convidar'}
+              </Button>
+            </div>
+          </div>
+        )}
       </Modal>
     </>
   )
