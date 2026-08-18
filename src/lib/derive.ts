@@ -186,6 +186,51 @@ export function getFechamentoCaixa(
   }
 }
 
+/** Fechamento de caixa de um dia específico — diferente de getFechamentoCaixa
+ * (que soma o MRR do mês inteiro pra "assinatura"), aqui "assinatura" é o
+ * valor das cobranças recorrentes que caem NAQUELE dia (proximaCobranca),
+ * já que é isso que efetivamente "entra no caixa" no dia. */
+export function getFechamentoCaixaDoDia(
+  agendamentos: Agendamento[],
+  servicos: Servico[],
+  vendas: Venda[],
+  assinaturas: Assinatura[],
+  planos: PlanoAssinatura[],
+  clientes: Cliente[],
+  dataISO: string,
+) {
+  const clientesComAssinatura = new Set(
+    clientes.filter((c) => c.assinaturaId).map((c) => c.id),
+  )
+
+  const avulso = agendamentos
+    .filter(
+      (a) =>
+        a.status === 'confirmado' &&
+        a.data === dataISO &&
+        !(a.clienteId && clientesComAssinatura.has(a.clienteId)),
+    )
+    .reduce((sum, a) => sum + precoServico(servicos, a.servicoId), 0)
+
+  const produtos = vendas
+    .filter((v) => v.data === dataISO)
+    .reduce((sum, v) => sum + v.valorTotal, 0)
+
+  const assinatura = assinaturas
+    .filter((a) => a.status !== 'cancelado' && a.proximaCobranca === dataISO)
+    .reduce((sum, a) => {
+      const plano = planos.find((p) => p.id === a.planoId)
+      return sum + (plano?.valorMensal ?? 0)
+    }, 0)
+
+  return {
+    avulso,
+    produtos,
+    assinatura,
+    total: avulso + produtos + assinatura,
+  }
+}
+
 /** Faturamento acumulado real (avulso + produtos) dia a dia, só até hoje —
  * sem projetar os dias que ainda não aconteceram. */
 export function getFaturamentoAcumuladoPorDia(

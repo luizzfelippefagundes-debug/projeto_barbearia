@@ -5,32 +5,64 @@ import { RevenueAccumulatedChart } from '../../../../components/financeiro/Reven
 import { PriceSimulator } from '../../../../components/financeiro/PriceSimulator'
 import { CashClosingSummary } from '../../../../components/financeiro/CashClosingSummary'
 import { MetaFaturamentoCard } from '../../../../components/financeiro/MetaFaturamentoCard'
+import { FechamentoCaixaDia } from '../../../../components/financeiro/FechamentoCaixaDia'
 import { getBarbeiros } from '../../../../db/queries/barbeiros'
 import { getMetaFaturamentoMensal } from '../../../../db/queries/configuracoes'
-import { getAgendamentosDoMes } from '../../../../db/queries/agendamentos'
+import { getAgendamentosDoMes, getAgendamentosDoDia } from '../../../../db/queries/agendamentos'
 import { getServicosAtivos } from '../../../../db/queries/servicos'
 import { getVendas } from '../../../../db/queries/vendas'
 import { getAssinaturas, getPlanosAssinatura } from '../../../../db/queries/assinaturas'
-import { getClientesComHistorico } from '../../../../db/queries/clientes'
+import { getClientesComHistorico, getClientesResumo } from '../../../../db/queries/clientes'
+import { getFechamentoCaixaSalvo } from '../../../../db/queries/fechamentoCaixa'
+import { getFechamentoCaixaDoDia } from '../../../../lib/derive'
 import { getHojeISO, mesReferenciaDeData } from '../../../../lib/dateUtils'
 
 export default async function FinanceiroPage() {
-  const mesReferencia = mesReferenciaDeData(getHojeISO())
+  const hojeISO = getHojeISO()
+  const mesReferencia = mesReferenciaDeData(hojeISO)
 
-  const [barbeiros, agendamentos, servicos, vendas, assinaturas, planos, clientes, metaFaturamento] =
-    await Promise.all([
-      getBarbeiros(),
-      getAgendamentosDoMes(mesReferencia),
-      getServicosAtivos(),
-      getVendas(),
-      getAssinaturas(),
-      getPlanosAssinatura(),
-      getClientesComHistorico(),
-      getMetaFaturamentoMensal(),
-    ])
+  const [
+    barbeiros,
+    agendamentos,
+    servicos,
+    vendas,
+    assinaturas,
+    planos,
+    clientes,
+    metaFaturamento,
+    agendamentosHoje,
+    clientesResumo,
+    fechamentoSalvo,
+  ] = await Promise.all([
+    getBarbeiros(),
+    getAgendamentosDoMes(mesReferencia),
+    getServicosAtivos(),
+    getVendas(),
+    getAssinaturas(),
+    getPlanosAssinatura(),
+    getClientesComHistorico(),
+    getMetaFaturamentoMensal(),
+    getAgendamentosDoDia(hojeISO),
+    getClientesResumo(),
+    getFechamentoCaixaSalvo(hojeISO),
+  ])
+
+  const fechamentoDoDia =
+    fechamentoSalvo ??
+    getFechamentoCaixaDoDia(agendamentosHoje, servicos, vendas, assinaturas, planos, clientesResumo, hojeISO)
 
   return (
     <div className="flex flex-col gap-8">
+      <FechamentoCaixaDia
+        dataISO={hojeISO}
+        avulso={fechamentoDoDia.avulso}
+        assinatura={fechamentoDoDia.assinatura}
+        produtos={fechamentoDoDia.produtos}
+        total={fechamentoDoDia.total}
+        fechado={!!fechamentoSalvo}
+        fechadoEm={fechamentoSalvo?.fechadoEm}
+        fechadoPorNome={fechamentoSalvo?.fechadoPorNome}
+      />
       <div>
         <SectionHeading>Financeiro</SectionHeading>
         <FinanceiroKpiRow

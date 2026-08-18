@@ -191,3 +191,18 @@ export const configuracoes = pgTable('configuracoes', {
   id: text('id').primaryKey().default('default'),
   metaFaturamentoMensal: money('meta_faturamento_mensal'),
 })
+
+/** Uma linha por dia fechado — trava os números do fechamento de caixa
+ * daquele dia em vez de deixar só um total calculado ao vivo. */
+export const fechamentosCaixa = pgTable('fechamentos_caixa', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  data: date('data').notNull().unique(),
+  avulso: money('avulso').notNull(),
+  assinatura: money('assinatura').notNull(),
+  produtos: money('produtos').notNull(),
+  total: money('total').notNull(),
+  fechadoEm: timestamp('fechado_em').notNull().defaultNow(),
+  fechadoPorBarbeiroId: uuid('fechado_por_barbeiro_id').references(() => barbeiros.id, {
+    onDelete: 'set null',
+  }),
+})
