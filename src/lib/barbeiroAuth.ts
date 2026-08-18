@@ -1,17 +1,30 @@
-import { auth } from '@clerk/nextjs/server'
+import { auth, currentUser } from '@clerk/nextjs/server'
 import { redirect } from 'next/navigation'
-import { getBarbeiroByClerkId } from '../db/queries/barbeiros'
+import {
+  getBarbeiroByClerkId,
+  getConviteBarbeiroPorEmail,
+  vincularClerkIdAoBarbeiro,
+} from '../db/queries/barbeiros'
 
 /** Garante que quem está acessando /barbeiro é um barbeiro (ou dono)
- * cadastrado — não auto-provisiona ninguém aqui, só o caminho do dono faz isso. */
+ * cadastrado. Se a conta ainda não está ligada mas existe um convite
+ * pendente (cadastrado pelo dono) com o mesmo e-mail, liga automaticamente
+ * no primeiro login. */
 export async function requireBarbeiroAccess() {
   const { userId } = await auth()
   if (!userId) redirect('/sign-in')
 
-  const barbeiro = await getBarbeiroByClerkId(userId)
-  if (!barbeiro) redirect('/sem-acesso')
+  const existente = await getBarbeiroByClerkId(userId)
+  if (existente) return existente
 
-  return barbeiro
+  const user = await currentUser()
+  const email = user?.emailAddresses[0]?.emailAddress?.toLowerCase()
+  if (email) {
+    const convite = await getConviteBarbeiroPorEmail(email)
+    if (convite) return vincularClerkIdAoBarbeiro(convite.id, userId)
+  }
+
+  redirect('/sem-acesso')
 }
 
 /** Usado dentro de Server Actions da área do barbeiro — qualquer barbeiro

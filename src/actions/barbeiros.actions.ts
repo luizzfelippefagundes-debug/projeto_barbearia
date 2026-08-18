@@ -14,13 +14,14 @@ export async function setComissao(barbeiroId: string, percent: number) {
   revalidatePath('/admin/financeiro')
 }
 
-export async function criarBarbeiro(nome: string, comissaoPercent: number) {
+export async function criarBarbeiro(nome: string, comissaoPercent: number, emailConvite: string) {
   await assertAdmin()
   if (!nome.trim()) throw new Error('Nome é obrigatório')
+  if (!emailConvite.trim()) throw new Error('E-mail é obrigatório para o convite')
   const clamped = Math.min(70, Math.max(20, Math.round(comissaoPercent)))
   const rows = await getDb()
     .insert(barbeiros)
-    .values({ nome: nome.trim(), comissaoPercent: clamped })
+    .values({ nome: nome.trim(), comissaoPercent: clamped, emailConvite: emailConvite.trim().toLowerCase() })
     .returning()
   revalidatePath('/admin/barbeiros')
   return rows[0]

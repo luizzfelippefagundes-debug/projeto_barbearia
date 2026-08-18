@@ -1,5 +1,6 @@
+import { Clock } from 'lucide-react'
 import type { Barbeiro, PayoutBarbeiro } from '../../types'
-import { Avatar, Card } from '../../components/ui'
+import { Avatar, Card, StatusPill } from '../../components/ui'
 import { CommissionSlider } from './CommissionSlider'
 import { PayoutStatusPill } from './PayoutStatusPill'
 import { formatBRL } from '../../lib/format'
@@ -21,6 +22,17 @@ export function BarbeiroCard({ barbeiro, payout, cortes, valorAReceber }: Barbei
           <p className="text-xs text-text-secondary">{cortes} cortes este mês</p>
         </div>
       </div>
+
+      {barbeiro.convitePendente && (
+        <StatusPill
+          status="aguardando"
+          label={
+            <span className="flex items-center gap-1">
+              <Clock size={12} aria-hidden="true" /> Aguardando primeiro login
+            </span>
+          }
+        />
+      )}
 
       <CommissionSlider barbeiroId={barbeiro.id} value={barbeiro.comissaoPercent} />
 

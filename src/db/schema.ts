@@ -66,6 +66,10 @@ export const produtos = pgTable('produtos', {
 export const barbeiros = pgTable('barbeiros', {
   id: uuid('id').primaryKey().defaultRandom(),
   clerkUserId: text('clerk_user_id').unique(),
+  /** E-mail informado pelo dono ao cadastrar o barbeiro — usado só para
+   * ligar a conta do Clerk automaticamente no primeiro login dele
+   * (comparado com o e-mail da conta, não é um campo de contato). */
+  emailConvite: text('email_convite'),
   nome: text('nome').notNull(),
   avatarUrl: text('avatar_url'),
   comissaoPercent: integer('comissao_percent').notNull().default(40),

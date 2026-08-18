@@ -7,6 +7,8 @@ export interface Barbeiro {
   comissaoPercent: number
   papel: PapelBarbeiro
   ativo: boolean
+  /** true = ainda não fez o primeiro login pra ligar a conta */
+  convitePendente: boolean
 }
 
 export interface PayoutBarbeiro {

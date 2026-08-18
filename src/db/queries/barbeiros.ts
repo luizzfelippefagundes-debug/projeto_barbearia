@@ -12,6 +12,7 @@ export function toAppBarbeiro(row: typeof barbeiros.$inferSelect): Barbeiro {
     comissaoPercent: row.comissaoPercent,
     papel: row.papel,
     ativo: row.ativo,
+    convitePendente: !row.clerkUserId,
   }
 }
 
@@ -27,6 +28,25 @@ export async function getBarbeiroByClerkId(clerkUserId: string) {
     .where(eq(barbeiros.clerkUserId, clerkUserId))
     .limit(1)
   return rows[0] ?? null
+}
+
+/** Convite pendente: cadastro feito pelo dono, mas ainda sem clerk_user_id
+ * ligado — usado pra "reivindicar" a conta no primeiro login por e-mail. */
+export async function getConviteBarbeiroPorEmail(email: string) {
+  const db = getDb()
+  const rows = await db.select().from(barbeiros).where(eq(barbeiros.emailConvite, email)).limit(1)
+  const row = rows[0]
+  if (!row || row.clerkUserId) return null
+  return row
+}
+
+export async function vincularClerkIdAoBarbeiro(barbeiroId: string, clerkUserId: string) {
+  const rows = await getDb()
+    .update(barbeiros)
+    .set({ clerkUserId })
+    .where(eq(barbeiros.id, barbeiroId))
+    .returning()
+  return rows[0]
 }
 
 export async function countBarbeiros(): Promise<number> {

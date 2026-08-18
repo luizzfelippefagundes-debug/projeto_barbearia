@@ -8,6 +8,7 @@ import { criarBarbeiro } from '../../actions/barbeiros.actions'
 export function NovoBarbeiroButton() {
   const [open, setOpen] = useState(false)
   const [nome, setNome] = useState('')
+  const [email, setEmail] = useState('')
   const [comissao, setComissao] = useState(40)
   const [salvando, setSalvando] = useState(false)
   const [erro, setErro] = useState<string | null>(null)
@@ -17,11 +18,16 @@ export function NovoBarbeiroButton() {
       setErro('Digite o nome do barbeiro.')
       return
     }
+    if (!email.trim() || !email.includes('@')) {
+      setErro('Digite um e-mail válido — é com ele que o barbeiro vai entrar.')
+      return
+    }
     setSalvando(true)
     setErro(null)
     try {
-      await criarBarbeiro(nome, comissao)
+      await criarBarbeiro(nome, comissao, email)
       setNome('')
+      setEmail('')
       setComissao(40)
       setOpen(false)
     } catch {
@@ -47,6 +53,13 @@ export function NovoBarbeiroButton() {
             placeholder="Nome do barbeiro"
           />
           <Input
+            label="E-mail (o barbeiro vai entrar com esse e-mail)"
+            type="email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            placeholder="barbeiro@email.com"
+          />
+          <Input
             label="Comissão inicial (%)"
             type="number"
             min={20}
@@ -55,6 +68,10 @@ export function NovoBarbeiroButton() {
             onChange={(e) => setComissao(Number(e.target.value))}
           />
           {erro && <p className="text-xs text-status-red">{erro}</p>}
+          <p className="text-xs text-text-secondary">
+            Depois de salvar, avise o barbeiro pra criar a conta em {typeof window !== 'undefined' ? window.location.origin : ''}
+            /sign-up usando esse mesmo e-mail — o acesso é ligado automaticamente no primeiro login.
+          </p>
           <div className="flex justify-end gap-2">
             <Button variant="ghost" onClick={() => setOpen(false)}>
               Cancelar
