@@ -96,6 +96,22 @@ export async function buscarPrimeiroPagamentoDaAssinatura(
   return result.data[0] ?? null
 }
 
+export async function buscarStatusPagamento(paymentId: string): Promise<AsaasPayment> {
+  return asaasFetch<AsaasPayment>(`/payments/${encodeURIComponent(paymentId)}`)
+}
+
+const STATUS_PAGO = new Set(['RECEIVED', 'CONFIRMED'])
+const STATUS_VENCIDO = new Set(['OVERDUE'])
+
+/** Traduz o status de pagamento do Asaas pro nosso enum de assinatura — usado
+ * tanto pelo webhook quanto pela verificação manual (fallback pra quando o
+ * webhook ainda não está configurado ou falha em chegar). */
+export function mapStatusPagamentoAsaas(statusAsaas: string): 'em_dia' | 'atrasado' | null {
+  if (STATUS_PAGO.has(statusAsaas)) return 'em_dia'
+  if (STATUS_VENCIDO.has(statusAsaas)) return 'atrasado'
+  return null
+}
+
 export interface AsaasPixQrCode {
   encodedImage: string
   payload: string

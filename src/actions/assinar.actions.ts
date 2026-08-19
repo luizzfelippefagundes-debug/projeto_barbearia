@@ -9,8 +9,10 @@ import { getAssinaturaAtivaDoCliente } from '../db/queries/assinaturas'
 import {
   buscarPixQrCode,
   buscarPrimeiroPagamentoDaAssinatura,
+  buscarStatusPagamento,
   criarAssinaturaAsaas,
   criarClienteAsaas,
+  mapStatusPagamentoAsaas,
 } from '../lib/asaas'
 import { getHojeISO } from '../lib/dateUtils'
 
@@ -97,6 +99,33 @@ export async function assinarPlano(planoId: string, cpfInput: string) {
   revalidatePath('/cliente/assinar')
   revalidatePath('/cliente/perfil')
   return { assinaturaId: novaAssinatura.id }
+}
+
+/** Fallback pro webhook: confere direto com o Asaas se a cobrança já foi paga.
+ * Chamado toda vez que a tela de pagamento carrega, então a assinatura ativa
+ * mesmo se o webhook ainda não estiver configurado (ou falhar em chegar). */
+export async function verificarPagamentoAssinatura(assinaturaId: string): Promise<string> {
+  const clienteRow = await getClienteAtualOuFalhar()
+
+  const rows = await getDb().select().from(assinaturas).where(eq(assinaturas.id, assinaturaId)).limit(1)
+  const assinatura = rows[0]
+  if (!assinatura || assinatura.clienteId !== clienteRow.id) {
+    throw new Error('Assinatura não encontrada.')
+  }
+
+  if (assinatura.status !== 'aguardando' || !assinatura.asaasFirstPaymentId) {
+    return assinatura.status
+  }
+
+  const pagamento = await buscarStatusPagamento(assinatura.asaasFirstPaymentId)
+  const novoStatus = mapStatusPagamentoAsaas(pagamento.status)
+  if (!novoStatus) return assinatura.status
+
+  await getDb().update(assinaturas).set({ status: novoStatus }).where(eq(assinaturas.id, assinaturaId))
+  revalidatePath('/cliente/perfil')
+  revalidatePath('/cliente/assinar')
+  revalidatePath('/admin/assinaturas')
+  return novoStatus
 }
 
 export async function buscarQrCodeDaMinhaAssinatura(assinaturaId: string) {

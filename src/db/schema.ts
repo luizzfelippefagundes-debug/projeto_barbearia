@@ -48,6 +48,9 @@ export const servicos = pgTable('servicos', {
   nome: text('nome').notNull(),
   duracaoMin: integer('duracao_min').notNull(),
   precoAvulso: money('preco_avulso').notNull(),
+  /** Coberto pela assinatura sem limite mensal (ex: cabelo, pezinho, barba).
+   * Assinante em dia não paga nada por esses; demais serviços têm 10% off. */
+  incluidoNoPlano: boolean('incluido_no_plano').notNull().default(false),
   ativo: boolean('ativo').notNull().default(true),
   criadoEm: timestamp('criado_em').notNull().defaultNow(),
 })
@@ -72,7 +75,7 @@ export const barbeiros = pgTable('barbeiros', {
   emailConvite: text('email_convite'),
   nome: text('nome').notNull(),
   avatarUrl: text('avatar_url'),
-  comissaoPercent: integer('comissao_percent').notNull().default(40),
+  comissaoPercent: integer('comissao_percent').notNull().default(45),
   papel: papelBarbeiroEnum('papel').notNull().default('barbeiro'),
   ativo: boolean('ativo').notNull().default(true),
   criadoEm: timestamp('criado_em').notNull().defaultNow(),

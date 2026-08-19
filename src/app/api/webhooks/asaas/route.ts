@@ -3,6 +3,7 @@ import { NextResponse } from 'next/server'
 import { revalidatePath } from 'next/cache'
 import { getDb } from '../../../../db'
 import { asaasWebhookEventos, assinaturas } from '../../../../db/schema'
+import { mapStatusPagamentoAsaas } from '../../../../lib/asaas'
 
 interface AsaasWebhookPayload {
   id: string
@@ -13,9 +14,6 @@ interface AsaasWebhookPayload {
     status: string
   }
 }
-
-const EVENTOS_EM_DIA = new Set(['PAYMENT_RECEIVED', 'PAYMENT_CONFIRMED'])
-const EVENTOS_ATRASADO = new Set(['PAYMENT_OVERDUE'])
 
 export async function POST(req: Request) {
   const token = req.headers.get('asaas-access-token')
@@ -49,10 +47,7 @@ export async function POST(req: Request) {
     return NextResponse.json({ ok: true })
   }
 
-  let novoStatus: 'em_dia' | 'atrasado' | null = null
-  if (EVENTOS_EM_DIA.has(payload.event)) novoStatus = 'em_dia'
-  else if (EVENTOS_ATRASADO.has(payload.event)) novoStatus = 'atrasado'
-
+  const novoStatus = payload.payment?.status ? mapStatusPagamentoAsaas(payload.payment.status) : null
   if (!novoStatus) {
     return NextResponse.json({ ok: true })
   }

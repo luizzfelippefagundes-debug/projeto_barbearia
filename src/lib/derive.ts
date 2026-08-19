@@ -17,6 +17,32 @@ function precoServico(servicos: Servico[], servicoId: string | undefined): numbe
   return servicos.find((s) => s.id === servicoId)?.precoAvulso ?? 0
 }
 
+/** Preço que o cliente paga por um serviço — grátis se coberto pela assinatura
+ * (sem limite mensal), 10% off nos demais serviços pra quem é assinante em dia. */
+export function getPrecoServicoParaCliente(
+  servico: Servico,
+  assinanteAtivo: boolean,
+): { valor: number; incluido: boolean } {
+  if (servico.incluidoNoPlano && assinanteAtivo) return { valor: 0, incluido: true }
+  if (assinanteAtivo) return { valor: Math.round(servico.precoAvulso * 0.9 * 100) / 100, incluido: false }
+  return { valor: servico.precoAvulso, incluido: false }
+}
+
+function clientesComAssinaturaAtiva(assinaturas: Assinatura[]): Set<string> {
+  return new Set(assinaturas.filter((a) => a.status === 'em_dia').map((a) => a.clienteId))
+}
+
+function precoRealAgendamento(
+  servicos: Servico[],
+  assinantesAtivos: Set<string>,
+  agendamento: Agendamento,
+): number {
+  const servico = servicos.find((s) => s.id === agendamento.servicoId)
+  if (!servico) return 0
+  const ehAssinante = Boolean(agendamento.clienteId && assinantesAtivos.has(agendamento.clienteId))
+  return getPrecoServicoParaCliente(servico, ehAssinante).valor
+}
+
 export function getCortesNoMesPorBarbeiro(
   agendamentos: Agendamento[],
   barbeiroId: string,
@@ -48,6 +74,34 @@ export function getFaturamentoGeradoPorBarbeiroNoMes(
 
 export function getValorAReceber(barbeiro: Barbeiro, faturamentoGerado: number): number {
   return Math.round(faturamentoGerado * (barbeiro.comissaoPercent / 100) * 100) / 100
+}
+
+/** Comissão sobre venda de produto é fixa pra todo barbeiro — diferente da
+ * comissão de serviço, que é configurável por barbeiro (comissaoPercent). */
+export const COMISSAO_VENDA_PRODUTO_PERCENT = 10
+
+export function getVendasDoBarbeiroNoMes(vendas: Venda[], barbeiroId: string, mesReferencia: string): number {
+  return vendas
+    .filter((v) => v.barbeiroId === barbeiroId && mesReferenciaDeData(v.data) === mesReferencia)
+    .reduce((total, v) => total + v.valorTotal, 0)
+}
+
+export function getComissaoVendasProdutos(totalVendas: number): number {
+  return Math.round(totalVendas * (COMISSAO_VENDA_PRODUTO_PERCENT / 100) * 100) / 100
+}
+
+/** Valor total a receber do barbeiro no mês: comissão de serviços (taxa
+ * própria do barbeiro) + comissão de vendas de produto (taxa fixa de 10%). */
+export function getComissaoTotalBarbeiro(
+  barbeiro: Barbeiro,
+  faturamentoServicos: number,
+  totalVendasProdutos: number,
+): number {
+  return (
+    Math.round(
+      (getValorAReceber(barbeiro, faturamentoServicos) + getComissaoVendasProdutos(totalVendasProdutos)) * 100,
+    ) / 100
+  )
 }
 
 export function getRankingBarbeiros(
@@ -159,18 +213,11 @@ export function getFechamentoCaixa(
   clientes: Cliente[],
   mesReferencia: string,
 ) {
-  const clientesComAssinatura = new Set(
-    clientes.filter((c) => c.assinaturaId).map((c) => c.id),
-  )
+  const assinantesAtivos = clientesComAssinaturaAtiva(assinaturas)
 
   const avulso = agendamentos
-    .filter(
-      (a) =>
-        a.status === 'confirmado' &&
-        mesReferenciaDeData(a.data) === mesReferencia &&
-        !(a.clienteId && clientesComAssinatura.has(a.clienteId)),
-    )
-    .reduce((sum, a) => sum + precoServico(servicos, a.servicoId), 0)
+    .filter((a) => a.status === 'confirmado' && mesReferenciaDeData(a.data) === mesReferencia)
+    .reduce((sum, a) => sum + precoRealAgendamento(servicos, assinantesAtivos, a), 0)
 
   const produtos = vendas
     .filter((v) => mesReferenciaDeData(v.data) === mesReferencia)
@@ -199,18 +246,11 @@ export function getFechamentoCaixaDoDia(
   clientes: Cliente[],
   dataISO: string,
 ) {
-  const clientesComAssinatura = new Set(
-    clientes.filter((c) => c.assinaturaId).map((c) => c.id),
-  )
+  const assinantesAtivos = clientesComAssinaturaAtiva(assinaturas)
 
   const avulso = agendamentos
-    .filter(
-      (a) =>
-        a.status === 'confirmado' &&
-        a.data === dataISO &&
-        !(a.clienteId && clientesComAssinatura.has(a.clienteId)),
-    )
-    .reduce((sum, a) => sum + precoServico(servicos, a.servicoId), 0)
+    .filter((a) => a.status === 'confirmado' && a.data === dataISO)
+    .reduce((sum, a) => sum + precoRealAgendamento(servicos, assinantesAtivos, a), 0)
 
   const produtos = vendas
     .filter((v) => v.data === dataISO)

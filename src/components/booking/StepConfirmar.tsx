@@ -6,6 +6,7 @@ import type { Assinatura, Barbeiro, Cliente, PlanoAssinatura, Servico } from '..
 import { Button, Card } from '../../components/ui'
 import { agendarComoCliente } from '../../actions/booking.actions'
 import { formatBRL } from '../../lib/format'
+import { getPrecoServicoParaCliente } from '../../lib/derive'
 import { SubscriptionSavingsBlock } from './SubscriptionSavingsBlock'
 
 interface StepConfirmarProps {
@@ -50,6 +51,9 @@ export function StepConfirmar({
     )
   }
 
+  const assinanteAtivo = assinatura?.status === 'em_dia'
+  const precoInfo = servico ? getPrecoServicoParaCliente(servico, assinanteAtivo) : { valor: 0, incluido: false }
+
   return (
     <div className="flex flex-col gap-4">
       <h2 className="text-lg text-text-primary">Confirmar agendamento</h2>
@@ -58,7 +62,11 @@ export function StepConfirmar({
         <Linha label="Barbeiro" valor={barbeiro?.nome ?? ''} />
         <Linha label="Horário" valor={`Hoje, ${hora}`} />
         <div className="divider-thin" />
-        <Linha label="Valor" valor={formatBRL(servico?.precoAvulso ?? 0)} destaque />
+        <Linha
+          label="Valor"
+          valor={precoInfo.incluido ? 'Incluso no plano' : formatBRL(precoInfo.valor)}
+          destaque
+        />
       </Card>
 
       <SubscriptionSavingsBlock cliente={cliente} assinatura={assinatura} plano={plano} servicos={servicos} />

@@ -68,6 +68,7 @@ export default async function FinanceiroPage() {
         <FinanceiroKpiRow
           agendamentos={agendamentos}
           servicos={servicos}
+          vendas={vendas}
           barbeiros={barbeiros}
           assinaturas={assinaturas}
           planos={planos}

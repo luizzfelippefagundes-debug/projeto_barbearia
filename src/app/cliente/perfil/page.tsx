@@ -1,4 +1,6 @@
-import { Avatar } from '../../../components/ui'
+import Link from 'next/link'
+import { Scissors } from 'lucide-react'
+import { Avatar, Button, Card, SectionHeading } from '../../../components/ui'
 import { ClienteLoyaltyProgress } from '../../../components/clientes/ClienteLoyaltyProgress'
 import { ClienteVisitHistory } from '../../../components/clientes/ClienteVisitHistory'
 import { NextAppointmentCard } from '../../../components/perfil/NextAppointmentCard'
@@ -45,14 +47,35 @@ export default async function PerfilPage() {
 
       <NextAppointmentCard proximo={proximo} barbeiros={barbeiros} servicos={servicos} />
 
-      <ClienteLoyaltyProgress cliente={cliente} />
+      <div className="grid grid-cols-2 gap-3">
+        <Card className="p-4">
+          <div className="flex items-center gap-1.5 text-text-secondary">
+            <Scissors size={14} aria-hidden="true" />
+            <p className="text-xs">Cortes no total</p>
+          </div>
+          <p className="mono-value mt-1 text-xl text-text-primary">{cliente.historico.length}</p>
+        </Card>
+        <ClienteLoyaltyProgress cliente={cliente} />
+      </div>
 
-      {assinatura && plano && <SubscriptionCancelFlow assinatura={assinatura} plano={plano} />}
+      {assinatura && plano ? (
+        <SubscriptionCancelFlow assinatura={assinatura} plano={plano} />
+      ) : (
+        <Card className="flex items-center justify-between gap-3 p-4">
+          <div>
+            <p className="text-sm text-text-primary">Nenhum plano ativo</p>
+            <p className="text-xs text-text-secondary">Assine e pague menos por corte.</p>
+          </div>
+          <Link href="/cliente/assinar">
+            <Button size="sm">Ver planos</Button>
+          </Link>
+        </Card>
+      )}
 
       <IndicarAmigoButton nome={cliente.nome} totalIndicados={totalIndicados} />
 
       <div>
-        <p className="mb-2 text-xs text-text-secondary">Histórico</p>
+        <SectionHeading>Histórico</SectionHeading>
         <ClienteVisitHistory historico={cliente.historico} barbeiros={barbeiros} servicos={servicos} />
       </div>
     </div>

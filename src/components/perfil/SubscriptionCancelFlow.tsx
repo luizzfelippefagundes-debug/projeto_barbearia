@@ -28,7 +28,11 @@ export function SubscriptionCancelFlow({
         <div>
           <p className="text-sm text-text-primary">{plano.nome}</p>
           <p className="text-xs text-text-secondary">
-            {formatBRL(plano.valorMensal)}/mês · próxima cobrança {formatDataCurta(assinatura.proximaCobranca)}
+            {formatBRL(plano.valorMensal)}/mês ·{' '}
+            {plano.cortesInclusos === 'ilimitado' ? 'cortes ilimitados' : `${plano.cortesInclusos} corte(s)/mês`}
+          </p>
+          <p className="text-xs text-text-secondary">
+            próxima cobrança {formatDataCurta(assinatura.proximaCobranca)}
           </p>
         </div>
         <StatusPill status={assinatura.status} />

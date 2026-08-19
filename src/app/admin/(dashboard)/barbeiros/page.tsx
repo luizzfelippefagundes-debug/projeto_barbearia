@@ -5,21 +5,24 @@ import { getBarbeiros } from '../../../../db/queries/barbeiros'
 import { getAgendamentosDoMes } from '../../../../db/queries/agendamentos'
 import { getServicosAtivos } from '../../../../db/queries/servicos'
 import { getPayoutsDoMes } from '../../../../db/queries/payouts'
+import { getVendas } from '../../../../db/queries/vendas'
 import {
+  getComissaoTotalBarbeiro,
   getCortesNoMesPorBarbeiro,
   getFaturamentoGeradoPorBarbeiroNoMes,
-  getValorAReceber,
+  getVendasDoBarbeiroNoMes,
 } from '../../../../lib/derive'
 import { getHojeISO, mesReferenciaDeData } from '../../../../lib/dateUtils'
 
 export default async function BarbeirosPage() {
   const mesReferencia = mesReferenciaDeData(getHojeISO())
 
-  const [barbeiros, agendamentos, servicos, payouts] = await Promise.all([
+  const [barbeiros, agendamentos, servicos, payouts, vendas] = await Promise.all([
     getBarbeiros(),
     getAgendamentosDoMes(mesReferencia),
     getServicosAtivos(),
     getPayoutsDoMes(mesReferencia),
+    getVendas(),
   ])
 
   return (
@@ -44,7 +47,8 @@ export default async function BarbeirosPage() {
               barbeiro.id,
               mesReferencia,
             )
-            const valorAReceber = getValorAReceber(barbeiro, faturamentoGerado)
+            const totalVendas = getVendasDoBarbeiroNoMes(vendas, barbeiro.id, mesReferencia)
+            const valorAReceber = getComissaoTotalBarbeiro(barbeiro, faturamentoGerado, totalVendas)
             return (
               <BarbeiroCard
                 key={barbeiro.id}

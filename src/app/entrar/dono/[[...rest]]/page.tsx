@@ -9,7 +9,7 @@ export default function EntrarDonoPage() {
         path="/entrar/dono"
         routing="path"
         signUpUrl="/cadastro/dono"
-        fallbackRedirectUrl="/admin/agenda"
+        fallbackRedirectUrl="/admin"
       />
     </AuthDoorShell>
   )

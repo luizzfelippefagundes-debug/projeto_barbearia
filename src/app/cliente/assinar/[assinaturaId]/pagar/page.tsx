@@ -6,7 +6,7 @@ import { AutoRefresh } from '../../../../../components/painel-ao-vivo/AutoRefres
 import { PixPaymentCard } from '../../../../../components/assinar/PixPaymentCard'
 import { requireClienteAtual } from '../../../../../lib/clienteAuth'
 import { getAssinaturaPorId, getPlanosAssinatura } from '../../../../../db/queries/assinaturas'
-import { buscarQrCodeDaMinhaAssinatura } from '../../../../../actions/assinar.actions'
+import { buscarQrCodeDaMinhaAssinatura, verificarPagamentoAssinatura } from '../../../../../actions/assinar.actions'
 
 export default async function PagarAssinaturaPage({
   params,
@@ -22,7 +22,9 @@ export default async function PagarAssinaturaPage({
   const planos = await getPlanosAssinatura()
   const plano = planos.find((p) => p.id === assinatura.planoId)
 
-  if (assinatura.status !== 'aguardando') {
+  const statusAtual = await verificarPagamentoAssinatura(assinaturaId).catch(() => assinatura.status)
+
+  if (statusAtual !== 'aguardando') {
     return (
       <div className="flex flex-col gap-4">
         <Card className="flex flex-col items-center gap-3 p-6 text-center">

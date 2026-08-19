@@ -1,6 +1,7 @@
 import { Clock } from 'lucide-react'
 import type { Barbeiro, PayoutBarbeiro } from '../../types'
-import { Avatar, Card, StatusPill } from '../../components/ui'
+import { Card, StatusPill } from '../../components/ui'
+import { BarbeiroAvatarUpload } from './BarbeiroAvatarUpload'
 import { CommissionSlider } from './CommissionSlider'
 import { PayoutStatusPill } from './PayoutStatusPill'
 import { formatBRL } from '../../lib/format'
@@ -16,7 +17,7 @@ export function BarbeiroCard({ barbeiro, payout, cortes, valorAReceber }: Barbei
   return (
     <Card className="flex flex-col gap-4 p-5">
       <div className="flex items-center gap-3">
-        <Avatar nome={barbeiro.nome} size="lg" />
+        <BarbeiroAvatarUpload barbeiroId={barbeiro.id} nome={barbeiro.nome} avatarUrl={barbeiro.avatarUrl} />
         <div>
           <h3 className="text-base text-text-primary">{barbeiro.nome}</h3>
           <p className="text-xs text-text-secondary">{cortes} cortes este mês</p>

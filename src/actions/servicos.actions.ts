@@ -5,7 +5,12 @@ import { getDb } from '../db'
 import { servicos } from '../db/schema'
 import { assertAdmin } from '../lib/adminAuth'
 
-export async function criarServico(nome: string, duracaoMin: number, precoAvulso: number) {
+export async function criarServico(
+  nome: string,
+  duracaoMin: number,
+  precoAvulso: number,
+  incluidoNoPlano = false,
+) {
   await assertAdmin()
   if (!nome.trim()) throw new Error('Nome é obrigatório')
 
@@ -15,6 +20,7 @@ export async function criarServico(nome: string, duracaoMin: number, precoAvulso
       nome: nome.trim(),
       duracaoMin: Math.max(5, Math.round(duracaoMin)),
       precoAvulso,
+      incluidoNoPlano,
     })
     .returning()
 

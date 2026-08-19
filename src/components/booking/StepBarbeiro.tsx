@@ -24,7 +24,7 @@ export function StepBarbeiro({
         {barbeiros.map((barbeiro) => (
           <button key={barbeiro.id} type="button" onClick={() => onSelect(barbeiro.id)} className="text-left">
             <Card className="flex items-center gap-3 px-4 py-3 hover:border-brass">
-              <Avatar nome={barbeiro.nome} />
+              <Avatar nome={barbeiro.nome} src={barbeiro.avatarUrl} />
               <p className="text-sm text-text-primary">{barbeiro.nome}</p>
             </Card>
           </button>

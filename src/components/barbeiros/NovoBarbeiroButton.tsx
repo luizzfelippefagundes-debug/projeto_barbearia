@@ -1,15 +1,17 @@
 'use client'
 
 import { useState } from 'react'
-import { CheckCircle2, Plus } from 'lucide-react'
-import { Button, Input, Modal } from '../../components/ui'
+import { Camera, CheckCircle2, Plus } from 'lucide-react'
+import { Avatar, Button, Input, Modal } from '../../components/ui'
 import { criarBarbeiro } from '../../actions/barbeiros.actions'
 
 export function NovoBarbeiroButton() {
   const [open, setOpen] = useState(false)
   const [nome, setNome] = useState('')
   const [email, setEmail] = useState('')
-  const [comissao, setComissao] = useState(40)
+  const [comissao, setComissao] = useState(45)
+  const [foto, setFoto] = useState<File | null>(null)
+  const [fotoPreviewUrl, setFotoPreviewUrl] = useState<string | undefined>(undefined)
   const [salvando, setSalvando] = useState(false)
   const [erro, setErro] = useState<string | null>(null)
   const [sucesso, setSucesso] = useState<{ nome: string; conviteEnviado: boolean } | null>(null)
@@ -18,9 +20,18 @@ export function NovoBarbeiroButton() {
     setOpen(false)
     setNome('')
     setEmail('')
-    setComissao(40)
+    setComissao(45)
+    setFoto(null)
+    setFotoPreviewUrl(undefined)
     setSucesso(null)
     setErro(null)
+  }
+
+  function handleEscolherFoto(e: React.ChangeEvent<HTMLInputElement>) {
+    const arquivo = e.target.files?.[0]
+    if (!arquivo) return
+    setFoto(arquivo)
+    setFotoPreviewUrl(URL.createObjectURL(arquivo))
   }
 
   async function handleSalvar() {
@@ -35,7 +46,7 @@ export function NovoBarbeiroButton() {
     setSalvando(true)
     setErro(null)
     try {
-      const resultado = await criarBarbeiro(nome, comissao, email)
+      const resultado = await criarBarbeiro(nome, comissao, email, foto ?? undefined)
       setSucesso({ nome: resultado.nome, conviteEnviado: resultado.conviteEnviado })
     } catch {
       setErro('Não foi possível salvar. Tente de novo.')
@@ -69,6 +80,18 @@ export function NovoBarbeiroButton() {
           </div>
         ) : (
           <div className="flex flex-col gap-4">
+            <label className="flex items-center gap-3">
+              <span className="relative">
+                <Avatar nome={nome || '?'} src={fotoPreviewUrl} size="lg" />
+                <span className="absolute -right-1 -bottom-1 flex h-6 w-6 items-center justify-center rounded-full border border-border bg-surface text-text-secondary">
+                  <Camera size={12} aria-hidden="true" />
+                </span>
+              </span>
+              <span className="text-xs text-text-secondary">
+                {fotoPreviewUrl ? 'Trocar foto' : 'Adicionar foto (opcional)'}
+              </span>
+              <input type="file" accept="image/*" className="hidden" onChange={handleEscolherFoto} />
+            </label>
             <Input
               label="Nome"
               value={nome}

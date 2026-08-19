@@ -1,18 +1,20 @@
-import type { Agendamento, Assinatura, Barbeiro, Cliente, PlanoAssinatura, Servico } from '../../types'
+import type { Agendamento, Assinatura, Barbeiro, Cliente, PlanoAssinatura, Servico, Venda } from '../../types'
 import { Card } from '../../components/ui'
 import {
   getAssinantesEmDia,
+  getComissaoTotalBarbeiro,
   getFaturamentoGeradoPorBarbeiroNoMes,
   getFrequenciaRetornoDias,
   getMRR,
   getTicketMedio,
-  getValorAReceber,
+  getVendasDoBarbeiroNoMes,
 } from '../../lib/derive'
 import { formatBRL } from '../../lib/format'
 
 interface FinanceiroKpiRowProps {
   agendamentos: Agendamento[]
   servicos: Servico[]
+  vendas: Venda[]
   barbeiros: Barbeiro[]
   assinaturas: Assinatura[]
   planos: PlanoAssinatura[]
@@ -23,6 +25,7 @@ interface FinanceiroKpiRowProps {
 export function FinanceiroKpiRow({
   agendamentos,
   servicos,
+  vendas,
   barbeiros,
   assinaturas,
   planos,
@@ -39,7 +42,8 @@ export function FinanceiroKpiRow({
       barbeiro.id,
       mesReferencia,
     )
-    return total + getValorAReceber(barbeiro, faturamento)
+    const totalVendas = getVendasDoBarbeiroNoMes(vendas, barbeiro.id, mesReferencia)
+    return total + getComissaoTotalBarbeiro(barbeiro, faturamento, totalVendas)
   }, 0)
 
   const margemLiquidaPorAssinante = assinantesEmDia > 0 ? (mrr - totalComissoes) / assinantesEmDia : 0

@@ -9,6 +9,7 @@ import {
   Scissors,
   Repeat,
   LineChart,
+  LayoutDashboard,
   Package,
   Tv,
 } from 'lucide-react'
@@ -17,6 +18,7 @@ import { NOME_BARBEARIA } from '../../lib/constants'
 import { SairButton } from '../auth/SairButton'
 
 const NAV_ITEMS = [
+  { href: '/admin', label: 'Dashboard', icon: LayoutDashboard },
   { href: '/admin/agenda', label: 'Agenda', icon: CalendarDays },
   { href: '/admin/clientes', label: 'Clientes', icon: Users },
   { href: '/admin/barbeiros', label: 'Barbeiros', icon: Scissors },
@@ -42,7 +44,7 @@ export function Sidebar() {
 
       <nav className="flex flex-1 flex-col gap-1 overflow-y-auto px-3 py-2">
         {NAV_ITEMS.map(({ href, label, icon: Icon }) => {
-          const active = pathname.startsWith(href)
+          const active = href === '/admin' ? pathname === href : pathname.startsWith(href)
           return (
             <Link
               key={href}
