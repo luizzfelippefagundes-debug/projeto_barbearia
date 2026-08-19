@@ -39,6 +39,7 @@ const RED: Omit<StatusVisual, 'label'> = {
 
 export const STATUS_VISUAL_MAP: Record<string, StatusVisual> = {
   confirmado: { label: 'Confirmado', ...GREEN },
+  atendido: { label: 'Atendido', ...GREEN },
   em_dia: { label: 'Em dia', ...GREEN },
   transferido: { label: 'Transferido', ...GREEN },
   aguardando: { label: 'Aguardando', ...AMBER },

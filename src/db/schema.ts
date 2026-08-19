@@ -15,6 +15,7 @@ import {
 
 export const statusAgendamentoEnum = pgEnum('status_agendamento', [
   'confirmado',
+  'atendido',
   'livre',
   'aguardando',
   'bloqueado',

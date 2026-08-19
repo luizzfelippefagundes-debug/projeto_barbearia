@@ -13,6 +13,13 @@ function mesReferenciaDeData(dataISO: string): string {
   return dataISO.slice(0, 7)
 }
 
+/** 'confirmado' = marcado, ainda vai acontecer; 'atendido' = o barbeiro já
+ * registrou que rolou de verdade. Pra fins de faturamento/comissão/contagem,
+ * as duas contam como um corte real — só muda se já foi registrado ou não. */
+function contaComoAtendimento(status: string): boolean {
+  return status === 'confirmado' || status === 'atendido'
+}
+
 function precoServico(servicos: Servico[], servicoId: string | undefined): number {
   return servicos.find((s) => s.id === servicoId)?.precoAvulso ?? 0
 }
@@ -51,7 +58,7 @@ export function getCortesNoMesPorBarbeiro(
   return agendamentos.filter(
     (a) =>
       a.barbeiroId === barbeiroId &&
-      a.status === 'confirmado' &&
+      contaComoAtendimento(a.status) &&
       mesReferenciaDeData(a.data) === mesReferencia,
   ).length
 }
@@ -66,7 +73,7 @@ export function getFaturamentoGeradoPorBarbeiroNoMes(
     .filter(
       (a) =>
         a.barbeiroId === barbeiroId &&
-        a.status === 'confirmado' &&
+        contaComoAtendimento(a.status) &&
         mesReferenciaDeData(a.data) === mesReferencia,
     )
     .reduce((total, a) => total + precoServico(servicos, a.servicoId), 0)
@@ -143,7 +150,7 @@ export function getTicketMedio(
   mesReferencia: string,
 ): number {
   const confirmados = agendamentos.filter(
-    (a) => a.status === 'confirmado' && mesReferenciaDeData(a.data) === mesReferencia,
+    (a) => contaComoAtendimento(a.status) && mesReferenciaDeData(a.data) === mesReferencia,
   )
   if (confirmados.length === 0) return 0
   const total = confirmados.reduce((sum, a) => sum + precoServico(servicos, a.servicoId), 0)
@@ -216,7 +223,7 @@ export function getFechamentoCaixa(
   const assinantesAtivos = clientesComAssinaturaAtiva(assinaturas)
 
   const avulso = agendamentos
-    .filter((a) => a.status === 'confirmado' && mesReferenciaDeData(a.data) === mesReferencia)
+    .filter((a) => contaComoAtendimento(a.status) && mesReferenciaDeData(a.data) === mesReferencia)
     .reduce((sum, a) => sum + precoRealAgendamento(servicos, assinantesAtivos, a), 0)
 
   const produtos = vendas
@@ -249,7 +256,7 @@ export function getFechamentoCaixaDoDia(
   const assinantesAtivos = clientesComAssinaturaAtiva(assinaturas)
 
   const avulso = agendamentos
-    .filter((a) => a.status === 'confirmado' && a.data === dataISO)
+    .filter((a) => contaComoAtendimento(a.status) && a.data === dataISO)
     .reduce((sum, a) => sum + precoRealAgendamento(servicos, assinantesAtivos, a), 0)
 
   const produtos = vendas
@@ -284,7 +291,7 @@ export function getFaturamentoAcumuladoPorDia(
 
   const porDia = new Map<number, number>()
   agendamentos
-    .filter((a) => a.status === 'confirmado' && mesReferenciaDeData(a.data) === mesReferencia)
+    .filter((a) => contaComoAtendimento(a.status) && mesReferenciaDeData(a.data) === mesReferencia)
     .forEach((a) => {
       const dia = Number(a.data.slice(8, 10))
       porDia.set(dia, (porDia.get(dia) ?? 0) + precoServico(servicos, a.servicoId))

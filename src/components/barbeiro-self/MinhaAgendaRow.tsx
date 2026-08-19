@@ -1,3 +1,4 @@
+import { CheckCircle2 } from 'lucide-react'
 import type { Agendamento, Cliente, Servico } from '../../types'
 import { StatusPill } from '../../components/ui'
 import { RegistrarAtendimentoModal } from './RegistrarAtendimentoModal'
@@ -25,11 +26,18 @@ export function MinhaAgendaRow({
         <StatusPill status={agendamento.status} />
         {agendamento.status === 'confirmado' && cliente && servico && (
           <RegistrarAtendimentoModal
+            agendamentoId={agendamento.id}
             clienteId={cliente.id}
             clienteNome={cliente.nome}
             servicoId={servico.id}
             servicoNome={servico.nome}
           />
+        )}
+        {agendamento.status === 'atendido' && (
+          <span className="flex items-center gap-1 text-xs text-status-green">
+            <CheckCircle2 size={14} aria-hidden="true" />
+            Registrado
+          </span>
         )}
       </div>
     </div>

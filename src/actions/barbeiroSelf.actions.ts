@@ -4,19 +4,35 @@ import { and, eq, gte, sql } from 'drizzle-orm'
 import { revalidatePath } from 'next/cache'
 import { put } from '@vercel/blob'
 import { getDb } from '../db'
-import { haircutRecords, clientes, produtos, vendas } from '../db/schema'
+import { agendamentos, haircutRecords, clientes, produtos, vendas } from '../db/schema'
 import { assertBarbeiroLogado } from '../lib/barbeiroAuth'
 import { getHojeISO } from '../lib/dateUtils'
 
 export async function registrarMeuAtendimento(formData: FormData) {
   const barbeiro = await assertBarbeiroLogado()
 
+  const agendamentoId = String(formData.get('agendamentoId') ?? '')
   const clienteId = String(formData.get('clienteId') ?? '')
   const servicoId = String(formData.get('servicoId') ?? '')
   const nota = String(formData.get('nota') ?? '').trim()
   const foto = formData.get('foto')
 
-  if (!clienteId || !servicoId) throw new Error('Dados incompletos')
+  if (!agendamentoId || !clienteId || !servicoId) throw new Error('Dados incompletos')
+
+  const db = getDb()
+
+  const rows = await db
+    .update(agendamentos)
+    .set({ status: 'atendido' })
+    .where(
+      and(
+        eq(agendamentos.id, agendamentoId),
+        eq(agendamentos.barbeiroId, barbeiro.id),
+        eq(agendamentos.status, 'confirmado'),
+      ),
+    )
+    .returning()
+  if (rows.length === 0) throw new Error('Atendimento já registrado ou agendamento inválido.')
 
   let fotoUrl: string | undefined
   if (foto instanceof File && foto.size > 0) {
@@ -26,7 +42,6 @@ export async function registrarMeuAtendimento(formData: FormData) {
     fotoUrl = blob.url
   }
 
-  const db = getDb()
   await db.insert(haircutRecords).values({
     clienteId,
     barbeiroId: barbeiro.id,
@@ -44,6 +59,7 @@ export async function registrarMeuAtendimento(formData: FormData) {
     .where(eq(clientes.id, clienteId))
 
   revalidatePath('/barbeiro/agenda')
+  revalidatePath('/admin/agenda')
 }
 
 export async function registrarMinhaVenda(produtoId: string, quantidade: number, clienteId?: string) {

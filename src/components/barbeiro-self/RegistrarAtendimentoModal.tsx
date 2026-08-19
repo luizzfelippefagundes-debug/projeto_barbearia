@@ -6,6 +6,7 @@ import { Button, Modal, Textarea } from '../../components/ui'
 import { registrarMeuAtendimento } from '../../actions/barbeiroSelf.actions'
 
 interface RegistrarAtendimentoModalProps {
+  agendamentoId: string
   clienteId: string
   clienteNome: string
   servicoId: string
@@ -13,6 +14,7 @@ interface RegistrarAtendimentoModalProps {
 }
 
 export function RegistrarAtendimentoModal({
+  agendamentoId,
   clienteId,
   clienteNome,
   servicoId,
@@ -30,6 +32,7 @@ export function RegistrarAtendimentoModal({
   }
 
   async function handleSubmit(formData: FormData) {
+    formData.set('agendamentoId', agendamentoId)
     formData.set('clienteId', clienteId)
     formData.set('servicoId', servicoId)
     startTransition(async () => {

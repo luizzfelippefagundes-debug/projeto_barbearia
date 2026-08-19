@@ -20,7 +20,10 @@ export function ScheduleRow({ agendamento, barbeiros, clientes, servicos }: Sche
     : undefined
 
   const visual = getStatusVisual(agendamento.status)
-  const ocupado = agendamento.status === 'bloqueado' || agendamento.status === 'confirmado'
+  const ocupado =
+    agendamento.status === 'bloqueado' ||
+    agendamento.status === 'confirmado' ||
+    agendamento.status === 'atendido'
 
   return (
     <div

@@ -34,7 +34,7 @@ export default async function DashboardPage() {
     getFechamentoCaixaDoDia(agendamentosHoje, servicos, vendas, assinaturas, planos, clientes, hojeISO)
 
   const confirmadosHoje = agendamentosHoje
-    .filter((a) => a.status === 'confirmado')
+    .filter((a) => a.status === 'confirmado' || a.status === 'atendido')
     .sort((a, b) => a.hora.localeCompare(b.hora))
 
   const assinantesEmDia = getAssinantesEmDia(assinaturas)
