@@ -32,13 +32,42 @@
   --radius-DEFAULT: 14px;
 }
 
+/** Tailwind emite os tokens acima numa layer de baixa prioridade — um
+ * seletor normal (fora de qualquer @layer) já sobrescreve sozinho quando
+ * data-theme="dark" está no <html>, sem precisar anular nada antes. */
+:root[data-theme="dark"] {
+  --color-bg: #0b1020;
+
+  --color-surface: #131a2e;
+  --color-surface-raised: #1a2340;
+
+  --color-border: #2a3555;
+
+  --color-accent: #6472f5;
+  --color-accent-hover: #7c87f7;
+  --color-accent-muted: #232c52;
+
+  --color-brass: #2dd4cf;
+  --color-brass-muted: #113531;
+
+  --color-text-primary: #f5f6fa;
+  --color-text-secondary: #9aa1b8;
+
+  --color-status-green: #22c55e;
+  --color-status-green-muted: #113321;
+  --color-status-amber: #f59e0b;
+  --color-status-amber-muted: #3a2a0a;
+  --color-status-red: #ef4444;
+  --color-status-red-muted: #3a1414;
+}
+
 @layer base {
   html {
     @apply bg-bg text-text-primary;
   }
 
   body {
-    @apply font-body antialiased;
+    @apply bg-bg font-body text-text-primary antialiased;
   }
 
   h1,

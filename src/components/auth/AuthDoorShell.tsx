@@ -1,6 +1,7 @@
 import type { LucideIcon } from 'lucide-react'
 import { Scissors } from 'lucide-react'
 import { NOME_BARBEARIA } from '../../lib/constants'
+import { ThemeToggle } from '../theme/ThemeToggle'
 
 export function AuthDoorShell({
   icon: Icon,
@@ -14,7 +15,11 @@ export function AuthDoorShell({
   children: React.ReactNode
 }) {
   return (
-    <div className="flex min-h-screen flex-col items-center justify-center gap-6 bg-bg p-4">
+    <div className="relative flex min-h-screen flex-col items-center justify-center gap-6 bg-bg p-4">
+      <div className="absolute top-4 right-4">
+        <ThemeToggle />
+      </div>
+
       <div className="flex items-center gap-2">
         <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-accent text-white">
           <Scissors size={16} aria-hidden="true" />

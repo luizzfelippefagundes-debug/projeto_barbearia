@@ -17,6 +17,7 @@ import {
 import { cn } from '../../lib/cn'
 import { NOME_BARBEARIA } from '../../lib/constants'
 import { SairButton } from '../auth/SairButton'
+import { ThemeToggle } from '../theme/ThemeToggle'
 
 const NAV_ITEMS = [
   { href: '/admin', label: 'Dashboard', icon: LayoutDashboard },
@@ -70,6 +71,7 @@ export function Sidebar() {
       <div className="flex items-center gap-2.5 border-t border-border px-4 py-4 lg:px-6">
         <UserButton />
         <span className="hidden flex-1 text-xs text-text-secondary lg:inline">Painel do dono</span>
+        <ThemeToggle />
         <SairButton redirectUrl="/entrar/dono" />
       </div>
     </aside>

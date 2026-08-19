@@ -2,6 +2,7 @@ import Link from 'next/link'
 import { CalendarDays, ChevronRight, Crown, Scissors } from 'lucide-react'
 import { Card } from '../../components/ui'
 import { NOME_BARBEARIA } from '../../lib/constants'
+import { ThemeToggle } from '../theme/ThemeToggle'
 
 const OPCOES = [
   { href: '/entrar/dono', cadastro: '/cadastro/dono', label: 'Sou o dono', icon: Crown },
@@ -11,7 +12,11 @@ const OPCOES = [
 
 export function EscolhaAcesso({ modo }: { modo: 'entrar' | 'cadastro' }) {
   return (
-    <div className="flex min-h-screen flex-col items-center justify-center gap-6 bg-bg p-4">
+    <div className="relative flex min-h-screen flex-col items-center justify-center gap-6 bg-bg p-4">
+      <div className="absolute top-4 right-4">
+        <ThemeToggle />
+      </div>
+
       <div className="flex items-center gap-2">
         <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-accent text-white">
           <Scissors size={16} aria-hidden="true" />

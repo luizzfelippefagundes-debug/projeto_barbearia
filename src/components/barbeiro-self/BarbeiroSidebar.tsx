@@ -7,6 +7,7 @@ import { CalendarDays, Wallet, Package, Scissors } from 'lucide-react'
 import { cn } from '../../lib/cn'
 import { NOME_BARBEARIA } from '../../lib/constants'
 import { SairButton } from '../auth/SairButton'
+import { ThemeToggle } from '../theme/ThemeToggle'
 
 const NAV_ITEMS = [
   { href: '/barbeiro/agenda', label: 'Minha agenda', icon: CalendarDays },
@@ -54,6 +55,7 @@ export function BarbeiroSidebar() {
       <div className="flex items-center gap-2.5 border-t border-border px-4 py-4 lg:px-6">
         <UserButton />
         <span className="hidden flex-1 text-xs text-text-secondary lg:inline">Barbeiro</span>
+        <ThemeToggle />
         <SairButton redirectUrl="/entrar/barbeiro" />
       </div>
     </aside>

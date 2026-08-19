@@ -6,6 +6,7 @@ import { ChevronLeft, Scissors } from 'lucide-react'
 import { UserButton } from '@clerk/nextjs'
 import { NOME_BARBEARIA } from '../../lib/constants'
 import { SairButton } from '../auth/SairButton'
+import { ThemeToggle } from '../theme/ThemeToggle'
 
 const ROTAS_PRINCIPAIS = ['/cliente', '/cliente/agendar', '/cliente/assinar', '/cliente/perfil']
 
@@ -37,6 +38,7 @@ export function ClienteHeader() {
         </div>
         <div className="flex items-center gap-2">
           <UserButton />
+          <ThemeToggle />
           <SairButton redirectUrl="/entrar/cliente" />
         </div>
       </div>

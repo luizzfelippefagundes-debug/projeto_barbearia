@@ -1,9 +1,21 @@
 import type { Metadata } from "next";
 import { Plus_Jakarta_Sans, Inter, JetBrains_Mono } from "next/font/google";
-import { ClerkProvider } from "@clerk/nextjs";
-import { ptBR } from "@clerk/localizations";
 import "./globals.css";
 import { NOME_BARBEARIA } from "../lib/constants";
+import { ThemeProvider } from "../components/theme/ThemeProvider";
+import { ThemedClerkProvider } from "../components/theme/ThemedClerkProvider";
+
+const THEME_INIT_SCRIPT = `
+(function () {
+  try {
+    var stored = localStorage.getItem('theme');
+    var theme = stored === 'light' || stored === 'dark'
+      ? stored
+      : (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+    document.documentElement.setAttribute('data-theme', theme);
+  } catch (e) {}
+})();
+`;
 
 const headingFont = Plus_Jakarta_Sans({
   variable: "--font-heading-display",
@@ -37,32 +49,10 @@ export default function RootLayout({
       className={`${headingFont.variable} ${inter.variable} ${jetbrainsMono.variable}`}
     >
       <body className="bg-bg text-text-primary antialiased">
-        <ClerkProvider
-          localization={ptBR}
-          appearance={{
-            variables: {
-              colorPrimary: "#4756e6",
-              colorBackground: "#ffffff",
-              colorForeground: "#12131a",
-              colorMutedForeground: "#6b7280",
-              colorInput: "#ffffff",
-              colorInputForeground: "#12131a",
-              colorBorder: "#e5e7f0",
-              colorDanger: "#dc2626",
-              colorSuccess: "#16a34a",
-              colorWarning: "#d97706",
-              borderRadius: "14px",
-              fontFamily: "var(--font-inter), sans-serif",
-            },
-            elements: {
-              card: "border border-[#e5e7f0] shadow-md",
-              headerTitle: "hidden",
-              headerSubtitle: "hidden",
-            },
-          }}
-        >
-          {children}
-        </ClerkProvider>
+        <script dangerouslySetInnerHTML={{ __html: THEME_INIT_SCRIPT }} />
+        <ThemeProvider>
+          <ThemedClerkProvider>{children}</ThemedClerkProvider>
+        </ThemeProvider>
       </body>
     </html>
   );
