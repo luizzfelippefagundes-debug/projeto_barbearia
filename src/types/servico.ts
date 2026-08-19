@@ -4,4 +4,5 @@ export interface Servico {
   duracaoMin: number
   precoAvulso: number
   incluidoNoPlano: boolean
+  ativo: boolean
 }

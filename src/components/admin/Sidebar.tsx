@@ -11,6 +11,7 @@ import {
   LineChart,
   LayoutDashboard,
   Package,
+  Tag,
   Tv,
 } from 'lucide-react'
 import { cn } from '../../lib/cn'
@@ -22,6 +23,7 @@ const NAV_ITEMS = [
   { href: '/admin/agenda', label: 'Agenda', icon: CalendarDays },
   { href: '/admin/clientes', label: 'Clientes', icon: Users },
   { href: '/admin/barbeiros', label: 'Barbeiros', icon: Scissors },
+  { href: '/admin/servicos', label: 'Serviços', icon: Tag },
   { href: '/admin/assinaturas', label: 'Assinaturas', icon: Repeat },
   { href: '/admin/financeiro', label: 'Financeiro', icon: LineChart },
   { href: '/admin/produtos', label: 'Produtos', icon: Package },
