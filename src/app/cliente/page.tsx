@@ -1,10 +1,11 @@
 import Link from 'next/link'
-import { CalendarPlus, Sparkles, User } from 'lucide-react'
+import { CalendarPlus, CreditCard, Sparkles, User } from 'lucide-react'
 import { Card } from '../../components/ui'
 import { NOME_BARBEARIA } from '../../lib/constants'
 
 const LINKS = [
   { href: '/cliente/agendar', label: 'Agendar horário', icon: CalendarPlus },
+  { href: '/cliente/assinar', label: 'Assinar plano', icon: CreditCard },
   { href: '/cliente/perfil', label: 'Meu perfil', icon: User },
   { href: '/cliente/preview-corte', label: 'Preview de corte com IA', icon: Sparkles },
 ]

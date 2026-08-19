@@ -28,3 +28,14 @@ export const requireClienteAtual = cache(async function requireClienteAtual() {
   if (!cliente) redirect('/sign-in')
   return cliente
 })
+
+/** Usado dentro de Server Actions do cliente — sem cache (ações são one-shot)
+ * e sem auto-criar cliente (isso só acontece via requireClienteAtual, no
+ * primeiro acesso à área pública). Retorna a linha crua do banco. */
+export async function getClienteAtualOuFalhar() {
+  const { userId } = await auth()
+  if (!userId) throw new Error('Não autenticado')
+  const cliente = await getClienteRowByClerkId(userId)
+  if (!cliente) throw new Error('Cliente não encontrado')
+  return cliente
+}

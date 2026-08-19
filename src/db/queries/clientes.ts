@@ -9,6 +9,8 @@ function toAppCliente(row: typeof clientes.$inferSelect, historico: HaircutRecor
     id: row.id,
     nome: row.nome,
     telefone: row.telefone,
+    cpfCnpj: nullToUndefined(row.cpfCnpj),
+    asaasCustomerId: nullToUndefined(row.asaasCustomerId),
     avatarUrl: nullToUndefined(row.avatarUrl),
     tags: row.tags,
     historico,

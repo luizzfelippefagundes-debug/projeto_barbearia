@@ -1,20 +1,12 @@
 'use server'
 
-import { auth } from '@clerk/nextjs/server'
 import { revalidatePath } from 'next/cache'
 import { eq } from 'drizzle-orm'
 import { getDb } from '../db'
 import { agendamentos, assinaturas, haircutRecords } from '../db/schema'
-import { getClienteRowByClerkId } from '../db/queries/clientePorClerkId'
+import { getClienteAtualOuFalhar } from '../lib/clienteAuth'
+import { cancelarAssinaturaComAsaas } from '../lib/asaasCancelamento'
 import { getHojeISO } from '../lib/dateUtils'
-
-async function getClienteAtualOuFalhar() {
-  const { userId } = await auth()
-  if (!userId) throw new Error('Não autenticado')
-  const cliente = await getClienteRowByClerkId(userId)
-  if (!cliente) throw new Error('Cliente não encontrado')
-  return cliente
-}
 
 export async function agendarComoCliente(hora: string, barbeiroId: string, servicoId: string) {
   const cliente = await getClienteAtualOuFalhar()
@@ -48,9 +40,15 @@ export async function avaliarVisita(historicoId: string, rating: 'up' | 'down') 
 }
 
 export async function cancelarMinhaAssinatura(assinaturaId: string) {
-  await getClienteAtualOuFalhar()
+  const cliente = await getClienteAtualOuFalhar()
 
-  await getDb().update(assinaturas).set({ status: 'cancelado' }).where(eq(assinaturas.id, assinaturaId))
+  const rows = await getDb().select().from(assinaturas).where(eq(assinaturas.id, assinaturaId)).limit(1)
+  const assinatura = rows[0]
+  if (!assinatura || assinatura.clienteId !== cliente.id) {
+    throw new Error('Assinatura não encontrada')
+  }
+
+  await cancelarAssinaturaComAsaas(assinaturaId)
 
   revalidatePath('/cliente/perfil')
   revalidatePath('/admin/assinaturas')

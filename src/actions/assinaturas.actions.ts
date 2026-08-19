@@ -5,10 +5,11 @@ import { revalidatePath } from 'next/cache'
 import { getDb } from '../db'
 import { assinaturas, planosAssinatura } from '../db/schema'
 import { assertAdmin } from '../lib/adminAuth'
+import { cancelarAssinaturaComAsaas } from '../lib/asaasCancelamento'
 
 export async function cancelarAssinatura(assinaturaId: string) {
   await assertAdmin()
-  await getDb().update(assinaturas).set({ status: 'cancelado' }).where(eq(assinaturas.id, assinaturaId))
+  await cancelarAssinaturaComAsaas(assinaturaId)
   revalidatePath('/admin/assinaturas')
   revalidatePath('/cliente/perfil')
 }

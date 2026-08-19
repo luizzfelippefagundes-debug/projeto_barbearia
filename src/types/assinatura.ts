@@ -15,5 +15,7 @@ export interface Assinatura {
   proximaCobranca: string
   cartaoRecusado?: boolean
   ultimoReenvioEm?: string
+  asaasSubscriptionId?: string
+  asaasFirstPaymentId?: string
   criadoEm: string
 }

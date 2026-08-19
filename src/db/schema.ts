@@ -102,6 +102,10 @@ export const clientes = pgTable('clientes', {
   clerkUserId: text('clerk_user_id').unique(),
   nome: text('nome').notNull(),
   telefone: text('telefone').notNull(),
+  /** Só dígitos. Exigido pelo Asaas pra criar o cliente lá — preenchido na
+   * primeira vez que essa pessoa assina um plano. */
+  cpfCnpj: text('cpf_cnpj'),
+  asaasCustomerId: text('asaas_customer_id').unique(),
   avatarUrl: text('avatar_url'),
   tags: text('tags').array().notNull().default([]),
   loyaltyCortesAtual: integer('loyalty_cortes_atual').notNull().default(0),
@@ -126,6 +130,10 @@ export const assinaturas = pgTable('assinaturas', {
   proximaCobranca: date('proxima_cobranca').notNull(),
   cartaoRecusado: boolean('cartao_recusado').notNull().default(false),
   ultimoReenvioEm: timestamp('ultimo_reenvio_em'),
+  asaasSubscriptionId: text('asaas_subscription_id').unique(),
+  /** Id da primeira cobrança gerada pela assinatura no Asaas — permite
+   * reabrir o QR Code PIX sem precisar re-listar cobranças. */
+  asaasFirstPaymentId: text('asaas_first_payment_id'),
   criadoEm: timestamp('criado_em').notNull().defaultNow(),
 })
 
@@ -197,6 +205,16 @@ export const vendas = pgTable('vendas', {
 export const configuracoes = pgTable('configuracoes', {
   id: text('id').primaryKey().default('default'),
   metaFaturamentoMensal: money('meta_faturamento_mensal'),
+})
+
+/** Registro de cada notificação de webhook do Asaas já processada — evita
+ * reprocessar a mesma cobrança duas vezes se o Asaas reenviar a notificação. */
+export const asaasWebhookEventos = pgTable('asaas_webhook_eventos', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  asaasEventId: text('asaas_event_id').notNull().unique(),
+  evento: text('evento').notNull(),
+  paymentId: text('payment_id'),
+  recebidoEm: timestamp('recebido_em').notNull().defaultNow(),
 })
 
 /** Uma linha por dia fechado — trava os números do fechamento de caixa
