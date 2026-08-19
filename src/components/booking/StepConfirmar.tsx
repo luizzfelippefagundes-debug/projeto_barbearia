@@ -6,7 +6,8 @@ import type { Assinatura, Barbeiro, Cliente, PlanoAssinatura, Servico } from '..
 import { Button, Card } from '../../components/ui'
 import { agendarComoCliente } from '../../actions/booking.actions'
 import { formatBRL } from '../../lib/format'
-import { getPrecoServicoParaCliente } from '../../lib/derive'
+import { getPrecoServicoParaCliente, getUsosServicoNoMes } from '../../lib/derive'
+import { getHojeISO, mesReferenciaDeData } from '../../lib/dateUtils'
 import { SubscriptionSavingsBlock } from './SubscriptionSavingsBlock'
 
 interface StepConfirmarProps {
@@ -52,7 +53,12 @@ export function StepConfirmar({
   }
 
   const assinanteAtivo = assinatura?.status === 'em_dia'
-  const precoInfo = servico ? getPrecoServicoParaCliente(servico, assinanteAtivo) : { valor: 0, incluido: false }
+  const inclusao = servico ? plano?.servicosInclusos.find((i) => i.servicoId === servico.id) : undefined
+  const mesReferencia = mesReferenciaDeData(getHojeISO())
+  const usos = inclusao && servico ? getUsosServicoNoMes(cliente, servico.id, mesReferencia) : 0
+  const precoInfo = servico
+    ? getPrecoServicoParaCliente(servico, assinanteAtivo, inclusao, usos)
+    : { valor: 0, incluido: false, esgotado: false }
 
   return (
     <div className="flex flex-col gap-4">

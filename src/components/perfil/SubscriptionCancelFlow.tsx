@@ -28,8 +28,15 @@ export function SubscriptionCancelFlow({
         <div>
           <p className="text-sm text-text-primary">{plano.nome}</p>
           <p className="text-xs text-text-secondary">
-            {formatBRL(plano.valorMensal)}/mês ·{' '}
-            {plano.cortesInclusos === 'ilimitado' ? 'cortes ilimitados' : `${plano.cortesInclusos} corte(s)/mês`}
+            {formatBRL(plano.valorMensal)}/mês
+            {plano.servicosInclusos.length > 0 && (
+              <>
+                {' · '}
+                {plano.servicosInclusos
+                  .map((s) => (s.limiteMensal != null ? `${s.nome} (${s.limiteMensal}x/mês)` : s.nome))
+                  .join(', ')}
+              </>
+            )}
           </p>
           <p className="text-xs text-text-secondary">
             próxima cobrança {formatDataCurta(assinatura.proximaCobranca)}

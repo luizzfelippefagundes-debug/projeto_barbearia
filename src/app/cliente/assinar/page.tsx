@@ -2,7 +2,7 @@ import { redirect } from 'next/navigation'
 import { EmptyState } from '../../../components/ui'
 import { PlanoCard } from '../../../components/assinar/PlanoCard'
 import { requireClienteAtual } from '../../../lib/clienteAuth'
-import { getAssinaturaAtivaDoCliente, getPlanosAssinatura } from '../../../db/queries/assinaturas'
+import { getAssinaturaAtivaDoCliente, getPlanosDisponiveisParaAssinar } from '../../../db/queries/assinaturas'
 
 export default async function AssinarPage() {
   const cliente = await requireClienteAtual()
@@ -10,7 +10,7 @@ export default async function AssinarPage() {
   const ativa = await getAssinaturaAtivaDoCliente(cliente.id)
   if (ativa) redirect('/cliente/perfil')
 
-  const planos = await getPlanosAssinatura()
+  const planos = await getPlanosDisponiveisParaAssinar()
 
   return (
     <div className="flex flex-col gap-4">

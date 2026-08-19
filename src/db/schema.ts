@@ -49,9 +49,6 @@ export const servicos = pgTable('servicos', {
   nome: text('nome').notNull(),
   duracaoMin: integer('duracao_min').notNull(),
   precoAvulso: money('preco_avulso').notNull(),
-  /** Coberto pela assinatura sem limite mensal (ex: cabelo, pezinho, barba).
-   * Assinante em dia não paga nada por esses; demais serviços têm 10% off. */
-  incluidoNoPlano: boolean('incluido_no_plano').notNull().default(false),
   ativo: boolean('ativo').notNull().default(true),
   criadoEm: timestamp('criado_em').notNull().defaultNow(),
 })
@@ -97,9 +94,29 @@ export const planosAssinatura = pgTable('planos_assinatura', {
   id: uuid('id').primaryKey().defaultRandom(),
   nome: text('nome').notNull(),
   valorMensal: money('valor_mensal').notNull(),
-  cortesInclusos: integer('cortes_inclusos'),
+  /** Só afeta a lista de planos pra assinar (novo cliente). Assinaturas já
+   * existentes continuam funcionando mesmo se o plano ficar inativo. */
+  ativo: boolean('ativo').notNull().default(true),
   criadoEm: timestamp('criado_em').notNull().defaultNow(),
 })
+
+/** Quais serviços cada plano cobre e com que limite mensal (null = sem
+ * limite dentro do plano — ex: cabelo/barba/pezinho ilimitados, mas
+ * barboterapia do VIP só 4x/mês). */
+export const planoServicosInclusos = pgTable(
+  'plano_servicos_inclusos',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    planoId: uuid('plano_id')
+      .notNull()
+      .references(() => planosAssinatura.id, { onDelete: 'cascade' }),
+    servicoId: uuid('servico_id')
+      .notNull()
+      .references(() => servicos.id, { onDelete: 'cascade' }),
+    limiteMensal: integer('limite_mensal'),
+  },
+  (table) => [unique('plano_servico_unico').on(table.planoId, table.servicoId)],
+)
 
 export const clientes = pgTable('clientes', {
   id: uuid('id').primaryKey().defaultRandom(),

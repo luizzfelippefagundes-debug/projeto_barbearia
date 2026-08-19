@@ -1,7 +1,7 @@
 'use client'
 
 import { useTransition } from 'react'
-import { EyeOff, Sparkles } from 'lucide-react'
+import { EyeOff } from 'lucide-react'
 import type { Servico } from '../../types'
 import { IconButton } from '../../components/ui'
 import { ServicoFormModal } from './ServicoFormModal'
@@ -22,12 +22,6 @@ export function ServicoRow({ servico }: { servico: Servico }) {
       <div className="min-w-[10rem]">
         <div className="flex items-center gap-2">
           <p className="text-sm text-text-primary">{servico.nome}</p>
-          {servico.incluidoNoPlano && (
-            <span className="flex items-center gap-1 rounded-full bg-status-green-muted px-2 py-0.5 text-[10px] font-medium text-status-green">
-              <Sparkles size={10} aria-hidden="true" />
-              Incluso no plano
-            </span>
-          )}
           {!servico.ativo && <span className="text-[10px] text-text-secondary">(inativo)</span>}
         </div>
         <p className="text-xs text-text-secondary">{servico.duracaoMin} min</p>

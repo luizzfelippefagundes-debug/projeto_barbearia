@@ -24,30 +24,67 @@ function precoServico(servicos: Servico[], servicoId: string | undefined): numbe
   return servicos.find((s) => s.id === servicoId)?.precoAvulso ?? 0
 }
 
-/** Preço que o cliente paga por um serviço — grátis se coberto pela assinatura
- * (sem limite mensal), 10% off nos demais serviços pra quem é assinante em dia. */
+/** Quantas vezes o cliente já usou esse serviço neste mês — base pro limite
+ * mensal de itens como a barboterapia do plano VIP (4x/mês). Usa o histórico
+ * de atendimentos já registrados (o que realmente aconteceu), não a agenda. */
+export function getUsosServicoNoMes(
+  cliente: Cliente | undefined,
+  servicoId: string,
+  mesReferencia: string,
+): number {
+  if (!cliente) return 0
+  return cliente.historico.filter(
+    (h) => h.servicoId === servicoId && mesReferenciaDeData(h.data) === mesReferencia,
+  ).length
+}
+
+function inclusaoDoServicoNoPlano(plano: PlanoAssinatura | undefined, servicoId: string) {
+  return plano?.servicosInclusos.find((i) => i.servicoId === servicoId)
+}
+
+/** Preço que o cliente paga por um serviço — grátis se o plano dele cobre
+ * esse serviço (e ainda não estourou o limite mensal, quando existe), 10%
+ * off nos demais serviços pra quem é assinante em dia. */
 export function getPrecoServicoParaCliente(
   servico: Servico,
   assinanteAtivo: boolean,
-): { valor: number; incluido: boolean } {
-  if (servico.incluidoNoPlano && assinanteAtivo) return { valor: 0, incluido: true }
-  if (assinanteAtivo) return { valor: Math.round(servico.precoAvulso * 0.9 * 100) / 100, incluido: false }
-  return { valor: servico.precoAvulso, incluido: false }
+  inclusao: { limiteMensal: number | null } | undefined,
+  usosNoMes: number,
+): { valor: number; incluido: boolean; esgotado: boolean } {
+  const comDesconto = Math.round(servico.precoAvulso * 0.9 * 100) / 100
+
+  if (!assinanteAtivo) return { valor: servico.precoAvulso, incluido: false, esgotado: false }
+  if (!inclusao) return { valor: comDesconto, incluido: false, esgotado: false }
+
+  const esgotado = inclusao.limiteMensal !== null && usosNoMes >= inclusao.limiteMensal
+  if (esgotado) return { valor: comDesconto, incluido: false, esgotado: true }
+  return { valor: 0, incluido: true, esgotado: false }
 }
 
-function clientesComAssinaturaAtiva(assinaturas: Assinatura[]): Set<string> {
-  return new Set(assinaturas.filter((a) => a.status === 'em_dia').map((a) => a.clienteId))
+function clientesComAssinaturaAtiva(assinaturas: Assinatura[]): Map<string, string> {
+  const map = new Map<string, string>()
+  assinaturas.filter((a) => a.status === 'em_dia').forEach((a) => map.set(a.clienteId, a.planoId))
+  return map
 }
 
 function precoRealAgendamento(
   servicos: Servico[],
-  assinantesAtivos: Set<string>,
+  clientes: Cliente[],
+  planos: PlanoAssinatura[],
+  planoAtivoPorCliente: Map<string, string>,
   agendamento: Agendamento,
 ): number {
   const servico = servicos.find((s) => s.id === agendamento.servicoId)
   if (!servico) return 0
-  const ehAssinante = Boolean(agendamento.clienteId && assinantesAtivos.has(agendamento.clienteId))
-  return getPrecoServicoParaCliente(servico, ehAssinante).valor
+
+  const planoId = agendamento.clienteId ? planoAtivoPorCliente.get(agendamento.clienteId) : undefined
+  const assinanteAtivo = Boolean(planoId)
+  const plano = planoId ? planos.find((p) => p.id === planoId) : undefined
+  const inclusao = inclusaoDoServicoNoPlano(plano, servico.id)
+  const cliente = agendamento.clienteId ? clientes.find((c) => c.id === agendamento.clienteId) : undefined
+  const usos = inclusao ? getUsosServicoNoMes(cliente, servico.id, mesReferenciaDeData(agendamento.data)) : 0
+
+  return getPrecoServicoParaCliente(servico, assinanteAtivo, inclusao, usos).valor
 }
 
 export function getCortesNoMesPorBarbeiro(
@@ -220,11 +257,11 @@ export function getFechamentoCaixa(
   clientes: Cliente[],
   mesReferencia: string,
 ) {
-  const assinantesAtivos = clientesComAssinaturaAtiva(assinaturas)
+  const planoAtivoPorCliente = clientesComAssinaturaAtiva(assinaturas)
 
   const avulso = agendamentos
     .filter((a) => contaComoAtendimento(a.status) && mesReferenciaDeData(a.data) === mesReferencia)
-    .reduce((sum, a) => sum + precoRealAgendamento(servicos, assinantesAtivos, a), 0)
+    .reduce((sum, a) => sum + precoRealAgendamento(servicos, clientes, planos, planoAtivoPorCliente, a), 0)
 
   const produtos = vendas
     .filter((v) => mesReferenciaDeData(v.data) === mesReferencia)
@@ -253,11 +290,11 @@ export function getFechamentoCaixaDoDia(
   clientes: Cliente[],
   dataISO: string,
 ) {
-  const assinantesAtivos = clientesComAssinaturaAtiva(assinaturas)
+  const planoAtivoPorCliente = clientesComAssinaturaAtiva(assinaturas)
 
   const avulso = agendamentos
     .filter((a) => contaComoAtendimento(a.status) && a.data === dataISO)
-    .reduce((sum, a) => sum + precoRealAgendamento(servicos, assinantesAtivos, a), 0)
+    .reduce((sum, a) => sum + precoRealAgendamento(servicos, clientes, planos, planoAtivoPorCliente, a), 0)
 
   const produtos = vendas
     .filter((v) => v.data === dataISO)

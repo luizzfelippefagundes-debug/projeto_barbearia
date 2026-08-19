@@ -81,7 +81,9 @@ export function BookingFlowClient({
       {state.step === 2 && (
         <StepServico
           servicos={servicos}
+          cliente={cliente}
           assinanteAtivo={assinanteAtivo}
+          plano={plano}
           onSelect={(servicoId) => dispatch({ type: 'SET_SERVICO', servicoId })}
         />
       )}

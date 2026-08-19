@@ -13,12 +13,7 @@ function revalidarTelasDeServico() {
   revalidatePath('/cliente/agendar')
 }
 
-export async function criarServico(
-  nome: string,
-  duracaoMin: number,
-  precoAvulso: number,
-  incluidoNoPlano = false,
-) {
+export async function criarServico(nome: string, duracaoMin: number, precoAvulso: number) {
   await assertAdmin()
   if (!nome.trim()) throw new Error('Nome é obrigatório')
 
@@ -28,7 +23,6 @@ export async function criarServico(
       nome: nome.trim(),
       duracaoMin: Math.max(5, Math.round(duracaoMin)),
       precoAvulso,
-      incluidoNoPlano,
     })
     .returning()
 
@@ -36,13 +30,7 @@ export async function criarServico(
   return rows[0]
 }
 
-export async function atualizarServico(
-  id: string,
-  nome: string,
-  duracaoMin: number,
-  precoAvulso: number,
-  incluidoNoPlano: boolean,
-) {
+export async function atualizarServico(id: string, nome: string, duracaoMin: number, precoAvulso: number) {
   await assertAdmin()
   if (!nome.trim()) throw new Error('Nome é obrigatório')
 
@@ -52,7 +40,6 @@ export async function atualizarServico(
       nome: nome.trim(),
       duracaoMin: Math.max(5, Math.round(duracaoMin)),
       precoAvulso,
-      incluidoNoPlano,
     })
     .where(eq(servicos.id, id))
     .returning()

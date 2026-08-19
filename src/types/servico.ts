@@ -3,6 +3,5 @@ export interface Servico {
   nome: string
   duracaoMin: number
   precoAvulso: number
-  incluidoNoPlano: boolean
   ativo: boolean
 }

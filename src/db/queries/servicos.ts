@@ -9,7 +9,6 @@ function toAppServico(row: typeof servicos.$inferSelect): Servico {
     nome: row.nome,
     duracaoMin: row.duracaoMin,
     precoAvulso: row.precoAvulso,
-    incluidoNoPlano: row.incluidoNoPlano,
     ativo: row.ativo,
   }
 }

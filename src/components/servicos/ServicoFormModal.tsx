@@ -11,7 +11,6 @@ export function ServicoFormModal({ servico }: { servico?: Servico }) {
   const [nome, setNome] = useState(servico?.nome ?? '')
   const [duracaoMin, setDuracaoMin] = useState(servico?.duracaoMin ?? 30)
   const [preco, setPreco] = useState(servico?.precoAvulso ?? 0)
-  const [incluido, setIncluido] = useState(servico?.incluidoNoPlano ?? false)
   const [salvando, setSalvando] = useState(false)
   const [erro, setErro] = useState<string | null>(null)
 
@@ -22,7 +21,6 @@ export function ServicoFormModal({ servico }: { servico?: Servico }) {
       setNome('')
       setDuracaoMin(30)
       setPreco(0)
-      setIncluido(false)
     }
   }
 
@@ -35,9 +33,9 @@ export function ServicoFormModal({ servico }: { servico?: Servico }) {
     setErro(null)
     try {
       if (servico) {
-        await atualizarServico(servico.id, nome, duracaoMin, preco, incluido)
+        await atualizarServico(servico.id, nome, duracaoMin, preco)
       } else {
-        await criarServico(nome, duracaoMin, preco, incluido)
+        await criarServico(nome, duracaoMin, preco)
       }
       fecharTudo()
     } catch {
@@ -78,21 +76,10 @@ export function ServicoFormModal({ servico }: { servico?: Servico }) {
               onChange={(e) => setPreco(Number(e.target.value))}
             />
           </div>
-          <label className="flex items-start gap-2 text-sm text-text-primary">
-            <input
-              type="checkbox"
-              checked={incluido}
-              onChange={(e) => setIncluido(e.target.checked)}
-              className="mt-0.5 h-4 w-4 rounded border-border"
-            />
-            <span>
-              Incluso no plano de assinatura
-              <span className="block text-xs text-text-secondary">
-                Grátis e sem limite mensal pra quem é assinante em dia. Os demais serviços saem com 10% de
-                desconto pra assinante.
-              </span>
-            </span>
-          </label>
+          <p className="text-xs text-text-secondary">
+            Pra incluir esse serviço em algum plano de assinatura (com ou sem limite mensal), vá em{' '}
+            <span className="text-text-primary">Assinaturas</span>.
+          </p>
           {erro && <p className="text-xs text-status-red">{erro}</p>}
           <div className="flex justify-end gap-2">
             <Button variant="ghost" onClick={fecharTudo}>

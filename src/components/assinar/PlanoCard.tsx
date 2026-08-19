@@ -33,7 +33,11 @@ export function PlanoCard({ plano, cpfAtual }: { plano: PlanoAssinatura; cpfAtua
         <div>
           <p className="text-sm font-semibold text-text-primary">{plano.nome}</p>
           <p className="text-xs text-text-secondary">
-            {plano.cortesInclusos === 'ilimitado' ? 'Cortes ilimitados' : `${plano.cortesInclusos} corte(s)/mês`}
+            {plano.servicosInclusos.length === 0
+              ? 'Consulte os benefícios'
+              : plano.servicosInclusos
+                  .map((s) => (s.limiteMensal != null ? `${s.nome} (${s.limiteMensal}x/mês)` : s.nome))
+                  .join(', ')}
           </p>
           <p className="mono-value mt-1 text-lg text-accent">{formatBRL(plano.valorMensal)}/mês</p>
         </div>

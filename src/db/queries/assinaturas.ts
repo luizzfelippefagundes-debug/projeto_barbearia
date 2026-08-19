@@ -1,6 +1,6 @@
 import { and, eq, ne } from 'drizzle-orm'
 import { getDb } from '../index'
-import { assinaturas, planosAssinatura } from '../schema'
+import { assinaturas, planosAssinatura, planoServicosInclusos, servicos } from '../schema'
 import { nullToUndefined } from '../../lib/db-map'
 import type { Assinatura, PlanoAssinatura } from '../../types'
 
@@ -19,23 +19,42 @@ function toAppAssinatura(row: typeof assinaturas.$inferSelect): Assinatura {
   }
 }
 
-function toAppPlano(row: typeof planosAssinatura.$inferSelect): PlanoAssinatura {
-  return {
-    id: row.id,
-    nome: row.nome,
-    valorMensal: row.valorMensal,
-    cortesInclusos: row.cortesInclusos ?? 'ilimitado',
-  }
-}
-
 export async function getAssinaturas(): Promise<Assinatura[]> {
   const rows = await getDb().select().from(assinaturas)
   return rows.map(toAppAssinatura)
 }
 
 export async function getPlanosAssinatura(): Promise<PlanoAssinatura[]> {
-  const rows = await getDb().select().from(planosAssinatura).orderBy(planosAssinatura.nome)
-  return rows.map(toAppPlano)
+  const db = getDb()
+  const [planosRows, inclusoesRows] = await Promise.all([
+    db.select().from(planosAssinatura).orderBy(planosAssinatura.nome),
+    db
+      .select({
+        planoId: planoServicosInclusos.planoId,
+        servicoId: planoServicosInclusos.servicoId,
+        limiteMensal: planoServicosInclusos.limiteMensal,
+        nome: servicos.nome,
+      })
+      .from(planoServicosInclusos)
+      .innerJoin(servicos, eq(servicos.id, planoServicosInclusos.servicoId)),
+  ])
+
+  return planosRows.map((plano) => ({
+    id: plano.id,
+    nome: plano.nome,
+    valorMensal: plano.valorMensal,
+    ativo: plano.ativo,
+    servicosInclusos: inclusoesRows
+      .filter((i) => i.planoId === plano.id)
+      .map((i) => ({ servicoId: i.servicoId, nome: i.nome, limiteMensal: i.limiteMensal })),
+  }))
+}
+
+/** Só os planos ativos — é essa lista que aparece pro cliente escolher ao
+ * assinar. Planos desativados continuam existindo pra quem já é assinante. */
+export async function getPlanosDisponiveisParaAssinar(): Promise<PlanoAssinatura[]> {
+  const planos = await getPlanosAssinatura()
+  return planos.filter((p) => p.ativo)
 }
 
 export async function getAssinaturaPorId(id: string): Promise<Assinatura | null> {
