@@ -1,4 +1,3 @@
-import Image from 'next/image'
 import Link from 'next/link'
 import { CalendarDays, ChevronRight, Crown, Scissors } from 'lucide-react'
 import { Card } from '../../components/ui'
@@ -14,32 +13,22 @@ const OPCOES = [
 
 export function EscolhaAcesso({ modo }: { modo: 'entrar' | 'cadastro' }) {
   return (
-    <div className="relative flex min-h-screen flex-col items-center justify-center gap-6 overflow-hidden bg-black p-4">
-      <Image
-        src="/logo.jpg"
-        alt=""
-        fill
-        priority
-        aria-hidden="true"
-        className="scale-125 object-cover object-center opacity-25"
-      />
-      <div className="absolute inset-0 bg-gradient-to-b from-black/70 via-black/80 to-black" />
-
-      <div className="absolute top-4 right-4 z-10">
+    <div className="relative flex min-h-screen flex-col items-center justify-center gap-6 bg-bg p-4">
+      <div className="absolute top-4 right-4">
         <ThemeToggle />
       </div>
 
-      <div className="relative z-10 flex items-center gap-2">
+      <div className="flex items-center gap-2">
         <LogoMark />
-        <span className="font-heading text-sm font-bold text-white">{NOME_BARBEARIA}</span>
+        <span className="font-heading text-sm font-bold text-text-primary">{NOME_BARBEARIA}</span>
       </div>
 
-      <div className="relative z-10 text-center">
-        <h1 className="text-lg text-white">{modo === 'entrar' ? 'Como você acessa?' : 'Criar conta como...'}</h1>
-        <p className="text-sm text-white/70">Escolha uma opção pra continuar.</p>
+      <div className="text-center">
+        <h1 className="text-lg text-text-primary">{modo === 'entrar' ? 'Como você acessa?' : 'Criar conta como...'}</h1>
+        <p className="text-sm text-text-secondary">Escolha uma opção pra continuar.</p>
       </div>
 
-      <div className="relative z-10 flex w-full max-w-xs flex-col gap-2">
+      <div className="flex w-full max-w-xs flex-col gap-2">
         {OPCOES.map(({ href, cadastro, label, icon: Icon }) => (
           <Link key={href} href={modo === 'entrar' ? href : cadastro}>
             <Card className="flex items-center justify-between gap-3 px-4 py-3.5 hover:border-accent">

@@ -1,5 +1,5 @@
 import { SignUp } from '@clerk/nextjs'
-import { MailWarning, Scissors } from 'lucide-react'
+import { MailWarning } from 'lucide-react'
 import { AuthDoorShell } from '../../../../components/auth/AuthDoorShell'
 import { Card } from '../../../../components/ui'
 
@@ -12,7 +12,6 @@ export default async function CadastroBarbeiroPage({
 
   return (
     <AuthDoorShell
-      icon={Scissors}
       titulo="Área do barbeiro"
       descricao="Esse cadastro não é aberto — só entra quem recebe um convite do dono."
     >
