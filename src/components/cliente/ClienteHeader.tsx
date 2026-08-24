@@ -2,9 +2,10 @@
 
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
-import { ChevronLeft, Scissors } from 'lucide-react'
+import { ChevronLeft } from 'lucide-react'
 import { UserButton } from '@clerk/nextjs'
 import { NOME_BARBEARIA } from '../../lib/constants'
+import { LogoMark } from '../ui/LogoMark'
 import { SairButton } from '../auth/SairButton'
 import { ThemeToggle } from '../theme/ThemeToggle'
 
@@ -30,9 +31,7 @@ export function ClienteHeader() {
             </button>
           )}
           <Link href="/cliente" className="flex items-center gap-2">
-            <span className="flex h-8 w-8 items-center justify-center rounded-xl bg-accent text-white">
-              <Scissors size={16} aria-hidden="true" />
-            </span>
+            <LogoMark size="sm" />
             <span className="font-heading text-sm font-bold text-text-primary">{NOME_BARBEARIA}</span>
           </Link>
         </div>

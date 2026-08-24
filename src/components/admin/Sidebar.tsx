@@ -16,6 +16,7 @@ import {
 } from 'lucide-react'
 import { cn } from '../../lib/cn'
 import { NOME_BARBEARIA } from '../../lib/constants'
+import { LogoMark } from '../ui/LogoMark'
 import { SairButton } from '../auth/SairButton'
 import { ThemeToggle } from '../theme/ThemeToggle'
 
@@ -37,9 +38,7 @@ export function Sidebar() {
   return (
     <aside className="flex h-screen w-16 shrink-0 flex-col border-r border-border bg-surface lg:w-64">
       <div className="flex items-center gap-2.5 px-4 py-5 lg:px-6">
-        <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-accent text-white">
-          <Scissors size={16} aria-hidden="true" />
-        </span>
+        <LogoMark />
         <span className="hidden font-heading text-base font-bold text-text-primary lg:inline">
           {NOME_BARBEARIA}
         </span>

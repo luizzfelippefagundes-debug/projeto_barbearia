@@ -1,4 +1,5 @@
 export * from './Card'
+export * from './LogoMark'
 export * from './StatusPill'
 export * from './Badge'
 export * from './Button'

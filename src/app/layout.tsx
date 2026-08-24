@@ -47,6 +47,7 @@ export default function RootLayout({
     <html
       lang="pt-BR"
       className={`${headingFont.variable} ${inter.variable} ${jetbrainsMono.variable}`}
+      suppressHydrationWarning
     >
       <body className="bg-bg text-text-primary antialiased">
         <script dangerouslySetInnerHTML={{ __html: THEME_INIT_SCRIPT }} />

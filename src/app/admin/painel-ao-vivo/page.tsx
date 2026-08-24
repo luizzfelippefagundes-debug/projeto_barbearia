@@ -1,5 +1,5 @@
-import { Scissors } from 'lucide-react'
 import { NOME_BARBEARIA } from '../../../lib/constants'
+import { LogoMark } from '../../../components/ui/LogoMark'
 import { getHojeISO, formatDateDisplay, mesReferenciaDeData } from '../../../lib/dateUtils'
 import { getBarbeiros } from '../../../db/queries/barbeiros'
 import { getAgendamentosDoMes } from '../../../db/queries/agendamentos'
@@ -36,9 +36,7 @@ export default async function PainelAoVivoPage() {
       <AutoRefresh />
       <header className="mb-8 flex items-center justify-between border-b border-white/10 pb-6">
         <div className="flex items-center gap-3">
-          <span className="flex h-12 w-12 items-center justify-center rounded-2xl bg-accent text-white">
-            <Scissors size={24} aria-hidden="true" />
-          </span>
+          <LogoMark size="lg" />
           <span className="font-heading text-3xl font-bold text-white">{NOME_BARBEARIA}</span>
         </div>
         <span className="font-heading text-lg font-medium text-white/60">

@@ -7,14 +7,16 @@ type Theme = 'light' | 'dark'
 const ThemeContext = createContext<{ theme: Theme; toggleTheme: () => void } | null>(null)
 
 /** O script inline no layout já define data-theme no <html> antes da
- * primeira pintura — aqui só lemos o que ele já decidiu, sem causar flash. */
+ * primeira pintura (evita flash visual) — mas o React ainda precisa que a
+ * primeira renderização do cliente bata com a do servidor, senão dá erro de
+ * hydration. Por isso o estado inicial é sempre 'light' aqui, igual no
+ * servidor, e só corrige pro valor real depois de montar (useEffect). */
 function lerTemaAtual(): Theme {
-  if (typeof document === 'undefined') return 'light'
   return document.documentElement.getAttribute('data-theme') === 'dark' ? 'dark' : 'light'
 }
 
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
-  const [theme, setTheme] = useState<Theme>(lerTemaAtual)
+  const [theme, setTheme] = useState<Theme>('light')
 
   useEffect(() => {
     setTheme(lerTemaAtual())
