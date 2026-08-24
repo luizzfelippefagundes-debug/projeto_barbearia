@@ -23,10 +23,12 @@ export default async function AvaliarPage({
   const [barbeiros, servicos] = await Promise.all([getBarbeiros(), getServicosAtivos()])
 
   return (
-    <PostVisitRatingClient
-      visita={visita}
-      barbeiro={barbeiros.find((b) => b.id === visita.barbeiroId)}
-      servico={servicos.find((s) => s.id === visita.servicoId)}
-    />
+    <div className="lg:mx-auto lg:max-w-3xl">
+      <PostVisitRatingClient
+        visita={visita}
+        barbeiro={barbeiros.find((b) => b.id === visita.barbeiroId)}
+        servico={servicos.find((s) => s.id === visita.servicoId)}
+      />
+    </div>
   )
 }

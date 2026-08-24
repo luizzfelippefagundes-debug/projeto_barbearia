@@ -26,7 +26,7 @@ export default async function PagarAssinaturaPage({
 
   if (statusAtual !== 'aguardando') {
     return (
-      <div className="flex flex-col gap-4">
+      <div className="flex flex-col gap-4 lg:mx-auto lg:max-w-3xl">
         <Card className="flex flex-col items-center gap-3 p-6 text-center">
           <CheckCircle2 size={32} className="text-status-green" aria-hidden="true" />
           <div>
@@ -52,7 +52,7 @@ export default async function PagarAssinaturaPage({
   }
 
   return (
-    <div className="flex flex-col gap-4">
+    <div className="flex flex-col gap-4 lg:mx-auto lg:max-w-3xl">
       <AutoRefresh intervaloMs={5000} />
 
       <div>

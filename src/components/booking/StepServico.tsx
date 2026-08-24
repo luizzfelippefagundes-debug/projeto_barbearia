@@ -22,7 +22,7 @@ export function StepServico({
   return (
     <div>
       <h2 className="mb-4 text-lg text-text-primary">Escolha o serviço</h2>
-      <div className="flex flex-col gap-2">
+      <div className="grid grid-cols-1 gap-2 lg:grid-cols-2">
         {servicos.map((servico) => {
           const inclusao = plano?.servicosInclusos.find((i) => i.servicoId === servico.id)
           const usos = inclusao ? getUsosServicoNoMes(cliente, servico.id, mesReferencia) : 0

@@ -12,7 +12,7 @@ export function StepBarbeiro({
   return (
     <div>
       <h2 className="mb-4 text-lg text-text-primary">Escolha o barbeiro</h2>
-      <div className="flex flex-col gap-2">
+      <div className="grid grid-cols-1 gap-2 lg:grid-cols-2">
         <button type="button" onClick={() => onSelect('qualquer')} className="text-left">
           <Card className="flex items-center gap-3 px-4 py-3 hover:border-brass">
             <span className="flex h-11 w-11 items-center justify-center rounded-full border border-border bg-surface-raised text-brass">

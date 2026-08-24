@@ -13,7 +13,7 @@ export default async function AssinarPage() {
   const planos = await getPlanosDisponiveisParaAssinar()
 
   return (
-    <div className="flex flex-col gap-4">
+    <div className="flex flex-col gap-4 lg:mx-auto lg:max-w-3xl">
       <div>
         <h1 className="text-lg text-text-primary">Assinar um plano</h1>
         <p className="text-sm text-text-secondary">Pague menos por corte e economize todo mês.</p>

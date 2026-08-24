@@ -30,7 +30,7 @@ export function StepHorario({
       {opcoes.length === 0 ? (
         <EmptyState title="Sem horários livres" description="Tente outro barbeiro ou volte outro dia." />
       ) : (
-        <div className="grid grid-cols-3 gap-2">
+        <div className="grid grid-cols-3 gap-2 lg:grid-cols-5">
           {opcoes.map((a) => {
             const barbeiro = barbeiros.find((b) => b.id === a.barbeiroId)
             return (
