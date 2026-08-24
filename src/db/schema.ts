@@ -135,6 +135,8 @@ export const clientes = pgTable('clientes', {
   indicadoPor: uuid('indicado_por').references((): AnyPgColumn => clientes.id, {
     onDelete: 'set null',
   }),
+  /** Código curto e único usado no link "indique um amigo" (ex: /r/AB3XQ9). */
+  codigoIndicacao: text('codigo_indicacao').unique(),
   assinaturaId: uuid('assinatura_id'),
   criadoEm: timestamp('criado_em').notNull().defaultNow(),
 })

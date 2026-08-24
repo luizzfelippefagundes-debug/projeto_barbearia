@@ -18,6 +18,7 @@ function toAppCliente(row: typeof clientes.$inferSelect, historico: HaircutRecor
     loyaltyCortesMeta: row.loyaltyCortesMeta,
     canalIndicacao: row.canalIndicacao,
     indicadoPor: nullToUndefined(row.indicadoPor),
+    codigoIndicacao: nullToUndefined(row.codigoIndicacao),
     assinaturaId: nullToUndefined(row.assinaturaId),
     criadoEm: row.criadoEm.toISOString(),
   }
@@ -40,6 +41,15 @@ function toAppHaircutRecord(row: typeof haircutRecords.$inferSelect): HaircutRec
 export async function getClientesResumo(): Promise<Cliente[]> {
   const rows = await getDb().select().from(clientes).orderBy(clientes.nome)
   return rows.map((r) => toAppCliente(r))
+}
+
+export async function getClienteIdPorCodigoIndicacao(codigo: string): Promise<string | null> {
+  const rows = await getDb()
+    .select({ id: clientes.id })
+    .from(clientes)
+    .where(eq(clientes.codigoIndicacao, codigo.toUpperCase()))
+    .limit(1)
+  return rows[0]?.id ?? null
 }
 
 export async function getClienteComHistorico(id: string): Promise<Cliente | null> {

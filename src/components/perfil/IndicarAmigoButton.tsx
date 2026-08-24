@@ -4,11 +4,20 @@ import { useState } from 'react'
 import { Check, Copy, Gift } from 'lucide-react'
 import { Button, Card } from '../../components/ui'
 
-export function IndicarAmigoButton({ nome, totalIndicados }: { nome: string; totalIndicados: number }) {
+export function IndicarAmigoButton({
+  codigo,
+  baseUrl,
+  totalIndicados,
+}: {
+  codigo?: string
+  baseUrl: string
+  totalIndicados: number
+}) {
   const [copiado, setCopiado] = useState(false)
 
-  const codigo = `${nome.split(' ')[0]?.toUpperCase() ?? 'AMIGO'}10`
-  const link = `barbearia.app/r/${codigo}`
+  if (!codigo) return null
+
+  const link = `${baseUrl}/r/${codigo}`
 
   async function handleCopiar() {
     try {
@@ -27,8 +36,7 @@ export function IndicarAmigoButton({ nome, totalIndicados }: { nome: string; tot
         <span className="text-xs tracking-wide uppercase">Indique um amigo</span>
       </div>
       <p className="mb-3 text-sm text-text-secondary">
-        Compartilhe seu link e ganhe desconto. Você já indicou {totalIndicados}{' '}
-        {totalIndicados === 1 ? 'amigo' : 'amigos'}.
+        Compartilhe seu link. Você já indicou {totalIndicados} {totalIndicados === 1 ? 'amigo' : 'amigos'}.
       </p>
       <div className="flex items-center gap-2">
         <span className="mono-value flex-1 truncate rounded border border-border bg-surface-raised px-3 py-2 text-sm text-text-primary">

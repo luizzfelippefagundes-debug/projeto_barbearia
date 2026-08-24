@@ -4,6 +4,7 @@ import { Card, StatusPill } from '../../components/ui'
 import { BarbeiroAvatarUpload } from './BarbeiroAvatarUpload'
 import { CommissionSlider } from './CommissionSlider'
 import { PayoutStatusPill } from './PayoutStatusPill'
+import { MarcarRepasseButton } from './MarcarRepasseButton'
 import { formatBRL } from '../../lib/format'
 
 interface BarbeiroCardProps {
@@ -11,9 +12,10 @@ interface BarbeiroCardProps {
   payout: PayoutBarbeiro | undefined
   cortes: number
   valorAReceber: number
+  mesReferencia: string
 }
 
-export function BarbeiroCard({ barbeiro, payout, cortes, valorAReceber }: BarbeiroCardProps) {
+export function BarbeiroCard({ barbeiro, payout, cortes, valorAReceber, mesReferencia }: BarbeiroCardProps) {
   return (
     <Card className="flex flex-col gap-4 p-5">
       <div className="flex items-center gap-3">
@@ -45,6 +47,12 @@ export function BarbeiroCard({ barbeiro, payout, cortes, valorAReceber }: Barbei
           <p className="mono-value text-xl text-text-primary">{formatBRL(valorAReceber)}</p>
         </div>
         <PayoutStatusPill payout={payout} />
+        <MarcarRepasseButton
+          barbeiroId={barbeiro.id}
+          mesReferencia={mesReferencia}
+          valorAReceber={valorAReceber}
+          payout={payout}
+        />
       </div>
     </Card>
   )

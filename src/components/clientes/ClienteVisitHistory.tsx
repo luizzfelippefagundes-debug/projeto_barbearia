@@ -1,3 +1,4 @@
+import Link from 'next/link'
 import { ThumbsDown, ThumbsUp } from 'lucide-react'
 import type { Barbeiro, HaircutRecord, Servico } from '../../types'
 import { EmptyState } from '../../components/ui'
@@ -7,10 +8,12 @@ export function ClienteVisitHistory({
   historico,
   barbeiros,
   servicos,
+  mostrarAvaliar = false,
 }: {
   historico: HaircutRecord[]
   barbeiros: Barbeiro[]
   servicos: Servico[]
+  mostrarAvaliar?: boolean
 }) {
   if (historico.length === 0) {
     return <EmptyState title="Sem histórico" description="Este cliente ainda não teve atendimentos." />
@@ -27,6 +30,11 @@ export function ClienteVisitHistory({
               <span className="mono-value text-xs text-text-secondary">{formatDataCurta(h.data)}</span>
               {h.avaliacao === 'up' && <ThumbsUp size={14} className="text-status-green" aria-label="Avaliação positiva" />}
               {h.avaliacao === 'down' && <ThumbsDown size={14} className="text-status-red" aria-label="Avaliação negativa" />}
+              {!h.avaliacao && mostrarAvaliar && (
+                <Link href={`/cliente/avaliar/${h.id}`} className="text-xs text-accent underline">
+                  Avaliar
+                </Link>
+              )}
             </div>
             <p className="text-sm text-text-primary">
               {servico?.nome} · {barbeiro?.nome}

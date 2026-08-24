@@ -7,6 +7,7 @@ import { NextAppointmentCard } from '../../../components/perfil/NextAppointmentC
 import { IndicarAmigoButton } from '../../../components/perfil/IndicarAmigoButton'
 import { SubscriptionCancelFlow } from '../../../components/perfil/SubscriptionCancelFlow'
 import { requireClienteAtual } from '../../../lib/clienteAuth'
+import { getBaseUrl } from '../../../lib/baseUrl'
 import { getBarbeiros } from '../../../db/queries/barbeiros'
 import { getServicosAtivos } from '../../../db/queries/servicos'
 import { getAgendamentosDoDia } from '../../../db/queries/agendamentos'
@@ -17,13 +18,14 @@ import { getHojeISO } from '../../../lib/dateUtils'
 export default async function PerfilPage() {
   const cliente = await requireClienteAtual()
 
-  const [barbeiros, servicos, agendamentosHoje, assinaturas, planos, clientes] = await Promise.all([
+  const [barbeiros, servicos, agendamentosHoje, assinaturas, planos, clientes, baseUrl] = await Promise.all([
     getBarbeiros(),
     getServicosAtivos(),
     getAgendamentosDoDia(getHojeISO()),
     getAssinaturas(),
     getPlanosAssinatura(),
     getClientesResumo(),
+    getBaseUrl(),
   ])
 
   const proximo = agendamentosHoje
@@ -72,11 +74,16 @@ export default async function PerfilPage() {
         </Card>
       )}
 
-      <IndicarAmigoButton nome={cliente.nome} totalIndicados={totalIndicados} />
+      <IndicarAmigoButton codigo={cliente.codigoIndicacao} baseUrl={baseUrl} totalIndicados={totalIndicados} />
 
       <div>
         <SectionHeading>Histórico</SectionHeading>
-        <ClienteVisitHistory historico={cliente.historico} barbeiros={barbeiros} servicos={servicos} />
+        <ClienteVisitHistory
+          historico={cliente.historico}
+          barbeiros={barbeiros}
+          servicos={servicos}
+          mostrarAvaliar
+        />
       </div>
     </div>
   )

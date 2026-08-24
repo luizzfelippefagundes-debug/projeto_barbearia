@@ -7,6 +7,7 @@ import { getDb } from '../db'
 import { clientes, haircutRecords } from '../db/schema'
 import { assertAdmin } from '../lib/adminAuth'
 import { getHojeISO } from '../lib/dateUtils'
+import { gerarCodigoIndicacao } from '../lib/codigoIndicacao'
 
 export async function criarCliente(nome: string, telefone: string) {
   await assertAdmin()
@@ -14,7 +15,7 @@ export async function criarCliente(nome: string, telefone: string) {
 
   const rows = await getDb()
     .insert(clientes)
-    .values({ nome: nome.trim(), telefone: telefone.trim() })
+    .values({ nome: nome.trim(), telefone: telefone.trim(), codigoIndicacao: gerarCodigoIndicacao() })
     .returning()
 
   revalidatePath('/admin/clientes')

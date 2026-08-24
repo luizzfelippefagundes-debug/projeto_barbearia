@@ -7,13 +7,13 @@ import { getServicosAtivos } from '../../../../db/queries/servicos'
 export default async function AvaliarPage({
   params,
 }: {
-  params: Promise<{ agendamentoId: string }>
+  params: Promise<{ historicoId: string }>
 }) {
-  const { agendamentoId } = await params
+  const { historicoId } = await params
   const cliente = await requireClienteAtual()
 
   const visita =
-    cliente.historico.find((h) => h.id === agendamentoId) ??
+    cliente.historico.find((h) => h.id === historicoId) ??
     [...cliente.historico].sort((a, b) => b.data.localeCompare(a.data))[0]
 
   if (!visita) {

@@ -23,6 +23,7 @@ export interface Cliente {
   loyaltyCortesMeta: number
   canalIndicacao: CanalIndicacao
   indicadoPor?: string
+  codigoIndicacao?: string
   assinaturaId?: string
   criadoEm: string
 }
