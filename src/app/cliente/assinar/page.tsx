@@ -22,7 +22,7 @@ export default async function AssinarPage() {
       {planos.length === 0 ? (
         <EmptyState title="Nenhum plano disponível" description="A barbearia ainda não cadastrou planos." />
       ) : (
-        <div className="flex flex-col gap-3">
+        <div className="grid grid-cols-1 gap-3 lg:grid-cols-2">
           {planos.map((plano) => (
             <PlanoCard key={plano.id} plano={plano} cpfAtual={cliente.cpfCnpj} />
           ))}

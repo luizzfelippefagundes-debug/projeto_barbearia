@@ -24,13 +24,15 @@ export default async function AgendarPage() {
   const plano = assinatura ? planos.find((p) => p.id === assinatura.planoId) : undefined
 
   return (
-    <BookingFlowClient
-      servicos={servicos}
-      barbeiros={barbeirosAtivos}
-      grade={grade}
-      cliente={cliente}
-      assinatura={assinatura}
-      plano={plano}
-    />
+    <div className="lg:mx-auto lg:max-w-md">
+      <BookingFlowClient
+        servicos={servicos}
+        barbeiros={barbeirosAtivos}
+        grade={grade}
+        cliente={cliente}
+        assinatura={assinatura}
+        plano={plano}
+      />
+    </div>
   )
 }

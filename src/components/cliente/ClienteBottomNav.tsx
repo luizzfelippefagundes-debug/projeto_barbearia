@@ -16,7 +16,7 @@ export function ClienteBottomNav() {
   const pathname = usePathname()
 
   return (
-    <nav className="fixed inset-x-0 bottom-0 z-10 border-t border-border bg-surface pb-[env(safe-area-inset-bottom)]">
+    <nav className="fixed inset-x-0 bottom-0 z-10 border-t border-border bg-surface pb-[env(safe-area-inset-bottom)] lg:hidden">
       <div className="mx-auto flex max-w-md items-stretch justify-between px-2">
         {ITEMS.map(({ href, label, icon: Icon }) => {
           const active = href === '/cliente' ? pathname === href : pathname.startsWith(href)

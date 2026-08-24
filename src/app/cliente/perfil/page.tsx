@@ -36,7 +36,7 @@ export default async function PerfilPage() {
   const totalIndicados = clientes.filter((c) => c.indicadoPor === cliente.id).length
 
   return (
-    <div className="flex flex-col gap-5">
+    <div className="flex flex-col gap-5 lg:mx-auto lg:max-w-md">
       <div className="flex items-center gap-3">
         <Avatar nome={cliente.nome} src={cliente.avatarUrl} size="lg" />
         <div>
