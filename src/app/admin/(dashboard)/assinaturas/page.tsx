@@ -20,12 +20,12 @@ export default async function AssinaturasPage() {
   return (
     <div className="flex flex-col gap-8">
       <div>
-        <SectionHeading action={<PlanoFormModal servicos={servicos} />}>Assinaturas</SectionHeading>
+        <SectionHeading>Assinaturas</SectionHeading>
         <MetricCardsRow assinaturas={assinaturas} planos={planos} />
       </div>
 
       <div>
-        <SectionHeading>Planos</SectionHeading>
+        <SectionHeading action={<PlanoFormModal servicos={servicos} />}>Planos</SectionHeading>
         {planos.length === 0 ? (
           <EmptyState title="Nenhum plano cadastrado" description="Crie o primeiro plano acima." />
         ) : (
