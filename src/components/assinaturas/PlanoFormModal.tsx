@@ -1,30 +1,44 @@
 'use client'
 
 import { useState } from 'react'
-import { Plus } from 'lucide-react'
-import { Button, Input, Modal } from '../../components/ui'
-import { criarPlano } from '../../actions/assinaturas.actions'
-import type { Servico } from '../../types'
+import { Pencil, Plus } from 'lucide-react'
+import { Button, IconButton, Input, Modal } from '../../components/ui'
+import { atualizarPlano, criarPlano } from '../../actions/assinaturas.actions'
+import type { PlanoAssinatura, Servico } from '../../types'
 
 interface SelecaoServico {
   selecionado: boolean
   limiteMensal: string
 }
 
-export function NovoPlanoButton({ servicos }: { servicos: Servico[] }) {
+function selecoesIniciais(plano?: PlanoAssinatura): Record<string, SelecaoServico> {
+  if (!plano) return {}
+  const iniciais: Record<string, SelecaoServico> = {}
+  for (const inclusao of plano.servicosInclusos) {
+    iniciais[inclusao.servicoId] = {
+      selecionado: true,
+      limiteMensal: inclusao.limiteMensal != null ? String(inclusao.limiteMensal) : '',
+    }
+  }
+  return iniciais
+}
+
+export function PlanoFormModal({ plano, servicos }: { plano?: PlanoAssinatura; servicos: Servico[] }) {
   const [open, setOpen] = useState(false)
-  const [nome, setNome] = useState('')
-  const [valorMensal, setValorMensal] = useState(0)
-  const [selecoes, setSelecoes] = useState<Record<string, SelecaoServico>>({})
+  const [nome, setNome] = useState(plano?.nome ?? '')
+  const [valorMensal, setValorMensal] = useState(plano?.valorMensal ?? 0)
+  const [selecoes, setSelecoes] = useState<Record<string, SelecaoServico>>(() => selecoesIniciais(plano))
   const [salvando, setSalvando] = useState(false)
   const [erro, setErro] = useState<string | null>(null)
 
   function fecharTudo() {
     setOpen(false)
-    setNome('')
-    setValorMensal(0)
-    setSelecoes({})
     setErro(null)
+    if (!plano) {
+      setNome('')
+      setValorMensal(0)
+      setSelecoes({})
+    }
   }
 
   function toggleServico(servicoId: string) {
@@ -58,7 +72,11 @@ export function NovoPlanoButton({ servicos }: { servicos: Servico[] }) {
           servicoId,
           limiteMensal: s.limiteMensal.trim() === '' ? null : Number(s.limiteMensal),
         }))
-      await criarPlano(nome, valorMensal, servicosInclusos)
+      if (plano) {
+        await atualizarPlano(plano.id, nome, valorMensal, servicosInclusos)
+      } else {
+        await criarPlano(nome, valorMensal, servicosInclusos)
+      }
       fecharTudo()
     } catch {
       setErro('Não foi possível salvar. Tente de novo.')
@@ -69,12 +87,16 @@ export function NovoPlanoButton({ servicos }: { servicos: Servico[] }) {
 
   return (
     <>
-      <Button size="sm" onClick={() => setOpen(true)}>
-        <Plus size={16} aria-hidden="true" />
-        Novo plano
-      </Button>
+      {plano ? (
+        <IconButton icon={<Pencil size={14} aria-hidden="true" />} label="Editar plano" onClick={() => setOpen(true)} />
+      ) : (
+        <Button size="sm" onClick={() => setOpen(true)}>
+          <Plus size={16} aria-hidden="true" />
+          Novo plano
+        </Button>
+      )}
 
-      <Modal open={open} onClose={fecharTudo} title="Novo plano de assinatura">
+      <Modal open={open} onClose={fecharTudo} title={plano ? `Editar ${plano.nome}` : 'Novo plano de assinatura'}>
         <div className="flex flex-col gap-4">
           <Input label="Nome" value={nome} onChange={(e) => setNome(e.target.value)} placeholder="Ex: VIP" />
           <Input

@@ -1,8 +1,9 @@
+import type { ReactNode } from 'react'
 import type { PlanoAssinatura } from '../../types'
 import { formatBRL } from '../../lib/format'
 import { cn } from '../../lib/cn'
 
-export function PlanoResumoRow({ plano }: { plano: PlanoAssinatura }) {
+export function PlanoResumoRow({ plano, actions }: { plano: PlanoAssinatura; actions?: ReactNode }) {
   return (
     <div
       className={cn(
@@ -23,7 +24,10 @@ export function PlanoResumoRow({ plano }: { plano: PlanoAssinatura }) {
                 .join(', ')}
         </p>
       </div>
-      <p className="mono-value text-sm text-text-primary">{formatBRL(plano.valorMensal)}/mês</p>
+      <div className="flex items-center gap-4">
+        <p className="mono-value text-sm text-text-primary">{formatBRL(plano.valorMensal)}/mês</p>
+        {actions}
+      </div>
     </div>
   )
 }
