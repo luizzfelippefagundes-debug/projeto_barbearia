@@ -1,4 +1,4 @@
-import { and, eq, ne } from 'drizzle-orm'
+import { and, eq, inArray } from 'drizzle-orm'
 import { getDb } from '../index'
 import { assinaturas, planosAssinatura, planoServicosInclusos, servicos } from '../schema'
 import { nullToUndefined } from '../../lib/db-map'
@@ -62,11 +62,15 @@ export async function getAssinaturaPorId(id: string): Promise<Assinatura | null>
   return rows[0] ? toAppAssinatura(rows[0]) : null
 }
 
+/** "Ativa" aqui significa que o pagamento já aconteceu de verdade em algum
+ * momento (em_dia ou atrasado) — uma assinatura que ficou "aguardando" e o
+ * cliente nunca terminou de pagar não conta como nada pra ele: pode tentar
+ * assinar de novo, sem precisar cancelar primeiro. */
 export async function getAssinaturaAtivaDoCliente(clienteId: string): Promise<Assinatura | null> {
   const rows = await getDb()
     .select()
     .from(assinaturas)
-    .where(and(eq(assinaturas.clienteId, clienteId), ne(assinaturas.status, 'cancelado')))
+    .where(and(eq(assinaturas.clienteId, clienteId), inArray(assinaturas.status, ['em_dia', 'atrasado'])))
     .limit(1)
   return rows[0] ? toAppAssinatura(rows[0]) : null
 }

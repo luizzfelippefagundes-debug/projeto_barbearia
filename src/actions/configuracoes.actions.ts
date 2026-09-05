@@ -17,5 +17,4 @@ export async function setMetaFaturamento(valor: number) {
     })
 
   revalidatePath('/admin/financeiro')
-  revalidatePath('/admin/painel-ao-vivo')
 }

@@ -6,10 +6,11 @@ import { getAgendamentosDoMes } from '../../../../db/queries/agendamentos'
 import { getServicosAtivos } from '../../../../db/queries/servicos'
 import { getPayoutsDoMes } from '../../../../db/queries/payouts'
 import { getVendas } from '../../../../db/queries/vendas'
+import { getAssinaturas, getPlanosAssinatura } from '../../../../db/queries/assinaturas'
+import { getClientesComHistorico } from '../../../../db/queries/clientes'
 import {
   getComissaoTotalBarbeiro,
   getCortesNoMesPorBarbeiro,
-  getFaturamentoGeradoPorBarbeiroNoMes,
   getVendasDoBarbeiroNoMes,
 } from '../../../../lib/derive'
 import { getHojeISO, mesReferenciaDeData } from '../../../../lib/dateUtils'
@@ -17,12 +18,15 @@ import { getHojeISO, mesReferenciaDeData } from '../../../../lib/dateUtils'
 export default async function BarbeirosPage() {
   const mesReferencia = mesReferenciaDeData(getHojeISO())
 
-  const [barbeiros, agendamentos, servicos, payouts, vendas] = await Promise.all([
+  const [barbeiros, agendamentos, servicos, payouts, vendas, assinaturas, planos, clientes] = await Promise.all([
     getBarbeiros(),
     getAgendamentosDoMes(mesReferencia),
     getServicosAtivos(),
     getPayoutsDoMes(mesReferencia),
     getVendas(),
+    getAssinaturas(),
+    getPlanosAssinatura(),
+    getClientesComHistorico(),
   ])
 
   return (
@@ -41,14 +45,18 @@ export default async function BarbeirosPage() {
         >
           {barbeiros.map((barbeiro) => {
             const cortes = getCortesNoMesPorBarbeiro(agendamentos, barbeiro.id, mesReferencia)
-            const faturamentoGerado = getFaturamentoGeradoPorBarbeiroNoMes(
+            const totalVendas = getVendasDoBarbeiroNoMes(vendas, barbeiro.id, mesReferencia)
+            const valorAReceber = getComissaoTotalBarbeiro(
               agendamentos,
               servicos,
+              clientes,
+              planos,
+              assinaturas,
+              barbeiros,
               barbeiro.id,
               mesReferencia,
+              totalVendas,
             )
-            const totalVendas = getVendasDoBarbeiroNoMes(vendas, barbeiro.id, mesReferencia)
-            const valorAReceber = getComissaoTotalBarbeiro(barbeiro, faturamentoGerado, totalVendas)
             return (
               <BarbeiroCard
                 key={barbeiro.id}

@@ -3,7 +3,6 @@ import { Card } from '../../components/ui'
 import {
   getAssinantesEmDia,
   getComissaoTotalBarbeiro,
-  getFaturamentoGeradoPorBarbeiroNoMes,
   getFrequenciaRetornoDias,
   getMRR,
   getTicketMedio,
@@ -35,16 +34,27 @@ export function FinanceiroKpiRow({
   const mrr = getMRR(assinaturas, planos)
   const assinantesEmDia = getAssinantesEmDia(assinaturas)
 
-  const totalComissoes = barbeiros.reduce((total, barbeiro) => {
-    const faturamento = getFaturamentoGeradoPorBarbeiroNoMes(
-      agendamentos,
-      servicos,
-      barbeiro.id,
-      mesReferencia,
-    )
-    const totalVendas = getVendasDoBarbeiroNoMes(vendas, barbeiro.id, mesReferencia)
-    return total + getComissaoTotalBarbeiro(barbeiro, faturamento, totalVendas)
-  }, 0)
+  // Dono não conta como custo de comissão — o que ele corta é receita da
+  // própria barbearia, não um repasse pra terceiro.
+  const totalComissoes = barbeiros
+    .filter((b) => b.papel !== 'dono')
+    .reduce((total, barbeiro) => {
+      const totalVendas = getVendasDoBarbeiroNoMes(vendas, barbeiro.id, mesReferencia)
+      return (
+        total +
+        getComissaoTotalBarbeiro(
+          agendamentos,
+          servicos,
+          clientes,
+          planos,
+          assinaturas,
+          barbeiros,
+          barbeiro.id,
+          mesReferencia,
+          totalVendas,
+        )
+      )
+    }, 0)
 
   const margemLiquidaPorAssinante = assinantesEmDia > 0 ? (mrr - totalComissoes) / assinantesEmDia : 0
   const ticketMedio = getTicketMedio(agendamentos, servicos, mesReferencia)

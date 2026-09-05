@@ -19,16 +19,30 @@ export function NovoHorarioModal({ dataISO, barbeiros, clientes, servicos }: Nov
   const [barbeiroId, setBarbeiroId] = useState(barbeiros[0]?.id ?? '')
   const [hora, setHora] = useState(TIME_SLOTS[0])
   const [clienteId, setClienteId] = useState(clientes[0]?.id ?? '')
-  const [servicoId, setServicoId] = useState(servicos[0]?.id ?? '')
+  const [servicoIds, setServicoIds] = useState<string[]>(servicos[0] ? [servicos[0].id] : [])
   const [salvando, setSalvando] = useState(false)
+  const [erro, setErro] = useState<string | null>(null)
 
   const podeSalvar = barbeiros.length > 0 && clientes.length > 0 && servicos.length > 0
 
+  function toggleServico(servicoId: string) {
+    setServicoIds((prev) =>
+      prev.includes(servicoId) ? prev.filter((id) => id !== servicoId) : [...prev, servicoId],
+    )
+  }
+
   async function handleConfirmar() {
+    if (servicoIds.length === 0) {
+      setErro('Escolha pelo menos um serviço.')
+      return
+    }
     setSalvando(true)
+    setErro(null)
     try {
-      await criarOuAtualizarHorario(dataISO, hora, barbeiroId, clienteId, servicoId)
+      await criarOuAtualizarHorario(dataISO, hora, barbeiroId, clienteId, servicoIds)
       setOpen(false)
+    } catch (err) {
+      setErro(err instanceof Error ? err.message : 'Não foi possível salvar. Tente de novo.')
     } finally {
       setSalvando(false)
     }
@@ -73,13 +87,30 @@ export function NovoHorarioModal({ dataISO, barbeiros, clientes, servicos }: Nov
               ))}
             </Select>
 
-            <Select label="Serviço" value={servicoId} onChange={(e) => setServicoId(e.target.value)}>
-              {servicos.map((s) => (
-                <option key={s.id} value={s.id}>
-                  {s.nome}
-                </option>
-              ))}
-            </Select>
+            <div>
+              <p className="mb-2 text-sm text-text-primary">Serviços</p>
+              <div className="flex flex-col gap-2">
+                {servicos.map((s) => (
+                  <label
+                    key={s.id}
+                    className="flex items-center gap-2 rounded-xl border border-border p-2.5 text-sm text-text-primary"
+                  >
+                    <input
+                      type="checkbox"
+                      checked={servicoIds.includes(s.id)}
+                      onChange={() => toggleServico(s.id)}
+                      className="h-4 w-4 rounded border-border"
+                    />
+                    {s.nome}
+                  </label>
+                ))}
+              </div>
+              <p className="mt-1.5 text-xs text-text-secondary">
+                Se a duração somada passar de um slot, os horários seguintes ficam reservados também.
+              </p>
+            </div>
+
+            {erro && <p className="text-xs text-status-red">{erro}</p>}
 
             <div className="flex justify-end gap-2">
               <Button variant="ghost" onClick={() => setOpen(false)}>

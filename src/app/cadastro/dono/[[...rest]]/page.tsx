@@ -1,5 +1,6 @@
 import { SignUp } from '@clerk/nextjs'
 import { AuthDoorShell } from '../../../../components/auth/AuthDoorShell'
+import { CLERK_APPEARANCE_CLARO } from '../../../../components/theme/ThemedClerkProvider'
 
 export default function CadastroDonoPage() {
   return (
@@ -9,6 +10,7 @@ export default function CadastroDonoPage() {
         routing="path"
         signInUrl="/entrar/dono"
         fallbackRedirectUrl="/admin"
+        appearance={CLERK_APPEARANCE_CLARO}
       />
     </AuthDoorShell>
   )

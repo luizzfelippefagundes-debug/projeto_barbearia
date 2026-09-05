@@ -1,11 +1,15 @@
 import { SectionHeading, Card, EmptyState } from '../../../../components/ui'
-import { DateNav } from '../../../../components/agenda/DateNav'
+import { AgendaDatePicker } from '../../../../components/agenda/AgendaDatePicker'
 import { MinhaAgendaRow } from '../../../../components/barbeiro-self/MinhaAgendaRow'
+import { BloquearMeuDiaButton } from '../../../../components/barbeiro-self/BloquearMeuDiaButton'
+import { NovoAtendimentoAvulsoModal } from '../../../../components/barbeiro-self/NovoAtendimentoAvulsoModal'
 import { requireBarbeiroAccess } from '../../../../lib/barbeiroAuth'
-import { getAgendamentosDoDia } from '../../../../db/queries/agendamentos'
+import { getGradeAgendaDoDia } from '../../../../db/queries/agendamentos'
 import { getClientesResumo } from '../../../../db/queries/clientes'
 import { getServicosAtivos } from '../../../../db/queries/servicos'
-import { getHojeISO } from '../../../../lib/dateUtils'
+import { getAssinaturas, getPlanosAssinatura } from '../../../../db/queries/assinaturas'
+import { getBarbeiros } from '../../../../db/queries/barbeiros'
+import { getHojeISO, getHoraAtualBrasil, TIME_SLOTS } from '../../../../lib/dateUtils'
 
 export default async function MinhaAgendaPage({
   searchParams,
@@ -16,21 +20,39 @@ export default async function MinhaAgendaPage({
   const { data } = await searchParams
   const dataISO = data || getHojeISO()
 
-  const [agendamentosDoDia, clientes, servicos] = await Promise.all([
-    getAgendamentosDoDia(dataISO),
+  const [grade, clientes, servicos, assinaturas, planos, barbeiros] = await Promise.all([
+    getGradeAgendaDoDia(dataISO, [barbeiro.id], TIME_SLOTS),
     getClientesResumo(),
     getServicosAtivos(),
+    getAssinaturas(),
+    getPlanosAssinatura(),
+    getBarbeiros(),
   ])
 
-  const meus = agendamentosDoDia
-    .filter((a) => a.barbeiroId === barbeiro.id && a.status !== 'livre')
-    .sort((a, b) => a.hora.localeCompare(b.hora))
+  const meus = [...grade].sort((a, b) => a.hora.localeCompare(b.hora))
+
+  const horaAtual = getHoraAtualBrasil()
+  const horaSugerida = [...TIME_SLOTS].reverse().find((h) => h <= horaAtual) ?? TIME_SLOTS[0]
 
   return (
     <div>
-      <SectionHeading>Minha agenda</SectionHeading>
+      <SectionHeading
+        action={
+          <div className="flex flex-wrap gap-2">
+            <BloquearMeuDiaButton dataISO={dataISO} />
+            <NovoAtendimentoAvulsoModal
+              clientes={clientes}
+              servicos={servicos}
+              barbeiros={barbeiros}
+              horaSugerida={horaSugerida}
+            />
+          </div>
+        }
+      >
+        Minha agenda
+      </SectionHeading>
       <div className="mb-4">
-        <DateNav dataISO={dataISO} basePath="/barbeiro/agenda" />
+        <AgendaDatePicker dataISO={dataISO} basePath="/barbeiro/agenda" />
       </div>
 
       {meus.length === 0 ? (
@@ -43,6 +65,9 @@ export default async function MinhaAgendaPage({
               agendamento={agendamento}
               clientes={clientes}
               servicos={servicos}
+              planos={planos}
+              assinaturas={assinaturas}
+              barbeiros={barbeiros}
             />
           ))}
         </Card>

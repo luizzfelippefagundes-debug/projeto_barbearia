@@ -9,18 +9,18 @@ export function NovoBarbeiroButton() {
   const [open, setOpen] = useState(false)
   const [nome, setNome] = useState('')
   const [email, setEmail] = useState('')
-  const [comissao, setComissao] = useState(45)
   const [foto, setFoto] = useState<File | null>(null)
   const [fotoPreviewUrl, setFotoPreviewUrl] = useState<string | undefined>(undefined)
   const [salvando, setSalvando] = useState(false)
   const [erro, setErro] = useState<string | null>(null)
-  const [sucesso, setSucesso] = useState<{ nome: string; conviteEnviado: boolean } | null>(null)
+  const [sucesso, setSucesso] = useState<{ nome: string; conviteEnviado: boolean; emailJaExiste: boolean } | null>(
+    null,
+  )
 
   function fecharTudo() {
     setOpen(false)
     setNome('')
     setEmail('')
-    setComissao(45)
     setFoto(null)
     setFotoPreviewUrl(undefined)
     setSucesso(null)
@@ -46,8 +46,12 @@ export function NovoBarbeiroButton() {
     setSalvando(true)
     setErro(null)
     try {
-      const resultado = await criarBarbeiro(nome, comissao, email, foto ?? undefined)
-      setSucesso({ nome: resultado.nome, conviteEnviado: resultado.conviteEnviado })
+      const resultado = await criarBarbeiro(nome, email, foto ?? undefined)
+      setSucesso({
+        nome: resultado.nome,
+        conviteEnviado: resultado.conviteEnviado,
+        emailJaExiste: resultado.emailJaExiste,
+      })
     } catch {
       setErro('Não foi possível salvar. Tente de novo.')
     } finally {
@@ -71,7 +75,9 @@ export function NovoBarbeiroButton() {
               <p className="mt-1 text-xs text-text-secondary">
                 {sucesso.conviteEnviado
                   ? 'Um e-mail de convite foi enviado — ele só consegue criar a conta pelo link desse e-mail.'
-                  : 'Não deu pra enviar o e-mail agora (talvez esse e-mail já tenha conta). O acesso continua ligado automaticamente no primeiro login dele.'}
+                  : sucesso.emailJaExiste
+                    ? 'Esse e-mail já tem conta no sistema, então não enviamos convite novo — ele já consegue entrar direto em "Sou barbeiro" com essa conta, sem precisar de link.'
+                    : 'Não deu pra enviar o e-mail agora. O acesso continua ligado automaticamente no primeiro login dele em "Sou barbeiro".'}
               </p>
             </div>
             <Button size="sm" onClick={fecharTudo}>
@@ -104,14 +110,6 @@ export function NovoBarbeiroButton() {
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               placeholder="barbeiro@email.com"
-            />
-            <Input
-              label="Comissão inicial (%)"
-              type="number"
-              min={20}
-              max={70}
-              value={comissao}
-              onChange={(e) => setComissao(Number(e.target.value))}
             />
             {erro && <p className="text-xs text-status-red">{erro}</p>}
             <p className="text-xs text-text-secondary">

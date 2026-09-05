@@ -61,6 +61,29 @@
   --color-status-red-muted: #3a1414;
 }
 
+/** Telas de login/cadastro ficam sempre no modo claro, independente do tema
+ * escolhido no resto do site — reafirma os mesmos tokens do claro por cima
+ * do que o data-theme="dark" do <html> já tiver aplicado. */
+.theme-forcar-claro {
+  --color-bg: #f3f4fa;
+  --color-surface: #ffffff;
+  --color-surface-raised: #f6f7fb;
+  --color-border: #e5e7f0;
+  --color-accent: #4756e6;
+  --color-accent-hover: #3a46c4;
+  --color-accent-muted: #eef0fd;
+  --color-brass: #0ea5a0;
+  --color-brass-muted: #e3f7f5;
+  --color-text-primary: #12131a;
+  --color-text-secondary: #6b7280;
+  --color-status-green: #16a34a;
+  --color-status-green-muted: #dcfce7;
+  --color-status-amber: #d97706;
+  --color-status-amber-muted: #fef3c7;
+  --color-status-red: #dc2626;
+  --color-status-red-muted: #fee2e2;
+}
+
 @layer base {
   html {
     @apply bg-bg text-text-primary;

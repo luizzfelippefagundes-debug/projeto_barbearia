@@ -1,4 +1,4 @@
-import type { Agendamento, Barbeiro, Cliente, Servico } from '../../types'
+import type { Agendamento, Assinatura, Barbeiro, Cliente, PlanoAssinatura, Servico } from '../../types'
 import { Card, EmptyState } from '../../components/ui'
 import { ScheduleRow } from './ScheduleRow'
 
@@ -7,9 +7,20 @@ interface ScheduleListProps {
   barbeiros: Barbeiro[]
   clientes: Cliente[]
   servicos: Servico[]
+  planos: PlanoAssinatura[]
+  assinaturas: Assinatura[]
+  mostrarBarbeiro?: boolean
 }
 
-export function ScheduleList({ agendamentos, barbeiros, clientes, servicos }: ScheduleListProps) {
+export function ScheduleList({
+  agendamentos,
+  barbeiros,
+  clientes,
+  servicos,
+  planos,
+  assinaturas,
+  mostrarBarbeiro = true,
+}: ScheduleListProps) {
   if (agendamentos.length === 0) {
     return (
       <EmptyState
@@ -30,6 +41,9 @@ export function ScheduleList({ agendamentos, barbeiros, clientes, servicos }: Sc
           barbeiros={barbeiros}
           clientes={clientes}
           servicos={servicos}
+          planos={planos}
+          assinaturas={assinaturas}
+          mostrarBarbeiro={mostrarBarbeiro}
         />
       ))}
     </Card>

@@ -14,12 +14,14 @@
     "@clerk/localizations": "^4.15.4",
     "@clerk/nextjs": "^7.7.5",
     "@neondatabase/serverless": "^1.1.0",
+    "@vercel/analytics": "^2.0.1",
     "@vercel/blob": "^2.8.0",
     "drizzle-orm": "^0.45.2",
     "lucide-react": "^1.31.0",
     "next": "16.3.1",
     "react": "19.2.8",
-    "react-dom": "19.2.8"
+    "react-dom": "19.2.8",
+    "react-easy-crop": "^6.2.3"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",

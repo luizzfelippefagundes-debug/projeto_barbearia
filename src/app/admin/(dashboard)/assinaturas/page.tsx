@@ -44,7 +44,13 @@ export default async function AssinaturasPage() {
       <div>
         <SectionHeading>Clientes</SectionHeading>
         <DeclinedCardAlert assinaturas={assinaturas} clientes={clientes} />
-        <SubscriberList assinaturas={assinaturas} clientes={clientes} planos={planos} />
+        {/* "Aguardando" = cadastro feito mas pagamento nunca confirmado —
+         * misturado com assinantes de verdade só confundia quem tá vendo. */}
+        <SubscriberList
+          assinaturas={assinaturas.filter((a) => a.status !== 'aguardando')}
+          clientes={clientes}
+          planos={planos}
+        />
       </div>
     </div>
   )

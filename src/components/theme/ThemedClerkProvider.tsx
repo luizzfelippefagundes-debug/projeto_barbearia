@@ -30,6 +30,26 @@ const VARS_ESCURO = {
   colorWarning: '#f59e0b',
 }
 
+/** Aparência do Clerk fixa no modo claro — usada nas telas de login/cadastro
+ * (`AuthDoorShell`), que ficam sempre claras independente do tema do resto do
+ * site. Passar via prop `appearance` no `<SignIn>`/`<SignUp>` sobrescreve o
+ * que vier do `ThemedClerkProvider` (que ainda varia com o tema, pro
+ * `UserButton` dos painéis internos). */
+export const CLERK_APPEARANCE_CLARO = {
+  variables: {
+    ...VARS_CLARO,
+    borderRadius: '14px',
+    fontFamily: 'var(--font-inter), sans-serif',
+  },
+  elements: {
+    card: 'border border-[#e5e7f0] shadow-md',
+    headerTitle: 'hidden',
+    headerSubtitle: 'hidden',
+    socialButtonsBlockButton: 'bg-white border border-[#e5e7f0] text-[#12131a] hover:bg-gray-50',
+    socialButtonsBlockButtonText: 'text-[#12131a]',
+  },
+}
+
 export function ThemedClerkProvider({ children }: { children: React.ReactNode }) {
   const { theme } = useTheme()
   const escuro = theme === 'dark'
@@ -47,6 +67,8 @@ export function ThemedClerkProvider({ children }: { children: React.ReactNode })
           card: escuro ? 'border border-[#2a3555] shadow-md' : 'border border-[#e5e7f0] shadow-md',
           headerTitle: 'hidden',
           headerSubtitle: 'hidden',
+          socialButtonsBlockButton: 'bg-white border border-[#e5e7f0] text-[#12131a] hover:bg-gray-50',
+          socialButtonsBlockButtonText: 'text-[#12131a]',
         },
       }}
     >

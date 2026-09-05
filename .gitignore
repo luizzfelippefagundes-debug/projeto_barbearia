@@ -1,3 +1,8 @@
+# python (backend/)
+.venv/
+__pycache__/
+*.pyc
+
 # dependencies
 /node_modules
 /.pnp

@@ -7,7 +7,7 @@ interface SectionHeadingProps {
 
 export function SectionHeading({ children, action }: SectionHeadingProps) {
   return (
-    <div className="mb-5 flex items-center justify-between gap-3">
+    <div className="mb-5 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
       <h2 className="text-xl text-text-primary">{children}</h2>
       {action}
     </div>

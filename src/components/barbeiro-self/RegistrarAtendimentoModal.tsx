@@ -2,26 +2,35 @@
 
 import { useRef, useState, useTransition } from 'react'
 import { ClipboardCheck, ImagePlus } from 'lucide-react'
+import type { Barbeiro, FormaPagamento } from '../../types'
 import { Button, Modal, Textarea } from '../../components/ui'
 import { registrarMeuAtendimento } from '../../actions/barbeiroSelf.actions'
+import { CaixaPicker } from '../agenda/CaixaPicker'
+import { FormaPagamentoPicker } from '../agenda/FormaPagamentoPicker'
 
 interface RegistrarAtendimentoModalProps {
   agendamentoId: string
   clienteId: string
   clienteNome: string
-  servicoId: string
-  servicoNome: string
+  servicoNomes: string[]
+  /** Só pede forma de pagamento/caixa quando tem parte avulsa (fora do
+   * plano) — corte 100% coberto pelo plano já foi pago na mensalidade. */
+  ehAvulso: boolean
+  barbeiros: Barbeiro[]
 }
 
 export function RegistrarAtendimentoModal({
   agendamentoId,
   clienteId,
   clienteNome,
-  servicoId,
-  servicoNome,
+  servicoNomes,
+  ehAvulso,
+  barbeiros,
 }: RegistrarAtendimentoModalProps) {
   const [open, setOpen] = useState(false)
   const [fotoPreview, setFotoPreview] = useState<string | undefined>(undefined)
+  const [formaPagamento, setFormaPagamento] = useState<FormaPagamento>('pix')
+  const [caixaDestinoBarbeiroId, setCaixaDestinoBarbeiroId] = useState(barbeiros[0]?.id ?? '')
   const [pending, startTransition] = useTransition()
   const formRef = useRef<HTMLFormElement>(null)
 
@@ -34,7 +43,10 @@ export function RegistrarAtendimentoModal({
   async function handleSubmit(formData: FormData) {
     formData.set('agendamentoId', agendamentoId)
     formData.set('clienteId', clienteId)
-    formData.set('servicoId', servicoId)
+    if (ehAvulso) {
+      formData.set('formaPagamento', formaPagamento)
+      formData.set('caixaDestinoBarbeiroId', caixaDestinoBarbeiroId)
+    }
     startTransition(async () => {
       await registrarMeuAtendimento(formData)
       setOpen(false)
@@ -52,7 +64,15 @@ export function RegistrarAtendimentoModal({
 
       <Modal open={open} onClose={() => setOpen(false)} title={`Atendimento — ${clienteNome}`}>
         <form ref={formRef} action={handleSubmit} className="flex flex-col gap-4">
-          <p className="text-sm text-text-secondary">{servicoNome}</p>
+          <p className="text-sm text-text-secondary">{servicoNomes.join(' + ')}</p>
+
+          {ehAvulso && (
+            <>
+              <FormaPagamentoPicker value={formaPagamento} onChange={setFormaPagamento} />
+              <CaixaPicker barbeiros={barbeiros} value={caixaDestinoBarbeiroId} onChange={setCaixaDestinoBarbeiroId} />
+            </>
+          )}
+
           <Textarea name="nota" rows={3} placeholder="Observação rápida sobre o corte..." />
 
           <div className="flex items-center gap-3">

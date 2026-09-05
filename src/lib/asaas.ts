@@ -73,7 +73,7 @@ export async function criarAssinaturaAsaas(params: {
     method: 'POST',
     body: JSON.stringify({
       customer: params.customer,
-      billingType: 'PIX',
+      billingType: 'UNDEFINED',
       nextDueDate: params.nextDueDate,
       value: params.value,
       cycle: 'MONTHLY',
@@ -85,6 +85,9 @@ export async function criarAssinaturaAsaas(params: {
 export interface AsaasPayment {
   id: string
   status: string
+  invoiceUrl: string
+  value: number
+  dueDate: string
 }
 
 export async function buscarPrimeiroPagamentoDaAssinatura(
@@ -100,6 +103,33 @@ export async function buscarStatusPagamento(paymentId: string): Promise<AsaasPay
   return asaasFetch<AsaasPayment>(`/payments/${encodeURIComponent(paymentId)}`)
 }
 
+export interface AsaasPixQrCode {
+  encodedImage: string
+  payload: string
+  expirationDate: string | null
+}
+
+/** QR code + código copia-e-cola do Pix pra uma cobrança específica —
+ * funciona em qualquer cobrança, independente do billingType dela. */
+export async function buscarPixQrCode(paymentId: string): Promise<AsaasPixQrCode> {
+  return asaasFetch<AsaasPixQrCode>(`/payments/${encodeURIComponent(paymentId)}/pixQrCode`)
+}
+
+/** Trava uma cobrança específica em cartão de crédito — usado quando o
+ * cliente escolhe pagar com cartão na nossa tela, pra a página hospedada
+ * do Asaas mostrar só o formulário de cartão (sem Pix nem boleto juntos).
+ * value/dueDate são obrigatórios nesse endpoint mesmo sem mudar de valor. */
+export async function definirCobrancaComoCartao(
+  paymentId: string,
+  value: number,
+  dueDate: string,
+): Promise<AsaasPayment> {
+  return asaasFetch<AsaasPayment>(`/payments/${encodeURIComponent(paymentId)}`, {
+    method: 'PUT',
+    body: JSON.stringify({ billingType: 'CREDIT_CARD', value, dueDate }),
+  })
+}
+
 const STATUS_PAGO = new Set(['RECEIVED', 'CONFIRMED'])
 const STATUS_VENCIDO = new Set(['OVERDUE'])
 
@@ -110,16 +140,6 @@ export function mapStatusPagamentoAsaas(statusAsaas: string): 'em_dia' | 'atrasa
   if (STATUS_PAGO.has(statusAsaas)) return 'em_dia'
   if (STATUS_VENCIDO.has(statusAsaas)) return 'atrasado'
   return null
-}
-
-export interface AsaasPixQrCode {
-  encodedImage: string
-  payload: string
-  expirationDate: string
-}
-
-export async function buscarPixQrCode(paymentId: string): Promise<AsaasPixQrCode> {
-  return asaasFetch<AsaasPixQrCode>(`/payments/${encodeURIComponent(paymentId)}/pixQrCode`)
 }
 
 export async function cancelarAssinaturaAsaas(subscriptionId: string): Promise<void> {

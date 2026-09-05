@@ -50,7 +50,7 @@ export function PlanoCard({ plano, cpfAtual }: { plano: PlanoAssinatura; cpfAtua
         <div className="flex flex-col gap-4">
           <div className="flex items-center gap-2 rounded-xl bg-accent-muted p-3 text-xs text-accent">
             <Sparkles size={14} aria-hidden="true" />
-            Primeira cobrança via PIX, {formatBRL(plano.valorMensal)}.
+            Primeira cobrança de {formatBRL(plano.valorMensal)} via Pix ou cartão de crédito.
           </div>
           <Input
             label="Seu CPF"
@@ -65,7 +65,7 @@ export function PlanoCard({ plano, cpfAtual }: { plano: PlanoAssinatura; cpfAtua
               Cancelar
             </Button>
             <Button onClick={handleConfirmar} disabled={salvando}>
-              {salvando ? 'Gerando PIX...' : 'Confirmar e pagar'}
+              {salvando ? 'Gerando cobrança...' : 'Confirmar e pagar'}
             </Button>
           </div>
         </div>

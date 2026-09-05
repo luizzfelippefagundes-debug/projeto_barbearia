@@ -43,6 +43,7 @@ export const STATUS_VISUAL_MAP: Record<string, StatusVisual> = {
   em_dia: { label: 'Em dia', ...GREEN },
   transferido: { label: 'Transferido', ...GREEN },
   aguardando: { label: 'Aguardando', ...AMBER },
+  nao_compareceu: { label: 'Não compareceu', ...RED },
   pendente: { label: 'Pendente', ...AMBER },
   atrasado: { label: 'Atrasado', ...RED },
   cancelado: { label: 'Cancelado', ...RED },

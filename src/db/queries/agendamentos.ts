@@ -1,18 +1,43 @@
-import { and, eq, gte, lt } from 'drizzle-orm'
+import { and, eq, gte, inArray, isNull, lt } from 'drizzle-orm'
 import { getDb } from '../index'
-import { agendamentos } from '../schema'
+import { agendamentos, agendamentoServicos } from '../schema'
 import type { Agendamento } from '../../types'
 
-function toAppAgendamento(row: typeof agendamentos.$inferSelect): Agendamento {
+async function servicosPorAgendamento(agendamentoIds: string[]): Promise<Map<string, string[]>> {
+  const mapa = new Map<string, string[]>()
+  if (agendamentoIds.length === 0) return mapa
+
+  const rows = await getDb()
+    .select()
+    .from(agendamentoServicos)
+    .where(inArray(agendamentoServicos.agendamentoId, agendamentoIds))
+
+  for (const row of rows) {
+    const lista = mapa.get(row.agendamentoId) ?? []
+    lista.push(row.servicoId)
+    mapa.set(row.agendamentoId, lista)
+  }
+  return mapa
+}
+
+function toAppAgendamento(row: typeof agendamentos.$inferSelect, servicoIds: string[]): Agendamento {
   return {
     id: row.id,
     data: row.data,
     hora: row.hora.slice(0, 5),
     clienteId: row.clienteId ?? undefined,
     barbeiroId: row.barbeiroId,
-    servicoId: row.servicoId ?? undefined,
+    servicoIds,
+    continuacaoDeId: row.continuacaoDeId ?? undefined,
     status: row.status,
+    formaPagamento: row.formaPagamento ?? undefined,
+    caixaDestinoBarbeiroId: row.caixaDestinoBarbeiroId ?? undefined,
   }
+}
+
+async function mapearComServicos(rows: (typeof agendamentos.$inferSelect)[]): Promise<Agendamento[]> {
+  const mapaServicos = await servicosPorAgendamento(rows.map((r) => r.id))
+  return rows.map((row) => toAppAgendamento(row, mapaServicos.get(row.id) ?? []))
 }
 
 export async function getAgendamentosDoMes(mesReferencia: string): Promise<Agendamento[]> {
@@ -25,12 +50,31 @@ export async function getAgendamentosDoMes(mesReferencia: string): Promise<Agend
     .from(agendamentos)
     .where(and(gte(agendamentos.data, inicio), lt(agendamentos.data, proximoMes)))
 
-  return rows.map(toAppAgendamento)
+  return mapearComServicos(rows)
 }
 
 export async function getAgendamentosDoDia(dataISO: string): Promise<Agendamento[]> {
   const rows = await getDb().select().from(agendamentos).where(eq(agendamentos.data, dataISO))
-  return rows.map(toAppAgendamento)
+  return mapearComServicos(rows)
+}
+
+/** Próximos horários confirmados de um cliente, qualquer dia a partir de
+ * hoje (não só hoje) — usado no perfil do cliente pra ele ver e cancelar,
+ * igual já existe pelo bot do WhatsApp. */
+export async function getProximosAgendamentosDoCliente(clienteId: string, hojeISO: string): Promise<Agendamento[]> {
+  const rows = await getDb()
+    .select()
+    .from(agendamentos)
+    .where(
+      and(
+        eq(agendamentos.clienteId, clienteId),
+        isNull(agendamentos.continuacaoDeId),
+        eq(agendamentos.status, 'confirmado'),
+        gte(agendamentos.data, hojeISO),
+      ),
+    )
+  const lista = await mapearComServicos(rows)
+  return lista.sort((a, b) => (a.data + a.hora).localeCompare(b.data + b.hora))
 }
 
 /** Monta a grade real do dia: barbeiros ativos × horários fixos, usando os
@@ -58,6 +102,7 @@ export async function getGradeAgendaDoDia(
           data: dataISO,
           hora,
           barbeiroId,
+          servicoIds: [],
           status: 'livre',
         })
       }

@@ -2,6 +2,7 @@ import { SignUp } from '@clerk/nextjs'
 import { MailWarning } from 'lucide-react'
 import { AuthDoorShell } from '../../../../components/auth/AuthDoorShell'
 import { Card } from '../../../../components/ui'
+import { CLERK_APPEARANCE_CLARO } from '../../../../components/theme/ThemedClerkProvider'
 
 export default async function CadastroBarbeiroPage({
   searchParams,
@@ -21,6 +22,7 @@ export default async function CadastroBarbeiroPage({
           routing="path"
           signInUrl="/entrar/barbeiro"
           fallbackRedirectUrl="/barbeiro"
+          appearance={CLERK_APPEARANCE_CLARO}
         />
       ) : (
         <Card className="flex max-w-sm flex-col items-center gap-2 p-6 text-center">

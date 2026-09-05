@@ -8,11 +8,14 @@ export function toAppBarbeiro(row: typeof barbeiros.$inferSelect): Barbeiro {
   return {
     id: row.id,
     nome: row.nome,
+    telefone: nullToUndefined(row.telefone),
     avatarUrl: nullToUndefined(row.avatarUrl),
-    comissaoPercent: row.comissaoPercent,
     papel: row.papel,
     ativo: row.ativo,
     convitePendente: !row.clerkUserId,
+    diasTrabalho: row.diasTrabalho,
+    horaInicio: row.horaInicio,
+    horaFim: row.horaFim,
   }
 }
 
@@ -57,7 +60,7 @@ export async function countBarbeiros(): Promise<number> {
 export async function criarDonoComClerkId(clerkUserId: string, nome: string) {
   const rows = await getDb()
     .insert(barbeiros)
-    .values({ clerkUserId, nome, comissaoPercent: 40, papel: 'dono' })
+    .values({ clerkUserId, nome, papel: 'dono' })
     .returning()
   return rows[0]
 }

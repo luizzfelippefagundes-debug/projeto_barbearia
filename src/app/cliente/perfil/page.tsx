@@ -3,14 +3,15 @@ import { Scissors } from 'lucide-react'
 import { Avatar, Button, Card, SectionHeading } from '../../../components/ui'
 import { ClienteLoyaltyProgress } from '../../../components/clientes/ClienteLoyaltyProgress'
 import { ClienteVisitHistory } from '../../../components/clientes/ClienteVisitHistory'
-import { NextAppointmentCard } from '../../../components/perfil/NextAppointmentCard'
+import { MeusAgendamentosCard } from '../../../components/perfil/MeusAgendamentosCard'
 import { IndicarAmigoButton } from '../../../components/perfil/IndicarAmigoButton'
 import { SubscriptionCancelFlow } from '../../../components/perfil/SubscriptionCancelFlow'
+import { EditarMeuTelefoneButton } from '../../../components/perfil/EditarMeuTelefoneButton'
 import { requireClienteAtual } from '../../../lib/clienteAuth'
 import { getBaseUrl } from '../../../lib/baseUrl'
 import { getBarbeiros } from '../../../db/queries/barbeiros'
 import { getServicosAtivos } from '../../../db/queries/servicos'
-import { getAgendamentosDoDia } from '../../../db/queries/agendamentos'
+import { getProximosAgendamentosDoCliente } from '../../../db/queries/agendamentos'
 import { getAssinaturas, getPlanosAssinatura } from '../../../db/queries/assinaturas'
 import { getClientesResumo } from '../../../db/queries/clientes'
 import { getHojeISO } from '../../../lib/dateUtils'
@@ -18,21 +19,19 @@ import { getHojeISO } from '../../../lib/dateUtils'
 export default async function PerfilPage() {
   const cliente = await requireClienteAtual()
 
-  const [barbeiros, servicos, agendamentosHoje, assinaturas, planos, clientes, baseUrl] = await Promise.all([
+  const [barbeiros, servicos, proximosAgendamentos, assinaturas, planos, clientes, baseUrl] = await Promise.all([
     getBarbeiros(),
     getServicosAtivos(),
-    getAgendamentosDoDia(getHojeISO()),
+    getProximosAgendamentosDoCliente(cliente.id, getHojeISO()),
     getAssinaturas(),
     getPlanosAssinatura(),
     getClientesResumo(),
     getBaseUrl(),
   ])
 
-  const proximo = agendamentosHoje
-    .filter((a) => a.clienteId === cliente.id && a.status === 'confirmado')
-    .sort((a, b) => a.hora.localeCompare(b.hora))[0]
-
-  const assinatura = assinaturas.find((a) => a.clienteId === cliente.id && a.status !== 'cancelado')
+  const assinatura = assinaturas.find(
+    (a) => a.clienteId === cliente.id && (a.status === 'em_dia' || a.status === 'atrasado'),
+  )
   const plano = assinatura ? planos.find((p) => p.id === assinatura.planoId) : undefined
 
   const totalIndicados = clientes.filter((c) => c.indicadoPor === cliente.id).length
@@ -43,11 +42,14 @@ export default async function PerfilPage() {
         <Avatar nome={cliente.nome} src={cliente.avatarUrl} size="lg" />
         <div>
           <h1 className="text-xl text-text-primary">{cliente.nome}</h1>
-          <p className="text-xs text-text-secondary">{cliente.telefone}</p>
+          <div className="flex items-center gap-1.5">
+            <p className="text-xs text-text-secondary">{cliente.telefone || 'Sem telefone cadastrado'}</p>
+            <EditarMeuTelefoneButton telefoneAtual={cliente.telefone} />
+          </div>
         </div>
       </div>
 
-      <NextAppointmentCard proximo={proximo} barbeiros={barbeiros} servicos={servicos} />
+      <MeusAgendamentosCard agendamentos={proximosAgendamentos} barbeiros={barbeiros} servicos={servicos} />
 
       <div className="grid grid-cols-2 gap-3">
         <Card className="p-4">

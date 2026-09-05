@@ -1,5 +1,6 @@
 import { SignIn } from '@clerk/nextjs'
 import { AuthDoorShell } from '../../../../components/auth/AuthDoorShell'
+import { CLERK_APPEARANCE_CLARO } from '../../../../components/theme/ThemedClerkProvider'
 
 export default function EntrarBarbeiroPage() {
   return (
@@ -9,6 +10,7 @@ export default function EntrarBarbeiroPage() {
         routing="path"
         signUpUrl="/cadastro/barbeiro"
         fallbackRedirectUrl="/barbeiro"
+        appearance={CLERK_APPEARANCE_CLARO}
       />
     </AuthDoorShell>
   )

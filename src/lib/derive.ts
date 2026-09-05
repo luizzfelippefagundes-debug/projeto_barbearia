@@ -3,21 +3,34 @@ import type {
   Assinatura,
   Barbeiro,
   Cliente,
+  FormaPagamento,
   PlanoAssinatura,
   Produto,
   Servico,
   Venda,
 } from '../types'
+import { getHojeISO, getHoraAtualBrasil } from './dateUtils'
 
 function mesReferenciaDeData(dataISO: string): string {
   return dataISO.slice(0, 7)
 }
 
-/** 'confirmado' = marcado, ainda vai acontecer; 'atendido' = o barbeiro já
- * registrou que rolou de verdade. Pra fins de faturamento/comissão/contagem,
- * as duas contam como um corte real — só muda se já foi registrado ou não. */
-function contaComoAtendimento(status: string): boolean {
-  return status === 'confirmado' || status === 'atendido'
+/** 'atendido' = o barbeiro já registrou que rolou de verdade, sempre conta.
+ * 'confirmado' = marcado, mas só conta depois que o horário realmente
+ * passou — antes disso é dinheiro que ainda nem aconteceu, não pode entrar
+ * em faturamento/comissão como se já tivesse batido no caixa. Linhas de
+ * continuação (agendamento que ocupa mais de um slot por causa da duração)
+ * nunca contam — são a mesma visita do agendamento original, não uma
+ * segunda. */
+function contaComoAtendimento(a: Pick<Agendamento, 'status' | 'continuacaoDeId' | 'data' | 'hora'>): boolean {
+  if (a.continuacaoDeId) return false
+  if (a.status === 'atendido') return true
+  if (a.status !== 'confirmado') return false
+
+  const hoje = getHojeISO()
+  if (a.data < hoje) return true
+  if (a.data > hoje) return false
+  return a.hora <= getHoraAtualBrasil()
 }
 
 function precoServico(servicos: Servico[], servicoId: string | undefined): number {
@@ -67,6 +80,23 @@ function clientesComAssinaturaAtiva(assinaturas: Assinatura[]): Map<string, stri
   return map
 }
 
+/** Pra mostrar na agenda do barbeiro/dono se aquele atendimento é de um
+ * cliente com plano (basta UM dos serviços pedidos estar incluso no plano
+ * ativo dele) ou avulso — mesma regra usada pra calcular o preço/comissão. */
+export function getTipoAtendimento(
+  servicoIds: string[],
+  clienteId: string | undefined,
+  planos: PlanoAssinatura[],
+  assinaturas: Assinatura[],
+): 'plano' | 'avulso' {
+  if (servicoIds.length === 0 || !clienteId) return 'avulso'
+  const planoId = clientesComAssinaturaAtiva(assinaturas).get(clienteId)
+  if (!planoId) return 'avulso'
+  const plano = planos.find((p) => p.id === planoId)
+  const incluido = servicoIds.some((id) => plano?.servicosInclusos.some((i) => i.servicoId === id))
+  return incluido ? 'plano' : 'avulso'
+}
+
 function precoRealAgendamento(
   servicos: Servico[],
   clientes: Cliente[],
@@ -74,17 +104,18 @@ function precoRealAgendamento(
   planoAtivoPorCliente: Map<string, string>,
   agendamento: Agendamento,
 ): number {
-  const servico = servicos.find((s) => s.id === agendamento.servicoId)
-  if (!servico) return 0
-
   const planoId = agendamento.clienteId ? planoAtivoPorCliente.get(agendamento.clienteId) : undefined
   const assinanteAtivo = Boolean(planoId)
   const plano = planoId ? planos.find((p) => p.id === planoId) : undefined
-  const inclusao = inclusaoDoServicoNoPlano(plano, servico.id)
   const cliente = agendamento.clienteId ? clientes.find((c) => c.id === agendamento.clienteId) : undefined
-  const usos = inclusao ? getUsosServicoNoMes(cliente, servico.id, mesReferenciaDeData(agendamento.data)) : 0
 
-  return getPrecoServicoParaCliente(servico, assinanteAtivo, inclusao, usos).valor
+  return agendamento.servicoIds.reduce((total, servicoId) => {
+    const servico = servicos.find((s) => s.id === servicoId)
+    if (!servico) return total
+    const inclusao = inclusaoDoServicoNoPlano(plano, servico.id)
+    const usos = inclusao ? getUsosServicoNoMes(cliente, servico.id, mesReferenciaDeData(agendamento.data)) : 0
+    return total + getPrecoServicoParaCliente(servico, assinanteAtivo, inclusao, usos).valor
+  }, 0)
 }
 
 export function getCortesNoMesPorBarbeiro(
@@ -95,7 +126,7 @@ export function getCortesNoMesPorBarbeiro(
   return agendamentos.filter(
     (a) =>
       a.barbeiroId === barbeiroId &&
-      contaComoAtendimento(a.status) &&
+      contaComoAtendimento(a) &&
       mesReferenciaDeData(a.data) === mesReferencia,
   ).length
 }
@@ -110,19 +141,76 @@ export function getFaturamentoGeradoPorBarbeiroNoMes(
     .filter(
       (a) =>
         a.barbeiroId === barbeiroId &&
-        contaComoAtendimento(a.status) &&
+        contaComoAtendimento(a) &&
         mesReferenciaDeData(a.data) === mesReferencia,
     )
-    .reduce((total, a) => total + precoServico(servicos, a.servicoId), 0)
+    .reduce((total, a) => total + a.servicoIds.reduce((s, id) => s + precoServico(servicos, id), 0), 0)
 }
 
-export function getValorAReceber(barbeiro: Barbeiro, faturamentoGerado: number): number {
-  return Math.round(faturamentoGerado * (barbeiro.comissaoPercent / 100) * 100) / 100
-}
-
-/** Comissão sobre venda de produto é fixa pra todo barbeiro — diferente da
- * comissão de serviço, que é configurável por barbeiro (comissaoPercent). */
+/** Comissão sobre venda de produto é fixa pra todo barbeiro. */
 export const COMISSAO_VENDA_PRODUTO_PERCENT = 10
+
+/** Corte avulso (fora do plano) — comissão fixa pra todo barbeiro. */
+export const COMISSAO_AVULSO_PERCENT = 50
+
+/** Corte coberto por plano de assinatura — diferente do avulso, aqui a
+ * comissão não é por serviço nem por visita: é um valor fixo pago UMA VEZ
+ * por cliente a cada mês, sobre o valor da mensalidade dele (não sobre o
+ * preço do serviço) — não importa quantas vezes esse cliente volte a
+ * cortar no mesmo mês. Fica com o barbeiro (não-dono) que atendeu o
+ * primeiro corte coberto pelo plano daquele cliente no mês (ver
+ * getAtivadoresDoPlanoNoMes) — se ele voltar (com esse ou outro barbeiro)
+ * depois, não gera comissão de plano de novo. */
+export const COMISSAO_PLANO_PERCENT = 45
+
+/** Acha, pra cada cliente com plano ativo, o atendimento que "ativa" a
+ * comissão de plano daquele mês: o primeiro (cronologicamente, entre os
+ * barbeiros que RECEBEM comissão) que usou de fato um serviço coberto
+ * pelo plano (e ainda dentro do limite mensal dele, se houver). O dono
+ * nunca conta como candidato aqui — ele não recebe comissão, então se ele
+ * for o primeiro a atender esse cliente no mês isso é ignorado, e o
+ * primeiro barbeiro de verdade que atender (mesmo que depois do dono) é
+ * quem leva a comissão inteira. Só existe UM ativador por cliente por
+ * mês, mesmo que ele volte várias vezes. */
+function getAtivadoresDoPlanoNoMes(
+  agendamentos: Agendamento[],
+  clientes: Cliente[],
+  planos: PlanoAssinatura[],
+  barbeiros: Barbeiro[],
+  planoAtivoPorCliente: Map<string, string>,
+  mesReferencia: string,
+): Map<string, string> {
+  const idsQueRecebemComissao = new Set(barbeiros.filter((b) => b.papel !== 'dono').map((b) => b.id))
+
+  const doMes = agendamentos
+    .filter(
+      (a) =>
+        contaComoAtendimento(a) &&
+        a.clienteId &&
+        idsQueRecebemComissao.has(a.barbeiroId) &&
+        mesReferenciaDeData(a.data) === mesReferencia,
+    )
+    .sort((a, b) => (a.data + a.hora).localeCompare(b.data + b.hora))
+
+  const ativadores = new Map<string, string>()
+  for (const a of doMes) {
+    const clienteId = a.clienteId as string
+    if (ativadores.has(clienteId)) continue
+    const planoId = planoAtivoPorCliente.get(clienteId)
+    if (!planoId) continue
+    const plano = planos.find((p) => p.id === planoId)
+    const cliente = clientes.find((c) => c.id === clienteId)
+
+    const temServicoCoberto = a.servicoIds.some((servicoId) => {
+      const inclusao = inclusaoDoServicoNoPlano(plano, servicoId)
+      if (!inclusao) return false
+      const usos = getUsosServicoNoMes(cliente, servicoId, mesReferencia)
+      return inclusao.limiteMensal === null || usos < inclusao.limiteMensal
+    })
+    if (temServicoCoberto) ativadores.set(clienteId, a.id)
+  }
+  return ativadores
+}
 
 export function getVendasDoBarbeiroNoMes(vendas: Venda[], barbeiroId: string, mesReferencia: string): number {
   return vendas
@@ -134,18 +222,200 @@ export function getComissaoVendasProdutos(totalVendas: number): number {
   return Math.round(totalVendas * (COMISSAO_VENDA_PRODUTO_PERCENT / 100) * 100) / 100
 }
 
-/** Valor total a receber do barbeiro no mês: comissão de serviços (taxa
- * própria do barbeiro) + comissão de vendas de produto (taxa fixa de 10%). */
-export function getComissaoTotalBarbeiro(
-  barbeiro: Barbeiro,
-  faturamentoServicos: number,
-  totalVendasProdutos: number,
+/** Comissão de um atendimento específico: serviço avulso (não coberto pelo
+ * plano do cliente, ou coberto mas com limite mensal já esgotado) sempre
+ * rende COMISSAO_AVULSO_PERCENT do preço cheio do serviço. Serviço coberto
+ * pelo plano não rende comissão por serviço nenhuma — a comissão de plano
+ * é o valor fixo (ver COMISSAO_PLANO_PERCENT) somado uma única vez, só se
+ * esse for o atendimento "ativador" do plano daquele cliente no mês. */
+function getComissaoDoAtendimento(
+  agendamento: Agendamento,
+  servicos: Servico[],
+  clientes: Cliente[],
+  planos: PlanoAssinatura[],
+  planoAtivoPorCliente: Map<string, string>,
+  ativadoresDoMes: Map<string, string>,
 ): number {
+  if (agendamento.servicoIds.length === 0) return 0
+
+  const planoId = agendamento.clienteId ? planoAtivoPorCliente.get(agendamento.clienteId) : undefined
+  const assinanteAtivo = Boolean(planoId)
+  const plano = planoId ? planos.find((p) => p.id === planoId) : undefined
+  const cliente = agendamento.clienteId ? clientes.find((c) => c.id === agendamento.clienteId) : undefined
+
+  let total = 0
+  for (const servicoId of agendamento.servicoIds) {
+    const servico = servicos.find((s) => s.id === servicoId)
+    if (!servico) continue
+
+    const inclusao = inclusaoDoServicoNoPlano(plano, servico.id)
+    const usos = inclusao ? getUsosServicoNoMes(cliente, servico.id, mesReferenciaDeData(agendamento.data)) : 0
+    const { incluido } = getPrecoServicoParaCliente(servico, assinanteAtivo, inclusao, usos)
+    if (!incluido) {
+      total += Math.round(servico.precoAvulso * (COMISSAO_AVULSO_PERCENT / 100) * 100) / 100
+    }
+  }
+
+  const ehAtivadorDoPlano = agendamento.clienteId && ativadoresDoMes.get(agendamento.clienteId) === agendamento.id
+  if (ehAtivadorDoPlano && plano) {
+    total += Math.round(plano.valorMensal * (COMISSAO_PLANO_PERCENT / 100) * 100) / 100
+  }
+
+  return Math.round(total * 100) / 100
+}
+
+export interface ProgressoClientePlano {
+  clienteId: string
+  clienteNome: string
+  cortesNoMes: number
+  comissaoGanha: number
+}
+
+/** Pra cada cliente de plano que o barbeiro atendeu no mês, mostra quantos
+ * cortes já fez com ele e quanto de comissão isso já rendeu (o valor fixo
+ * de plano só entra se ESSE barbeiro foi quem atendeu o corte que ativou
+ * o plano daquele cliente no mês — ver getAtivadoresDoPlanoNoMes). */
+export function getProgressoClientesPlano(
+  agendamentos: Agendamento[],
+  servicos: Servico[],
+  clientes: Cliente[],
+  planos: PlanoAssinatura[],
+  assinaturas: Assinatura[],
+  barbeiros: Barbeiro[],
+  barbeiroId: string,
+  mesReferencia: string,
+): ProgressoClientePlano[] {
+  const planoAtivoPorCliente = clientesComAssinaturaAtiva(assinaturas)
+  const ativadoresDoMes = getAtivadoresDoPlanoNoMes(
+    agendamentos,
+    clientes,
+    planos,
+    barbeiros,
+    planoAtivoPorCliente,
+    mesReferencia,
+  )
+  const doBarbeiroNoMes = agendamentos.filter(
+    (a) =>
+      a.barbeiroId === barbeiroId && contaComoAtendimento(a) && mesReferenciaDeData(a.data) === mesReferencia,
+  )
+
+  const porCliente = new Map<string, Agendamento[]>()
+  for (const a of doBarbeiroNoMes) {
+    if (!a.clienteId || !planoAtivoPorCliente.has(a.clienteId)) continue
+    const lista = porCliente.get(a.clienteId) ?? []
+    lista.push(a)
+    porCliente.set(a.clienteId, lista)
+  }
+
+  const resultado: ProgressoClientePlano[] = []
+  for (const [clienteId, doCliente] of porCliente) {
+    const cliente = clientes.find((c) => c.id === clienteId)
+    if (!cliente) continue
+    const cortesNoMes = doCliente.length
+    const comissaoGanha = doCliente.reduce(
+      (sum, a) => sum + getComissaoDoAtendimento(a, servicos, clientes, planos, planoAtivoPorCliente, ativadoresDoMes),
+      0,
+    )
+    resultado.push({
+      clienteId,
+      clienteNome: cliente.nome,
+      cortesNoMes,
+      comissaoGanha: Math.round(comissaoGanha * 100) / 100,
+    })
+  }
+
+  return resultado.sort((a, b) => b.comissaoGanha - a.comissaoGanha || b.cortesNoMes - a.cortesNoMes)
+}
+
+export interface AtendimentoRecente {
+  id: string
+  clienteNome: string
+  servicoNome: string
+  data: string
+}
+
+/** Últimos atendimentos do barbeiro (qualquer cliente), mais recente
+ * primeiro — ajuda a lembrar quem ele já cortou recentemente. */
+export function getHistoricoRecenteBarbeiro(
+  clientes: Cliente[],
+  servicos: Servico[],
+  barbeiroId: string,
+  limite: number,
+): AtendimentoRecente[] {
+  const registros: AtendimentoRecente[] = []
+  for (const cliente of clientes) {
+    for (const h of cliente.historico) {
+      if (h.barbeiroId !== barbeiroId) continue
+      registros.push({
+        id: h.id,
+        clienteNome: cliente.nome,
+        servicoNome: servicos.find((s) => s.id === h.servicoId)?.nome ?? 'Serviço',
+        data: h.data,
+      })
+    }
+  }
+  return registros.sort((a, b) => b.data.localeCompare(a.data)).slice(0, limite)
+}
+
+export function getComissaoServicosBarbeiroNoMes(
+  agendamentos: Agendamento[],
+  servicos: Servico[],
+  clientes: Cliente[],
+  planos: PlanoAssinatura[],
+  assinaturas: Assinatura[],
+  barbeiros: Barbeiro[],
+  barbeiroId: string,
+  mesReferencia: string,
+): number {
+  const planoAtivoPorCliente = clientesComAssinaturaAtiva(assinaturas)
+  const ativadoresDoMes = getAtivadoresDoPlanoNoMes(
+    agendamentos,
+    clientes,
+    planos,
+    barbeiros,
+    planoAtivoPorCliente,
+    mesReferencia,
+  )
+  const doBarbeiroNoMes = agendamentos.filter(
+    (a) => a.barbeiroId === barbeiroId && contaComoAtendimento(a) && mesReferenciaDeData(a.data) === mesReferencia,
+  )
+
   return (
     Math.round(
-      (getValorAReceber(barbeiro, faturamentoServicos) + getComissaoVendasProdutos(totalVendasProdutos)) * 100,
+      doBarbeiroNoMes.reduce(
+        (sum, a) =>
+          sum + getComissaoDoAtendimento(a, servicos, clientes, planos, planoAtivoPorCliente, ativadoresDoMes),
+        0,
+      ) * 100,
     ) / 100
   )
+}
+
+/** Valor total a receber do barbeiro no mês: comissão de serviços (avulso
+ * 50% / plano 45% com meta por cliente) + comissão de vendas de produto
+ * (taxa fixa de 10%). */
+export function getComissaoTotalBarbeiro(
+  agendamentos: Agendamento[],
+  servicos: Servico[],
+  clientes: Cliente[],
+  planos: PlanoAssinatura[],
+  assinaturas: Assinatura[],
+  barbeiros: Barbeiro[],
+  barbeiroId: string,
+  mesReferencia: string,
+  totalVendasProdutos: number,
+): number {
+  const comissaoServicos = getComissaoServicosBarbeiroNoMes(
+    agendamentos,
+    servicos,
+    clientes,
+    planos,
+    assinaturas,
+    barbeiros,
+    barbeiroId,
+    mesReferencia,
+  )
+  return Math.round((comissaoServicos + getComissaoVendasProdutos(totalVendasProdutos)) * 100) / 100
 }
 
 export function getRankingBarbeiros(
@@ -168,9 +438,13 @@ export function getRankingBarbeiros(
     .sort((a, b) => b.faturamento - a.faturamento)
 }
 
+/** Só conta assinatura que já foi paga de verdade pelo menos uma vez
+ * ('em_dia' ou 'atrasado') — 'aguardando' é cadastro feito mas pagamento
+ * nunca confirmado (o cliente pode nem ter chegado a pagar), não pode
+ * entrar como receita de verdade no MRR/fechamento de caixa. */
 export function getMRR(assinaturas: Assinatura[], planos: PlanoAssinatura[]): number {
   return assinaturas
-    .filter((a) => a.status !== 'cancelado')
+    .filter((a) => a.status === 'em_dia' || a.status === 'atrasado')
     .reduce((total, a) => {
       const plano = planos.find((p) => p.id === a.planoId)
       return total + (plano?.valorMensal ?? 0)
@@ -187,10 +461,13 @@ export function getTicketMedio(
   mesReferencia: string,
 ): number {
   const confirmados = agendamentos.filter(
-    (a) => contaComoAtendimento(a.status) && mesReferenciaDeData(a.data) === mesReferencia,
+    (a) => contaComoAtendimento(a) && mesReferenciaDeData(a.data) === mesReferencia,
   )
   if (confirmados.length === 0) return 0
-  const total = confirmados.reduce((sum, a) => sum + precoServico(servicos, a.servicoId), 0)
+  const total = confirmados.reduce(
+    (sum, a) => sum + a.servicoIds.reduce((s, id) => s + precoServico(servicos, id), 0),
+    0,
+  )
   return Math.round((total / confirmados.length) * 100) / 100
 }
 
@@ -260,7 +537,7 @@ export function getFechamentoCaixa(
   const planoAtivoPorCliente = clientesComAssinaturaAtiva(assinaturas)
 
   const avulso = agendamentos
-    .filter((a) => contaComoAtendimento(a.status) && mesReferenciaDeData(a.data) === mesReferencia)
+    .filter((a) => contaComoAtendimento(a) && mesReferenciaDeData(a.data) === mesReferencia)
     .reduce((sum, a) => sum + precoRealAgendamento(servicos, clientes, planos, planoAtivoPorCliente, a), 0)
 
   const produtos = vendas
@@ -293,7 +570,7 @@ export function getFechamentoCaixaDoDia(
   const planoAtivoPorCliente = clientesComAssinaturaAtiva(assinaturas)
 
   const avulso = agendamentos
-    .filter((a) => contaComoAtendimento(a.status) && a.data === dataISO)
+    .filter((a) => contaComoAtendimento(a) && a.data === dataISO)
     .reduce((sum, a) => sum + precoRealAgendamento(servicos, clientes, planos, planoAtivoPorCliente, a), 0)
 
   const produtos = vendas
@@ -301,7 +578,7 @@ export function getFechamentoCaixaDoDia(
     .reduce((sum, v) => sum + v.valorTotal, 0)
 
   const assinatura = assinaturas
-    .filter((a) => a.status !== 'cancelado' && a.proximaCobranca === dataISO)
+    .filter((a) => (a.status === 'em_dia' || a.status === 'atrasado') && a.proximaCobranca === dataISO)
     .reduce((sum, a) => {
       const plano = planos.find((p) => p.id === a.planoId)
       return sum + (plano?.valorMensal ?? 0)
@@ -313,6 +590,81 @@ export function getFechamentoCaixaDoDia(
     assinatura,
     total: avulso + produtos + assinatura,
   }
+}
+
+/** Fechamento de caixa de uma semana (segunda a domingo) — mesma lógica da
+ * versão diária, só que somando o intervalo inteiro em vez de um dia exato. */
+export function getFechamentoCaixaDaSemana(
+  agendamentos: Agendamento[],
+  servicos: Servico[],
+  vendas: Venda[],
+  assinaturas: Assinatura[],
+  planos: PlanoAssinatura[],
+  clientes: Cliente[],
+  inicioISO: string,
+  fimISO: string,
+) {
+  const planoAtivoPorCliente = clientesComAssinaturaAtiva(assinaturas)
+
+  const avulso = agendamentos
+    .filter((a) => contaComoAtendimento(a) && a.data >= inicioISO && a.data <= fimISO)
+    .reduce((sum, a) => sum + precoRealAgendamento(servicos, clientes, planos, planoAtivoPorCliente, a), 0)
+
+  const produtos = vendas
+    .filter((v) => v.data >= inicioISO && v.data <= fimISO)
+    .reduce((sum, v) => sum + v.valorTotal, 0)
+
+  const assinatura = assinaturas
+    .filter(
+      (a) => (a.status === 'em_dia' || a.status === 'atrasado') && a.proximaCobranca >= inicioISO && a.proximaCobranca <= fimISO,
+    )
+    .reduce((sum, a) => {
+      const plano = planos.find((p) => p.id === a.planoId)
+      return sum + (plano?.valorMensal ?? 0)
+    }, 0)
+
+  return {
+    avulso,
+    produtos,
+    assinatura,
+    total: avulso + produtos + assinatura,
+  }
+}
+
+export interface ServicoMaisVendido {
+  servicoId: string
+  servicoNome: string
+  quantidade: number
+  faturamento: number
+}
+
+/** Quais serviços mais renderam no mês (preço cheio, sem os descontos de
+ * plano/assinante) — mostra o que está puxando faturamento, não só volume. */
+export function getServicosMaisVendidosNoMes(
+  agendamentos: Agendamento[],
+  servicos: Servico[],
+  mesReferencia: string,
+): ServicoMaisVendido[] {
+  const porServico = new Map<string, { quantidade: number; faturamento: number }>()
+  agendamentos
+    .filter((a) => contaComoAtendimento(a) && mesReferenciaDeData(a.data) === mesReferencia)
+    .forEach((a) => {
+      a.servicoIds.forEach((servicoId) => {
+        const atual = porServico.get(servicoId) ?? { quantidade: 0, faturamento: 0 }
+        atual.quantidade += 1
+        atual.faturamento += precoServico(servicos, servicoId)
+        porServico.set(servicoId, atual)
+      })
+    })
+
+  return Array.from(porServico.entries())
+    .map(([servicoId, dados]) => ({
+      servicoId,
+      servicoNome: servicos.find((s) => s.id === servicoId)?.nome ?? 'Serviço',
+      quantidade: dados.quantidade,
+      faturamento: Math.round(dados.faturamento * 100) / 100,
+    }))
+    .sort((a, b) => b.faturamento - a.faturamento)
 }
 
 /** Faturamento acumulado real (avulso + produtos) dia a dia, só até hoje —
@@ -328,10 +680,11 @@ export function getFaturamentoAcumuladoPorDia(
 
   const porDia = new Map<number, number>()
   agendamentos
-    .filter((a) => contaComoAtendimento(a.status) && mesReferenciaDeData(a.data) === mesReferencia)
+    .filter((a) => contaComoAtendimento(a) && mesReferenciaDeData(a.data) === mesReferencia)
     .forEach((a) => {
       const dia = Number(a.data.slice(8, 10))
-      porDia.set(dia, (porDia.get(dia) ?? 0) + precoServico(servicos, a.servicoId))
+      const valorAgendamento = a.servicoIds.reduce((s, id) => s + precoServico(servicos, id), 0)
+      porDia.set(dia, (porDia.get(dia) ?? 0) + valorAgendamento)
     })
   vendas
     .filter((v) => mesReferenciaDeData(v.data) === mesReferencia)
@@ -347,4 +700,54 @@ export function getFaturamentoAcumuladoPorDia(
     pontos.push({ dia, valor: acumulado })
   }
   return pontos
+}
+
+export interface ResumoPagamentosAvulso {
+  porFormaPagamento: { forma: FormaPagamento; quantidade: number; valor: number }[]
+  porCaixa: { barbeiroId: string; barbeiroNome: string; quantidade: number; valor: number }[]
+}
+
+/** Só organização/relatório do que já foi marcado como avulso e teve a
+ * forma de pagamento/caixa preenchida — não é fechamento de caixa nem
+ * afeta comissão, é só pra saber "quanto entrou de pix/cartão/dinheiro" e
+ * "quanto ficou com o caixa de qual barbeiro/dono". Se `barbeiroId` for
+ * passado, filtra só os atendimentos daquele barbeiro. */
+export function getResumoPagamentosAvulso(
+  agendamentos: Agendamento[],
+  servicos: Servico[],
+  barbeiros: Barbeiro[],
+  mesReferencia: string,
+  barbeiroId?: string,
+): ResumoPagamentosAvulso {
+  const doMes = agendamentos.filter(
+    (a) =>
+      contaComoAtendimento(a) &&
+      mesReferenciaDeData(a.data) === mesReferencia &&
+      (!barbeiroId || a.barbeiroId === barbeiroId) &&
+      a.formaPagamento,
+  )
+
+  const valorDoAgendamento = (a: Agendamento) => a.servicoIds.reduce((s, id) => s + precoServico(servicos, id), 0)
+
+  const formas: FormaPagamento[] = ['pix', 'cartao', 'dinheiro']
+
+  return {
+    porFormaPagamento: formas.map((forma) => {
+      const doForma = doMes.filter((a) => a.formaPagamento === forma)
+      return {
+        forma,
+        quantidade: doForma.length,
+        valor: Math.round(doForma.reduce((s, a) => s + valorDoAgendamento(a), 0) * 100) / 100,
+      }
+    }),
+    porCaixa: barbeiros.map((destinatario) => {
+      const doCaixa = doMes.filter((a) => a.caixaDestinoBarbeiroId === destinatario.id)
+      return {
+        barbeiroId: destinatario.id,
+        barbeiroNome: destinatario.nome,
+        quantidade: doCaixa.length,
+        valor: Math.round(doCaixa.reduce((s, a) => s + valorDoAgendamento(a), 0) * 100) / 100,
+      }
+    }),
+  }
 }

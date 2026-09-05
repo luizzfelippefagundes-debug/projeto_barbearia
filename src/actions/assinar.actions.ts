@@ -12,6 +12,7 @@ import {
   buscarStatusPagamento,
   criarAssinaturaAsaas,
   criarClienteAsaas,
+  definirCobrancaComoCartao,
   mapStatusPagamentoAsaas,
 } from '../lib/asaas'
 import { getHojeISO } from '../lib/dateUtils'
@@ -128,7 +129,7 @@ export async function verificarPagamentoAssinatura(assinaturaId: string): Promis
   return novoStatus
 }
 
-export async function buscarQrCodeDaMinhaAssinatura(assinaturaId: string) {
+async function assinaturaComPagamentoDoCliente(assinaturaId: string) {
   const clienteRow = await getClienteAtualOuFalhar()
 
   const rows = await getDb()
@@ -143,6 +144,21 @@ export async function buscarQrCodeDaMinhaAssinatura(assinaturaId: string) {
   if (!assinatura.asaasFirstPaymentId) {
     throw new Error('A cobrança ainda está sendo gerada — atualize a página em alguns segundos.')
   }
+  return assinatura.asaasFirstPaymentId
+}
 
-  return buscarPixQrCode(assinatura.asaasFirstPaymentId)
+/** QR code + copia-e-cola do Pix pra pagar a primeira cobrança da minha
+ * assinatura — nunca sai da nossa tela, nenhum dado sensível envolvido. */
+export async function buscarPixDaMinhaAssinatura(assinaturaId: string) {
+  const paymentId = await assinaturaComPagamentoDoCliente(assinaturaId)
+  return buscarPixQrCode(paymentId)
+}
+
+/** Trava a cobrança em cartão de crédito e devolve o link seguro hospedado
+ * pelo próprio Asaas — a gente nunca vê o número do cartão. */
+export async function buscarLinkCartaoDaMinhaAssinatura(assinaturaId: string) {
+  const paymentId = await assinaturaComPagamentoDoCliente(assinaturaId)
+  const atual = await buscarStatusPagamento(paymentId)
+  const atualizado = await definirCobrancaComoCartao(paymentId, atual.value, atual.dueDate)
+  return { invoiceUrl: atualizado.invoiceUrl }
 }

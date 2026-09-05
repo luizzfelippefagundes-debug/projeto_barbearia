@@ -19,6 +19,7 @@ export const statusAgendamentoEnum = pgEnum('status_agendamento', [
   'livre',
   'aguardando',
   'bloqueado',
+  'nao_compareceu',
 ])
 
 export const statusPagamentoEnum = pgEnum('status_pagamento', [
@@ -29,6 +30,11 @@ export const statusPagamentoEnum = pgEnum('status_pagamento', [
 ])
 
 export const statusPayoutEnum = pgEnum('status_payout', ['transferido', 'pendente'])
+
+/** Forma de pagamento de um corte avulso — só pra organização/relatório
+ * (não muda comissão nem fechamento de caixa), preenchido quando o
+ * atendimento tem alguma parte paga na hora (fora do plano). */
+export const formaPagamentoEnum = pgEnum('forma_pagamento', ['pix', 'cartao', 'dinheiro'])
 
 export const canalIndicacaoEnum = pgEnum('canal_indicacao', [
   'indicacao_amigo',
@@ -72,10 +78,19 @@ export const barbeiros = pgTable('barbeiros', {
    * (comparado com o e-mail da conta, não é um campo de contato). */
   emailConvite: text('email_convite'),
   nome: text('nome').notNull(),
+  /** Telefone de contato dele mesmo — usado pelo bot do WhatsApp pra
+   * reconhecer que quem tá mandando mensagem é da equipe, não cliente. */
+  telefone: text('telefone'),
   avatarUrl: text('avatar_url'),
-  comissaoPercent: integer('comissao_percent').notNull().default(45),
   papel: papelBarbeiroEnum('papel').notNull().default('barbeiro'),
   ativo: boolean('ativo').notNull().default(true),
+  /** Dias da semana que ele trabalha (0=domingo..6=sábado, mesma convenção
+   * de Date.getDay()) — só filtra o que aparece pro CLIENTE agendar; a
+   * agenda do dono/barbeiro continua livre pra marcar/bloquear qualquer
+   * horário manualmente. */
+  diasTrabalho: integer('dias_trabalho').array().notNull().default([0, 1, 2, 3, 4, 5, 6]),
+  horaInicio: text('hora_inicio').notNull().default('09:00'),
+  horaFim: text('hora_fim').notNull().default('18:45'),
   criadoEm: timestamp('criado_em').notNull().defaultNow(),
 })
 
@@ -170,26 +185,41 @@ export const agendamentos = pgTable(
     barbeiroId: uuid('barbeiro_id')
       .notNull()
       .references(() => barbeiros.id, { onDelete: 'cascade' }),
-    servicoId: uuid('servico_id').references(() => servicos.id, { onDelete: 'set null' }),
     status: statusAgendamentoEnum('status').notNull().default('livre'),
+    /** Quando um agendamento pede serviços cuja duração soma mais que um
+     * slot, os slots seguintes viram linhas "continuação" apontando pra cá
+     * — existem só pra travar o horário na agenda, não têm serviço/cliente
+     * próprio (usam o mesmo cliente do agendamento original pra exibição). */
+    continuacaoDeId: uuid('continuacao_de_id').references((): AnyPgColumn => agendamentos.id, {
+      onDelete: 'cascade',
+    }),
+    /** Controle do bot de lembrete no WhatsApp — evita mandar a mesma
+     * mensagem duas vezes pro cliente. */
+    lembreteVesperaEnviado: boolean('lembrete_vespera_enviado').notNull().default(false),
+    lembrete1hEnviado: boolean('lembrete_1h_enviado').notNull().default(false),
+    /** Só preenchido quando o atendimento tem parte avulsa (fora do plano)
+     * — organização/relatório, não afeta comissão nem fechamento de caixa. */
+    formaPagamento: formaPagamentoEnum('forma_pagamento'),
+    /** Qual barbeiro/dono ficou com o dinheiro na hora — referência direta
+     * (não enum fixo), porque pode ter mais de um "dono" na barbearia. */
+    caixaDestinoBarbeiroId: uuid('caixa_destino_barbeiro_id').references(() => barbeiros.id, {
+      onDelete: 'set null',
+    }),
     criadoEm: timestamp('criado_em').notNull().defaultNow(),
   },
   (table) => [unique('agendamentos_slot_unico').on(table.data, table.hora, table.barbeiroId)],
 )
 
-export const filaEspera = pgTable('fila_espera', {
+/** Um agendamento pode ter mais de um serviço (ex: corte + barba no mesmo
+ * horário) — cada linha aqui é um serviço pedido naquele agendamento. */
+export const agendamentoServicos = pgTable('agendamento_servicos', {
   id: uuid('id').primaryKey().defaultRandom(),
-  clienteId: uuid('cliente_id')
+  agendamentoId: uuid('agendamento_id')
     .notNull()
-    .references(() => clientes.id, { onDelete: 'cascade' }),
-  desejaBarbeiroId: uuid('deseja_barbeiro_id').references(() => barbeiros.id, {
-    onDelete: 'set null',
-  }),
-  desejaServicoId: uuid('deseja_servico_id').references(() => servicos.id, {
-    onDelete: 'set null',
-  }),
-  criadoEm: timestamp('criado_em').notNull().defaultNow(),
-  notificado: boolean('notificado').notNull().default(false),
+    .references(() => agendamentos.id, { onDelete: 'cascade' }),
+  servicoId: uuid('servico_id')
+    .notNull()
+    .references(() => servicos.id, { onDelete: 'cascade' }),
 })
 
 export const haircutRecords = pgTable('haircut_records', {
@@ -224,7 +254,7 @@ export const vendas = pgTable('vendas', {
 })
 
 /** Linha única de configurações do negócio (id fixo 'default') — hoje só
- * guarda a meta de faturamento mensal usada no Painel ao Vivo. */
+ * guarda a meta de faturamento mensal usada em Financeiro. */
 export const configuracoes = pgTable('configuracoes', {
   id: text('id').primaryKey().default('default'),
   metaFaturamentoMensal: money('meta_faturamento_mensal'),

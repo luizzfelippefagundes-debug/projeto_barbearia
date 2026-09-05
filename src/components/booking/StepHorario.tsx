@@ -1,21 +1,50 @@
 import type { Agendamento, Barbeiro } from '../../types'
 import { Button, EmptyState } from '../../components/ui'
+import { diaDaSemana, getHojeISO, getHoraAtualBrasil, slotsOcupadosPorDuracao, TIME_SLOTS } from '../../lib/dateUtils'
 
 export function StepHorario({
   grade,
   barbeiros,
   barbeiroSelecionado,
+  duracaoTotal,
+  dataISO,
   onSelect,
 }: {
   grade: Agendamento[]
   barbeiros: Barbeiro[]
   barbeiroSelecionado: string | 'qualquer'
+  duracaoTotal: number
+  dataISO: string
   onSelect: (hora: string, barbeiroId: string) => void
 }) {
+  const porChave = new Map(grade.map((a) => [`${a.barbeiroId}|${a.hora}`, a]))
+  const porBarbeiroId = new Map(barbeiros.map((b) => [b.id, b]))
+
+  function todosSlotsLivres(barbeiroId: string, hora: string): boolean {
+    const slots = slotsOcupadosPorDuracao(hora, duracaoTotal, TIME_SLOTS)
+    return slots.every((s) => porChave.get(`${barbeiroId}|${s}`)?.status === 'livre')
+  }
+
+  // Só oferece horário dentro do que o barbeiro tem configurado como
+  // horário de trabalho (dia da semana + faixa de hora) — não se aplica à
+  // agenda do próprio dono/barbeiro, só ao agendamento do cliente.
+  function dentroDoHorarioDeTrabalho(barbeiroId: string, hora: string): boolean {
+    const barbeiro = porBarbeiroId.get(barbeiroId)
+    if (!barbeiro) return false
+    if (!barbeiro.diasTrabalho.includes(diaDaSemana(dataISO))) return false
+    return hora >= barbeiro.horaInicio && hora <= barbeiro.horaFim
+  }
+
+  // Hoje, esconde horários que já passaram — dia futuro mostra tudo.
+  const horaMinima = dataISO === getHojeISO() ? getHoraAtualBrasil() : null
+
   const livres = grade.filter(
     (a) =>
       a.status === 'livre' &&
-      (barbeiroSelecionado === 'qualquer' || a.barbeiroId === barbeiroSelecionado),
+      (barbeiroSelecionado === 'qualquer' || a.barbeiroId === barbeiroSelecionado) &&
+      (!horaMinima || a.hora > horaMinima) &&
+      dentroDoHorarioDeTrabalho(a.barbeiroId, a.hora) &&
+      todosSlotsLivres(a.barbeiroId, a.hora),
   )
 
   const porHora = new Map<string, Agendamento>()
