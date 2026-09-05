@@ -5,7 +5,7 @@ import { CalendarOff } from 'lucide-react'
 import { Button, ConfirmDialog } from '../../components/ui'
 import { bloquearMeuDiaInteiro, desbloquearMeuDiaInteiro } from '../../actions/barbeiroSelf.actions'
 
-export function BloquearMeuDiaButton({ dataISO }: { dataISO: string }) {
+export function BloquearMeuDiaButton({ dataISO, ehHoje }: { dataISO: string; ehHoje: boolean }) {
   const [pending, startTransition] = useTransition()
   const [confirmar, setConfirmar] = useState(false)
   const [erro, setErro] = useState<string | null>(null)
@@ -34,7 +34,7 @@ export function BloquearMeuDiaButton({ dataISO }: { dataISO: string }) {
         </Button>
         <Button size="sm" variant="secondary" disabled={pending} onClick={() => setConfirmar(true)}>
           <CalendarOff size={16} aria-hidden="true" />
-          Bloquear dia
+          {ehHoje ? 'Sair mais cedo hoje' : 'Bloquear dia'}
         </Button>
       </div>
       {erro && <p className="text-xs text-status-red">{erro}</p>}
@@ -43,9 +43,13 @@ export function BloquearMeuDiaButton({ dataISO }: { dataISO: string }) {
         open={confirmar}
         onClose={() => setConfirmar(false)}
         onConfirm={handleBloquear}
-        title="Bloquear o dia inteiro"
-        description="Bloqueia todos os seus horários livres nesse dia. Horários que já têm cliente marcado não são mexidos."
-        confirmLabel="Bloquear"
+        title={ehHoje ? 'Sair mais cedo hoje' : 'Bloquear o dia inteiro'}
+        description={
+          ehHoje
+            ? 'Bloqueia os horários livres que sobraram hoje. Horários que já têm cliente marcado não são mexidos.'
+            : 'Bloqueia todos os seus horários livres nesse dia. Horários que já têm cliente marcado não são mexidos.'
+        }
+        confirmLabel={ehHoje ? 'Sair mais cedo' : 'Bloquear'}
         danger={false}
       />
     </div>

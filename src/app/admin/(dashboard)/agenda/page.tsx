@@ -47,7 +47,7 @@ export default async function AgendaPage({
         <SectionHeading
           action={
             <div className="flex flex-wrap gap-2">
-              <BloquearDiaButton dataISO={dataISO} barbeiros={barbeirosAtivos} />
+              <BloquearDiaButton dataISO={dataISO} barbeiros={barbeirosAtivos} ehHoje={dataISO === getHojeISO()} />
               <NovoHorarioModal
                 dataISO={dataISO}
                 barbeiros={barbeirosAtivos}

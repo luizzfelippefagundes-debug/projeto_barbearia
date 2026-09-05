@@ -39,7 +39,7 @@ export default async function MinhaAgendaPage({
       <SectionHeading
         action={
           <div className="flex flex-wrap gap-2">
-            <BloquearMeuDiaButton dataISO={dataISO} />
+            <BloquearMeuDiaButton dataISO={dataISO} ehHoje={dataISO === getHojeISO()} />
             <NovoAtendimentoAvulsoModal
               clientes={clientes}
               servicos={servicos}

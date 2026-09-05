@@ -8,7 +8,15 @@ import { bloquearDiaInteiro, desbloquearDiaInteiro } from '../../actions/agenda.
 
 const TODOS = 'todos'
 
-export function BloquearDiaButton({ dataISO, barbeiros }: { dataISO: string; barbeiros: Barbeiro[] }) {
+export function BloquearDiaButton({
+  dataISO,
+  barbeiros,
+  ehHoje,
+}: {
+  dataISO: string
+  barbeiros: Barbeiro[]
+  ehHoje: boolean
+}) {
   const [open, setOpen] = useState(false)
   const [barbeiroId, setBarbeiroId] = useState(TODOS)
   const [salvando, setSalvando] = useState(false)
@@ -35,10 +43,10 @@ export function BloquearDiaButton({ dataISO, barbeiros }: { dataISO: string; bar
     <>
       <Button size="sm" variant="secondary" onClick={() => setOpen(true)}>
         <CalendarOff size={16} aria-hidden="true" />
-        Bloquear dia
+        {ehHoje ? 'Sair mais cedo hoje' : 'Bloquear dia'}
       </Button>
 
-      <Modal open={open} onClose={() => setOpen(false)} title="Bloquear dia inteiro">
+      <Modal open={open} onClose={() => setOpen(false)} title={ehHoje ? 'Sair mais cedo hoje' : 'Bloquear dia inteiro'}>
         <div className="flex flex-col gap-4">
           <Select label="Barbeiro" value={barbeiroId} onChange={(e) => setBarbeiroId(e.target.value)}>
             <option value={TODOS}>Todos os barbeiros</option>
@@ -49,7 +57,9 @@ export function BloquearDiaButton({ dataISO, barbeiros }: { dataISO: string; bar
             ))}
           </Select>
           <p className="text-xs text-text-secondary">
-            Bloqueia todos os horários livres desse dia. Horários que já têm cliente marcado não são mexidos.
+            {ehHoje
+              ? 'Bloqueia os horários livres que sobraram hoje. Horários que já têm cliente marcado não são mexidos.'
+              : 'Bloqueia todos os horários livres desse dia. Horários que já têm cliente marcado não são mexidos.'}
           </p>
           {erro && <p className="text-xs text-status-red">{erro}</p>}
           <div className="flex flex-wrap justify-end gap-2">
@@ -60,7 +70,7 @@ export function BloquearDiaButton({ dataISO, barbeiros }: { dataISO: string; bar
               Desbloquear dia
             </Button>
             <Button disabled={salvando} onClick={() => executar(bloquearDiaInteiro)}>
-              {salvando ? 'Salvando...' : 'Bloquear dia'}
+              {salvando ? 'Salvando...' : ehHoje ? 'Sair mais cedo' : 'Bloquear dia'}
             </Button>
           </div>
         </div>
