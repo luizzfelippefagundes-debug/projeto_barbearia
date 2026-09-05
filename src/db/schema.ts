@@ -200,6 +200,9 @@ export const agendamentos = pgTable(
      * mensagem duas vezes pro cliente. */
     lembreteVesperaEnviado: boolean('lembrete_vespera_enviado').notNull().default(false),
     lembrete1hEnviado: boolean('lembrete_1h_enviado').notNull().default(false),
+    /** Controle do bot: já avisou o barbeiro no WhatsApp que esse horário
+     * foi marcado? Evita avisar de novo a cada checagem periódica. */
+    barbeiroAvisadoNovoAgendamento: boolean('barbeiro_avisado_novo_agendamento').notNull().default(false),
     /** Só preenchido quando o atendimento tem parte avulsa (fora do plano)
      * — organização/relatório, não afeta comissão nem fechamento de caixa. */
     formaPagamento: formaPagamentoEnum('forma_pagamento'),
