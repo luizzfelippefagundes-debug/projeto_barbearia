@@ -1,4 +1,4 @@
-import { eq } from 'drizzle-orm'
+import { desc, eq } from 'drizzle-orm'
 import { getDb } from '../index'
 import { payoutsBarbeiros } from '../schema'
 import { nullToUndefined } from '../../lib/db-map'
@@ -20,5 +20,17 @@ export async function getPayoutsDoMes(mesReferencia: string): Promise<PayoutBarb
     .select()
     .from(payoutsBarbeiros)
     .where(eq(payoutsBarbeiros.mesReferencia, mesReferencia))
+  return rows.map(toAppPayout)
+}
+
+/** Últimos meses de repasse de um barbeiro específico — mais recente
+ * primeiro, pra ele acompanhar a evolução, não só o mês atual. */
+export async function getPayoutsDoBarbeiro(barbeiroId: string, limite: number): Promise<PayoutBarbeiro[]> {
+  const rows = await getDb()
+    .select()
+    .from(payoutsBarbeiros)
+    .where(eq(payoutsBarbeiros.barbeiroId, barbeiroId))
+    .orderBy(desc(payoutsBarbeiros.mesReferencia))
+    .limit(limite)
   return rows.map(toAppPayout)
 }

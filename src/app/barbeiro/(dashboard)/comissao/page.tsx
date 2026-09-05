@@ -3,12 +3,13 @@ import { PayoutStatusPill } from '../../../../components/barbeiros/PayoutStatusP
 import { ProgressoClientesPlano } from '../../../../components/barbeiro-self/ProgressoClientesPlano'
 import { ClientesPlanoSemVisitaCard } from '../../../../components/barbeiro-self/ClientesPlanoSemVisitaCard'
 import { HistoricoRecenteBarbeiro } from '../../../../components/barbeiro-self/HistoricoRecenteBarbeiro'
+import { HistoricoRepasseCard } from '../../../../components/barbeiro-self/HistoricoRepasseCard'
 import { ResumoPagamentosCard } from '../../../../components/financeiro/ResumoPagamentosCard'
 import { requireBarbeiroAccess } from '../../../../lib/barbeiroAuth'
 import { getBarbeiros, toAppBarbeiro } from '../../../../db/queries/barbeiros'
 import { getAgendamentosDoMes } from '../../../../db/queries/agendamentos'
 import { getServicosAtivos } from '../../../../db/queries/servicos'
-import { getPayoutsDoMes } from '../../../../db/queries/payouts'
+import { getPayoutsDoBarbeiro, getPayoutsDoMes } from '../../../../db/queries/payouts'
 import { getVendas } from '../../../../db/queries/vendas'
 import { getAssinaturas, getPlanosAssinatura } from '../../../../db/queries/assinaturas'
 import { getClientesComHistorico } from '../../../../db/queries/clientes'
@@ -44,16 +45,18 @@ export default async function MinhaComissaoPage() {
 
   const mesReferencia = mesReferenciaDeData(getHojeISO())
 
-  const [agendamentos, servicos, payouts, vendas, assinaturas, planos, clientes, barbeiros] = await Promise.all([
-    getAgendamentosDoMes(mesReferencia),
-    getServicosAtivos(),
-    getPayoutsDoMes(mesReferencia),
-    getVendas(),
-    getAssinaturas(),
-    getPlanosAssinatura(),
-    getClientesComHistorico(),
-    getBarbeiros(),
-  ])
+  const [agendamentos, servicos, payouts, vendas, assinaturas, planos, clientes, barbeiros, historicoRepasse] =
+    await Promise.all([
+      getAgendamentosDoMes(mesReferencia),
+      getServicosAtivos(),
+      getPayoutsDoMes(mesReferencia),
+      getVendas(),
+      getAssinaturas(),
+      getPlanosAssinatura(),
+      getClientesComHistorico(),
+      getBarbeiros(),
+      getPayoutsDoBarbeiro(barbeiro.id, 6),
+    ])
 
   const cortes = getCortesNoMesPorBarbeiro(agendamentos, barbeiro.id, mesReferencia)
   const faturamentoGerado = getFaturamentoGeradoPorBarbeiroNoMes(agendamentos, servicos, barbeiro.id, mesReferencia)
@@ -158,6 +161,10 @@ export default async function MinhaComissaoPage() {
 
       <div className="mt-6">
         <ResumoPagamentosCard resumo={resumoPagamentos} />
+      </div>
+
+      <div className="mt-6">
+        <HistoricoRepasseCard payouts={historicoRepasse} />
       </div>
 
       <div className="mt-6">
