@@ -290,3 +290,14 @@ export const fechamentosCaixa = pgTable('fechamentos_caixa', {
     onDelete: 'set null',
   }),
 })
+
+/** Fila de avisos pro bot do WhatsApp mandar pro barbeiro — usada quando
+ * algo acontece PELO SITE (não pelo bot), já que o bot roda numa rede
+ * separada (VPS) e não fica sabendo na hora. O bot (projeto separado)
+ * verifica essa fila periodicamente e apaga a linha depois de mandar. */
+export const avisosBarbeiro = pgTable('avisos_barbeiro', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  barbeiroTelefone: text('barbeiro_telefone').notNull(),
+  mensagem: text('mensagem').notNull(),
+  criadoEm: timestamp('criado_em').notNull().defaultNow(),
+})

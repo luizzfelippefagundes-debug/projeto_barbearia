@@ -7,6 +7,7 @@ import { agendamentos, assinaturas, haircutRecords } from '../db/schema'
 import { getClienteAtualOuFalhar } from '../lib/clienteAuth'
 import { cancelarAssinaturaComAsaas } from '../lib/asaasCancelamento'
 import { criarAgendamentoComServicos } from '../lib/agendaBooking'
+import { registrarAvisoCancelamento } from '../lib/avisoBarbeiro'
 import { addDays, getHojeISO, getHoraAtualBrasil } from '../lib/dateUtils'
 
 /** Cliente só pode agendar hoje + os próximos 6 dias — mesma janela
@@ -50,6 +51,14 @@ export async function cancelarMeuAgendamento(agendamentoId: string) {
   if (!existente[0] || existente[0].clienteId !== cliente.id) {
     throw new Error('Agendamento não encontrado.')
   }
+
+  await registrarAvisoCancelamento({
+    agendamentoId,
+    barbeiroId: existente[0].barbeiroId,
+    clienteNome: cliente.nome,
+    data: existente[0].data,
+    hora: existente[0].hora,
+  })
 
   await getDb().delete(agendamentos).where(eq(agendamentos.id, agendamentoId))
 

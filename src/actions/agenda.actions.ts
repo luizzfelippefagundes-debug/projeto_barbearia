@@ -6,6 +6,7 @@ import { getDb } from '../db'
 import { agendamentos, agendamentoServicos, clientes, haircutRecords } from '../db/schema'
 import { assertAdmin } from '../lib/adminAuth'
 import { criarAgendamentoComServicos } from '../lib/agendaBooking'
+import { registrarAvisoCancelamento } from '../lib/avisoBarbeiro'
 import { getHojeISO, TIME_SLOTS } from '../lib/dateUtils'
 import type { FormaPagamento } from '../types'
 
@@ -146,9 +147,28 @@ export async function marcarNaoCompareceu(agendamentoId: string) {
  * apaga a linha e libera o horário pra outra pessoa marcar. Serviços
  * ligados e eventuais continuações (por duração) somem junto, em cascata. */
 export async function cancelarAgendamentoAdmin(agendamentoId: string) {
-  await assertAdmin()
+  const dono = await assertAdmin()
 
-  const rows = await getDb().delete(agendamentos).where(eq(agendamentos.id, agendamentoId)).returning()
+  const db = getDb()
+  const [agendamento] = await db.select().from(agendamentos).where(eq(agendamentos.id, agendamentoId)).limit(1)
+  if (!agendamento) throw new Error('Esse agendamento não foi encontrado.')
+
+  // Só avisa se não for o próprio dono cancelando o próprio horário — quem
+  // faz a ação já sabe que cancelou, não precisa de aviso pra si mesmo.
+  if (agendamento.barbeiroId !== dono.id && agendamento.clienteId) {
+    const [cliente] = await db.select().from(clientes).where(eq(clientes.id, agendamento.clienteId)).limit(1)
+    if (cliente) {
+      await registrarAvisoCancelamento({
+        agendamentoId,
+        barbeiroId: agendamento.barbeiroId,
+        clienteNome: cliente.nome,
+        data: agendamento.data,
+        hora: agendamento.hora,
+      })
+    }
+  }
+
+  const rows = await db.delete(agendamentos).where(eq(agendamentos.id, agendamentoId)).returning()
   if (rows.length === 0) throw new Error('Esse agendamento não foi encontrado.')
 
   revalidarAgenda()
