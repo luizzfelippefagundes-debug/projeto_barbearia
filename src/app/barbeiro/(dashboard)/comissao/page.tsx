@@ -4,6 +4,7 @@ import { ProgressoClientesPlano } from '../../../../components/barbeiro-self/Pro
 import { ClientesPlanoSemVisitaCard } from '../../../../components/barbeiro-self/ClientesPlanoSemVisitaCard'
 import { HistoricoRecenteBarbeiro } from '../../../../components/barbeiro-self/HistoricoRecenteBarbeiro'
 import { HistoricoRepasseCard } from '../../../../components/barbeiro-self/HistoricoRepasseCard'
+import { MinhaMetaComissaoCard } from '../../../../components/barbeiro-self/MinhaMetaComissaoCard'
 import { ResumoPagamentosCard } from '../../../../components/financeiro/ResumoPagamentosCard'
 import { requireBarbeiroAccess } from '../../../../lib/barbeiroAuth'
 import { getBarbeiros, toAppBarbeiro } from '../../../../db/queries/barbeiros'
@@ -149,6 +150,10 @@ export default async function MinhaComissaoPage() {
             </>
           )}
         </Card>
+      </div>
+
+      <div className="mt-6">
+        <MinhaMetaComissaoCard valorAReceber={valorAReceber} metaAtual={barbeiro.metaComissaoMensal} />
       </div>
 
       <div className="mt-6">

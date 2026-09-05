@@ -242,6 +242,19 @@ export async function atualizarMeuHorarioTrabalho(diasTrabalho: number[], horaIn
   revalidatePath('/cliente/agendar')
 }
 
+/** Meta pessoal de comissão do mês — só o próprio barbeiro define/vê, não
+ * aparece pro dono nem afeta a meta de faturamento da loja. */
+export async function atualizarMinhaMetaComissao(valor: number) {
+  const barbeiro = await assertBarbeiroLogado()
+  if (valor < 0) throw new Error('A meta não pode ser negativa.')
+
+  await getDb()
+    .update(barbeiros)
+    .set({ metaComissaoMensal: valor > 0 ? valor : null })
+    .where(eq(barbeiros.id, barbeiro.id))
+  revalidatePath('/barbeiro/comissao')
+}
+
 export async function atualizarMinhaFoto(foto: File) {
   const barbeiro = await assertBarbeiroLogado()
   if (!(foto instanceof File) || foto.size === 0) throw new Error('Selecione uma foto')

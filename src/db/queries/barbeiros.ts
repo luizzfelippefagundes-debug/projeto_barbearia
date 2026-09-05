@@ -16,6 +16,7 @@ export function toAppBarbeiro(row: typeof barbeiros.$inferSelect): Barbeiro {
     diasTrabalho: row.diasTrabalho,
     horaInicio: row.horaInicio,
     horaFim: row.horaFim,
+    metaComissaoMensal: nullToUndefined(row.metaComissaoMensal),
   }
 }
 

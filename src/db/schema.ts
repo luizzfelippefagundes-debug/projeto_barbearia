@@ -91,6 +91,9 @@ export const barbeiros = pgTable('barbeiros', {
   diasTrabalho: integer('dias_trabalho').array().notNull().default([0, 1, 2, 3, 4, 5, 6]),
   horaInicio: text('hora_inicio').notNull().default('09:00'),
   horaFim: text('hora_fim').notNull().default('18:45'),
+  /** Meta pessoal de comissão do mês — só o próprio barbeiro define e vê,
+   * não é meta de faturamento da loja (essa já existe em `configuracoes`). */
+  metaComissaoMensal: money('meta_comissao_mensal'),
   criadoEm: timestamp('criado_em').notNull().defaultNow(),
 })
 

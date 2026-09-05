@@ -14,6 +14,8 @@ export interface Barbeiro {
   diasTrabalho: number[]
   horaInicio: string
   horaFim: string
+  /** Meta pessoal de comissão do mês — só o próprio barbeiro define/vê. */
+  metaComissaoMensal?: number
 }
 
 export interface PayoutBarbeiro {
