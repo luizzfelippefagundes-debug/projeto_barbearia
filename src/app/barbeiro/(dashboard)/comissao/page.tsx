@@ -1,6 +1,7 @@
 import { Card, EmptyState, SectionHeading } from '../../../../components/ui'
 import { PayoutStatusPill } from '../../../../components/barbeiros/PayoutStatusPill'
 import { ProgressoClientesPlano } from '../../../../components/barbeiro-self/ProgressoClientesPlano'
+import { ClientesPlanoSemVisitaCard } from '../../../../components/barbeiro-self/ClientesPlanoSemVisitaCard'
 import { HistoricoRecenteBarbeiro } from '../../../../components/barbeiro-self/HistoricoRecenteBarbeiro'
 import { ResumoPagamentosCard } from '../../../../components/financeiro/ResumoPagamentosCard'
 import { requireBarbeiroAccess } from '../../../../lib/barbeiroAuth'
@@ -15,6 +16,7 @@ import {
   getComissaoServicosBarbeiroNoMes,
   getComissaoTotalBarbeiro,
   getComissaoVendasProdutos,
+  getClientesPlanoSemVisitaNoMes,
   getCortesNoMesPorBarbeiro,
   getFaturamentoGeradoPorBarbeiroNoMes,
   getHistoricoRecenteBarbeiro,
@@ -91,6 +93,14 @@ export default async function MinhaComissaoPage() {
   )
   const historicoRecente = getHistoricoRecenteBarbeiro(clientes, servicos, barbeiro.id, 10)
   const resumoPagamentos = getResumoPagamentosAvulso(agendamentos, servicos, barbeiros, mesReferencia, barbeiro.id)
+  const clientesPlanoSemVisita = getClientesPlanoSemVisitaNoMes(
+    agendamentos,
+    clientes,
+    planos,
+    assinaturas,
+    barbeiros,
+    mesReferencia,
+  )
 
   return (
     <div>
@@ -140,6 +150,10 @@ export default async function MinhaComissaoPage() {
 
       <div className="mt-6">
         <ProgressoClientesPlano clientes={progressoClientes} />
+      </div>
+
+      <div className="mt-6">
+        <ClientesPlanoSemVisitaCard clientes={clientesPlanoSemVisita} />
       </div>
 
       <div className="mt-6">

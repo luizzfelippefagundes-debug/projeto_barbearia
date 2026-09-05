@@ -3,6 +3,7 @@ import type { Agendamento, Assinatura, Barbeiro, Cliente, PlanoAssinatura, Servi
 import {
   COMISSAO_AVULSO_PERCENT,
   COMISSAO_PLANO_PERCENT,
+  getClientesPlanoSemVisitaNoMes,
   getComissaoServicosBarbeiroNoMes,
   getComissaoTotalBarbeiro,
   getCortesNoMesPorBarbeiro,
@@ -258,5 +259,34 @@ describe('getFechamentoCaixa — avulso não conta serviço já coberto por plan
     const ags = [agendamento({ id: 'a1', data: '2026-09-05', hora: '10:00', barbeiroId: 'barbeiroA', servicoIds: ['cabelo'], clienteId: 'c1' })]
     const fechamento = getFechamentoCaixa(ags, servicos, [], [], [], [cliente('c1')], MES)
     expect(fechamento.avulso).toBe(40)
+  })
+})
+
+describe('getClientesPlanoSemVisitaNoMes', () => {
+  it('lista cliente de plano que ainda não foi atendido por ninguém no mês', () => {
+    const assinaturas = [assinatura({ id: 's1', clienteId: 'c1', planoId: 'plano129' })]
+    const lista = getClientesPlanoSemVisitaNoMes([], [cliente('c1')], [planoCompleto], assinaturas, [barbeiroA], MES)
+    expect(lista).toHaveLength(1)
+    expect(lista[0].clienteId).toBe('c1')
+  })
+
+  it('some da lista assim que um barbeiro de verdade atende (ativa o plano)', () => {
+    const ags = [agendamento({ id: 'a1', data: '2026-09-05', hora: '10:00', barbeiroId: 'barbeiroA', servicoIds: ['cabelo'], clienteId: 'c1' })]
+    const assinaturas = [assinatura({ id: 's1', clienteId: 'c1', planoId: 'plano129' })]
+    const lista = getClientesPlanoSemVisitaNoMes(ags, [cliente('c1')], [planoCompleto], assinaturas, [barbeiroA], MES)
+    expect(lista).toHaveLength(0)
+  })
+
+  it('continua na lista se só o dono atendeu (dono não ativa o plano)', () => {
+    const ags = [agendamento({ id: 'a1', data: '2026-09-05', hora: '10:00', barbeiroId: 'dono1', servicoIds: ['cabelo'], clienteId: 'c1' })]
+    const assinaturas = [assinatura({ id: 's1', clienteId: 'c1', planoId: 'plano129' })]
+    const lista = getClientesPlanoSemVisitaNoMes(ags, [cliente('c1')], [planoCompleto], assinaturas, [barbeiroDono], MES)
+    expect(lista).toHaveLength(1)
+  })
+
+  it('não lista cliente com plano atrasado ou cancelado', () => {
+    const assinaturas = [assinatura({ id: 's1', clienteId: 'c1', planoId: 'plano129', status: 'atrasado' })]
+    const lista = getClientesPlanoSemVisitaNoMes([], [cliente('c1')], [planoCompleto], assinaturas, [barbeiroA], MES)
+    expect(lista).toHaveLength(0)
   })
 })

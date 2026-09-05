@@ -751,3 +751,49 @@ export function getResumoPagamentosAvulso(
     }),
   }
 }
+
+export interface ClientePlanoSemVisita {
+  clienteId: string
+  clienteNome: string
+  clienteTelefone: string
+  planoNome: string
+}
+
+/** Clientes com plano em dia que ainda não tiveram nenhum atendimento
+ * contado (de nenhum barbeiro) nesse mês — é uma oportunidade real: quem
+ * chamar e atender primeiro é quem fica com a comissão de plano daquele
+ * cliente (ver getAtivadoresDoPlanoNoMes). Igual pra todos os barbeiros,
+ * não é "cliente de ninguém" específico. */
+export function getClientesPlanoSemVisitaNoMes(
+  agendamentos: Agendamento[],
+  clientes: Cliente[],
+  planos: PlanoAssinatura[],
+  assinaturas: Assinatura[],
+  barbeiros: Barbeiro[],
+  mesReferencia: string,
+): ClientePlanoSemVisita[] {
+  const planoAtivoPorCliente = clientesComAssinaturaAtiva(assinaturas)
+  const ativadoresDoMes = getAtivadoresDoPlanoNoMes(
+    agendamentos,
+    clientes,
+    planos,
+    barbeiros,
+    planoAtivoPorCliente,
+    mesReferencia,
+  )
+
+  const resultado: ClientePlanoSemVisita[] = []
+  for (const [clienteId, planoId] of planoAtivoPorCliente) {
+    if (ativadoresDoMes.has(clienteId)) continue
+    const cliente = clientes.find((c) => c.id === clienteId)
+    const plano = planos.find((p) => p.id === planoId)
+    if (!cliente || !plano) continue
+    resultado.push({
+      clienteId,
+      clienteNome: cliente.nome,
+      clienteTelefone: cliente.telefone,
+      planoNome: plano.nome,
+    })
+  }
+  return resultado.sort((a, b) => a.clienteNome.localeCompare(b.clienteNome))
+}
