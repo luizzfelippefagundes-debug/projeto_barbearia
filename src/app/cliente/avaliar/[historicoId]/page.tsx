@@ -20,7 +20,10 @@ export default async function AvaliarPage({
     return <EmptyState title="Nada para avaliar" description="Você ainda não teve nenhum atendimento." />
   }
 
-  const [barbeiros, servicos] = await Promise.all([getBarbeiros(), getServicosAtivos()])
+  const [barbeiros, servicos] = await Promise.all([
+    getBarbeiros(cliente.barbeariaId),
+    getServicosAtivos(cliente.barbeariaId),
+  ])
 
   return (
     <div className="lg:mx-auto lg:max-w-3xl">

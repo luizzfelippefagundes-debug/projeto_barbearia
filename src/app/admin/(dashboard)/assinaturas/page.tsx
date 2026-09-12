@@ -5,16 +5,18 @@ import { SubscriberList } from '../../../../components/assinaturas/SubscriberLis
 import { PlanoFormModal } from '../../../../components/assinaturas/PlanoFormModal'
 import { PlanoRowActions } from '../../../../components/assinaturas/PlanoRowActions'
 import { PlanoResumoRow } from '../../../../components/servicos/PlanoResumoRow'
+import { assertAdmin } from '../../../../lib/adminAuth'
 import { getAssinaturas, getPlanosAssinatura } from '../../../../db/queries/assinaturas'
 import { getClientesResumo } from '../../../../db/queries/clientes'
 import { getServicos } from '../../../../db/queries/servicos'
 
 export default async function AssinaturasPage() {
+  const dono = await assertAdmin()
   const [assinaturas, planos, clientes, servicos] = await Promise.all([
-    getAssinaturas(),
-    getPlanosAssinatura(),
-    getClientesResumo(),
-    getServicos(),
+    getAssinaturas(dono.barbeariaId),
+    getPlanosAssinatura(dono.barbeariaId),
+    getClientesResumo(dono.barbeariaId),
+    getServicos(dono.barbeariaId),
   ])
 
   return (

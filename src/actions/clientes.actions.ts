@@ -10,12 +10,17 @@ import { getHojeISO } from '../lib/dateUtils'
 import { gerarCodigoIndicacao } from '../lib/codigoIndicacao'
 
 export async function criarCliente(nome: string, telefone: string) {
-  await assertAdmin()
+  const dono = await assertAdmin()
   if (!nome.trim()) throw new Error('Nome é obrigatório')
 
   const rows = await getDb()
     .insert(clientes)
-    .values({ nome: nome.trim(), telefone: telefone.trim(), codigoIndicacao: gerarCodigoIndicacao() })
+    .values({
+      barbeariaId: dono.barbeariaId,
+      nome: nome.trim(),
+      telefone: telefone.trim(),
+      codigoIndicacao: gerarCodigoIndicacao(),
+    })
     .returning()
 
   revalidatePath('/admin/clientes')
@@ -24,7 +29,7 @@ export async function criarCliente(nome: string, telefone: string) {
 }
 
 export async function registrarAtendimento(clienteId: string, formData: FormData) {
-  await assertAdmin()
+  const dono = await assertAdmin()
 
   const barbeiroId = String(formData.get('barbeiroId') ?? '')
   const servicoId = String(formData.get('servicoId') ?? '')
@@ -43,6 +48,7 @@ export async function registrarAtendimento(clienteId: string, formData: FormData
 
   const db = getDb()
   await db.insert(haircutRecords).values({
+    barbeariaId: dono.barbeariaId,
     clienteId,
     barbeiroId,
     servicoId,

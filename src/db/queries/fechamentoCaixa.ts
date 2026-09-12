@@ -1,4 +1,4 @@
-import { eq } from 'drizzle-orm'
+import { and, eq } from 'drizzle-orm'
 import { getDb } from '../index'
 import { barbeiros, fechamentosCaixa } from '../schema'
 
@@ -11,7 +11,7 @@ export interface FechamentoCaixaSalvo {
   fechadoPorNome?: string
 }
 
-export async function getFechamentoCaixaSalvo(dataISO: string): Promise<FechamentoCaixaSalvo | null> {
+export async function getFechamentoCaixaSalvo(dataISO: string, barbeariaId: string): Promise<FechamentoCaixaSalvo | null> {
   const rows = await getDb()
     .select({
       avulso: fechamentosCaixa.avulso,
@@ -23,7 +23,7 @@ export async function getFechamentoCaixaSalvo(dataISO: string): Promise<Fechamen
     })
     .from(fechamentosCaixa)
     .leftJoin(barbeiros, eq(fechamentosCaixa.fechadoPorBarbeiroId, barbeiros.id))
-    .where(eq(fechamentosCaixa.data, dataISO))
+    .where(and(eq(fechamentosCaixa.data, dataISO), eq(fechamentosCaixa.barbeariaId, barbeariaId)))
     .limit(1)
 
   const row = rows[0]

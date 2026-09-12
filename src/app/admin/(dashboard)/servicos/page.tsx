@@ -4,11 +4,16 @@ import { Button, Card, EmptyState, SectionHeading } from '../../../../components
 import { ServicoRow } from '../../../../components/servicos/ServicoRow'
 import { ServicoFormModal } from '../../../../components/servicos/ServicoFormModal'
 import { PlanoResumoRow } from '../../../../components/servicos/PlanoResumoRow'
+import { assertAdmin } from '../../../../lib/adminAuth'
 import { getServicos } from '../../../../db/queries/servicos'
 import { getPlanosAssinatura } from '../../../../db/queries/assinaturas'
 
 export default async function ServicosPage() {
-  const [servicos, planos] = await Promise.all([getServicos(), getPlanosAssinatura()])
+  const dono = await assertAdmin()
+  const [servicos, planos] = await Promise.all([
+    getServicos(dono.barbeariaId),
+    getPlanosAssinatura(dono.barbeariaId),
+  ])
 
   return (
     <div className="flex flex-col gap-8">

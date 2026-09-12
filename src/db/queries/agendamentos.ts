@@ -40,7 +40,7 @@ async function mapearComServicos(rows: (typeof agendamentos.$inferSelect)[]): Pr
   return rows.map((row) => toAppAgendamento(row, mapaServicos.get(row.id) ?? []))
 }
 
-export async function getAgendamentosDoMes(mesReferencia: string): Promise<Agendamento[]> {
+export async function getAgendamentosDoMes(mesReferencia: string, barbeariaId: string): Promise<Agendamento[]> {
   const inicio = `${mesReferencia}-01`
   const [ano, mes] = mesReferencia.split('-').map(Number)
   const proximoMes = mes === 12 ? `${ano + 1}-01-01` : `${ano}-${String(mes + 1).padStart(2, '0')}-01`
@@ -48,13 +48,22 @@ export async function getAgendamentosDoMes(mesReferencia: string): Promise<Agend
   const rows = await getDb()
     .select()
     .from(agendamentos)
-    .where(and(gte(agendamentos.data, inicio), lt(agendamentos.data, proximoMes)))
+    .where(
+      and(
+        eq(agendamentos.barbeariaId, barbeariaId),
+        gte(agendamentos.data, inicio),
+        lt(agendamentos.data, proximoMes),
+      ),
+    )
 
   return mapearComServicos(rows)
 }
 
-export async function getAgendamentosDoDia(dataISO: string): Promise<Agendamento[]> {
-  const rows = await getDb().select().from(agendamentos).where(eq(agendamentos.data, dataISO))
+export async function getAgendamentosDoDia(dataISO: string, barbeariaId: string): Promise<Agendamento[]> {
+  const rows = await getDb()
+    .select()
+    .from(agendamentos)
+    .where(and(eq(agendamentos.data, dataISO), eq(agendamentos.barbeariaId, barbeariaId)))
   return mapearComServicos(rows)
 }
 
@@ -85,8 +94,9 @@ export async function getGradeAgendaDoDia(
   dataISO: string,
   barbeiroIds: string[],
   timeSlots: string[],
+  barbeariaId: string,
 ): Promise<Agendamento[]> {
-  const existentes = await getAgendamentosDoDia(dataISO)
+  const existentes = await getAgendamentosDoDia(dataISO, barbeariaId)
   const porChave = new Map(existentes.map((a) => [`${a.barbeiroId}|${a.hora}`, a]))
 
   const grade: Agendamento[] = []

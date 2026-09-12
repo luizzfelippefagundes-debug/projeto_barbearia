@@ -2,6 +2,7 @@ import { cache } from 'react'
 import { auth, currentUser } from '@clerk/nextjs/server'
 import { cookies } from 'next/headers'
 import { redirect } from 'next/navigation'
+import { getBarbeariaPadrao } from '../db/queries/barbearias'
 import { criarClienteComClerkId, getClienteRowByClerkId } from '../db/queries/clientePorClerkId'
 import { getClienteComHistorico } from '../db/queries/clientes'
 
@@ -24,10 +25,11 @@ export const requireClienteAtual = cache(async function requireClienteAtual() {
     const telefone = user?.phoneNumbers[0]?.phoneNumber ?? ''
     const cookieStore = await cookies()
     const indicadoPor = cookieStore.get('ref_cliente_id')?.value
-    clienteRow = await criarClienteComClerkId(userId, nome, telefone, indicadoPor)
+    const barbeariaPadrao = await getBarbeariaPadrao()
+    clienteRow = await criarClienteComClerkId(userId, nome, telefone, barbeariaPadrao.id, indicadoPor)
   }
 
-  const cliente = await getClienteComHistorico(clienteRow.id)
+  const cliente = await getClienteComHistorico(clienteRow.id, clienteRow.barbeariaId)
   if (!cliente) redirect('/sign-in')
   return cliente
 })

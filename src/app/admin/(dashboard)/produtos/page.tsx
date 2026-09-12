@@ -2,15 +2,17 @@ import { Card, EmptyState, SectionHeading } from '../../../../components/ui'
 import { ProductRow } from '../../../../components/produtos/ProductRow'
 import { NovoProdutoButton } from '../../../../components/produtos/NovoProdutoButton'
 import { BestSellerRanking } from '../../../../components/produtos/BestSellerRanking'
+import { assertAdmin } from '../../../../lib/adminAuth'
 import { getProdutosAtivos } from '../../../../db/queries/produtos'
 import { getBarbeiros } from '../../../../db/queries/barbeiros'
 import { getVendas } from '../../../../db/queries/vendas'
 
 export default async function ProdutosPage() {
+  const dono = await assertAdmin()
   const [produtos, barbeiros, vendas] = await Promise.all([
-    getProdutosAtivos(),
-    getBarbeiros(),
-    getVendas(),
+    getProdutosAtivos(dono.barbeariaId),
+    getBarbeiros(dono.barbeariaId),
+    getVendas(dono.barbeariaId),
   ])
 
   return (

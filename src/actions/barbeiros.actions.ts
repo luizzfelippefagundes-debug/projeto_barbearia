@@ -12,11 +12,14 @@ import { getBaseUrl } from '../lib/baseUrl'
 import { getHojeISO } from '../lib/dateUtils'
 
 export async function atualizarFotoBarbeiro(barbeiroId: string, foto: File) {
-  await assertAdmin()
+  const dono = await assertAdmin()
   if (!(foto instanceof File) || foto.size === 0) throw new Error('Selecione uma foto')
 
   const blob = await put(`barbeiros/${barbeiroId}-${Date.now()}-${foto.name}`, foto, { access: 'public' })
-  await getDb().update(barbeiros).set({ avatarUrl: blob.url }).where(eq(barbeiros.id, barbeiroId))
+  await getDb()
+    .update(barbeiros)
+    .set({ avatarUrl: blob.url })
+    .where(and(eq(barbeiros.id, barbeiroId), eq(barbeiros.barbeariaId, dono.barbeariaId)))
 
   revalidatePath('/admin/barbeiros')
   revalidatePath('/cliente/agendar')
@@ -27,13 +30,19 @@ export async function atualizarFotoBarbeiro(barbeiroId: string, foto: File) {
  * etc.) — isso só registra que já foi pago, pra não ficar mostrando "sem
  * repasse" pra sempre mesmo depois do dono ter pagado de verdade. */
 export async function marcarRepasseComoPago(barbeiroId: string, mesReferencia: string, valor: number) {
-  await assertAdmin()
+  const dono = await assertAdmin()
 
   const db = getDb()
   const existente = await db
     .select()
     .from(payoutsBarbeiros)
-    .where(and(eq(payoutsBarbeiros.barbeiroId, barbeiroId), eq(payoutsBarbeiros.mesReferencia, mesReferencia)))
+    .where(
+      and(
+        eq(payoutsBarbeiros.barbeiroId, barbeiroId),
+        eq(payoutsBarbeiros.mesReferencia, mesReferencia),
+        eq(payoutsBarbeiros.barbeariaId, dono.barbeariaId),
+      ),
+    )
     .limit(1)
 
   if (existente[0]) {
@@ -43,6 +52,7 @@ export async function marcarRepasseComoPago(barbeiroId: string, mesReferencia: s
       .where(eq(payoutsBarbeiros.id, existente[0].id))
   } else {
     await db.insert(payoutsBarbeiros).values({
+      barbeariaId: dono.barbeariaId,
       barbeiroId,
       mesReferencia,
       valor,
@@ -61,17 +71,21 @@ export async function marcarRepasseComoPago(barbeiroId: string, mesReferencia: s
  * Apagar uma conta de dono só é permitido se sobrar pelo menos outra —
  * senão ninguém mais conseguiria entrar no painel administrativo. */
 export async function apagarBarbeiro(barbeiroId: string) {
-  await assertAdmin()
+  const dono = await assertAdmin()
 
   const db = getDb()
-  const [alvo] = await db.select().from(barbeiros).where(eq(barbeiros.id, barbeiroId)).limit(1)
+  const [alvo] = await db
+    .select()
+    .from(barbeiros)
+    .where(and(eq(barbeiros.id, barbeiroId), eq(barbeiros.barbeariaId, dono.barbeariaId)))
+    .limit(1)
   if (!alvo) throw new Error('Barbeiro não encontrado')
 
   if (alvo.papel === 'dono') {
     const [{ count: totalDonos }] = await db
       .select({ count: sql<number>`count(*)` })
       .from(barbeiros)
-      .where(eq(barbeiros.papel, 'dono'))
+      .where(and(eq(barbeiros.papel, 'dono'), eq(barbeiros.barbeariaId, dono.barbeariaId)))
     if (Number(totalDonos) <= 1) {
       throw new Error('Não dá pra apagar o último dono — ninguém mais conseguiria entrar no painel.')
     }
@@ -95,13 +109,13 @@ export async function apagarBarbeiro(barbeiroId: string) {
 }
 
 export async function editarBarbeiro(barbeiroId: string, nome: string, telefone: string) {
-  await assertAdmin()
+  const dono = await assertAdmin()
   if (!nome.trim()) throw new Error('Nome é obrigatório')
 
   await getDb()
     .update(barbeiros)
     .set({ nome: nome.trim(), telefone: telefone.trim() || null })
-    .where(eq(barbeiros.id, barbeiroId))
+    .where(and(eq(barbeiros.id, barbeiroId), eq(barbeiros.barbeariaId, dono.barbeariaId)))
   revalidatePath('/admin/barbeiros')
   revalidatePath('/cliente/agendar')
   revalidatePath('/barbeiro')
@@ -117,26 +131,32 @@ export async function editarHorarioTrabalho(
   horaInicio: string,
   horaFim: string,
 ) {
-  await assertAdmin()
+  const dono = await assertAdmin()
   if (diasTrabalho.length === 0) throw new Error('Escolha pelo menos um dia da semana.')
   if (horaInicio >= horaFim) throw new Error('O horário de início precisa ser antes do de fim.')
 
-  await getDb().update(barbeiros).set({ diasTrabalho, horaInicio, horaFim }).where(eq(barbeiros.id, barbeiroId))
+  await getDb()
+    .update(barbeiros)
+    .set({ diasTrabalho, horaInicio, horaFim })
+    .where(and(eq(barbeiros.id, barbeiroId), eq(barbeiros.barbeariaId, dono.barbeariaId)))
   revalidatePath('/admin/barbeiros')
   revalidatePath('/barbeiro/perfil')
   revalidatePath('/cliente/agendar')
 }
 
 export async function toggleAtivoBarbeiro(barbeiroId: string, ativo: boolean) {
-  await assertAdmin()
-  await getDb().update(barbeiros).set({ ativo }).where(eq(barbeiros.id, barbeiroId))
+  const dono = await assertAdmin()
+  await getDb()
+    .update(barbeiros)
+    .set({ ativo })
+    .where(and(eq(barbeiros.id, barbeiroId), eq(barbeiros.barbeariaId, dono.barbeariaId)))
   revalidatePath('/admin/barbeiros')
   revalidatePath('/admin/agenda')
   revalidatePath('/cliente/agendar')
 }
 
 export async function criarBarbeiro(nome: string, emailConvite: string, foto?: File) {
-  await assertAdmin()
+  const dono = await assertAdmin()
   if (!nome.trim()) throw new Error('Nome é obrigatório')
   if (!emailConvite.trim()) throw new Error('E-mail é obrigatório para o convite')
 
@@ -150,7 +170,7 @@ export async function criarBarbeiro(nome: string, emailConvite: string, foto?: F
 
   const rows = await getDb()
     .insert(barbeiros)
-    .values({ nome: nome.trim(), emailConvite: email, avatarUrl })
+    .values({ barbeariaId: dono.barbeariaId, nome: nome.trim(), emailConvite: email, avatarUrl })
     .returning()
   const barbeiro = rows[0]
 

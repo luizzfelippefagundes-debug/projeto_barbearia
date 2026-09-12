@@ -1,6 +1,7 @@
 import { SectionHeading, EmptyState } from '../../../../components/ui'
 import { BarbeiroCard } from '../../../../components/barbeiros/BarbeiroCard'
 import { NovoBarbeiroButton } from '../../../../components/barbeiros/NovoBarbeiroButton'
+import { assertAdmin } from '../../../../lib/adminAuth'
 import { getBarbeiros } from '../../../../db/queries/barbeiros'
 import { getAgendamentosDoMes } from '../../../../db/queries/agendamentos'
 import { getServicosAtivos } from '../../../../db/queries/servicos'
@@ -16,17 +17,18 @@ import {
 import { getHojeISO, mesReferenciaDeData } from '../../../../lib/dateUtils'
 
 export default async function BarbeirosPage() {
+  const dono = await assertAdmin()
   const mesReferencia = mesReferenciaDeData(getHojeISO())
 
   const [barbeiros, agendamentos, servicos, payouts, vendas, assinaturas, planos, clientes] = await Promise.all([
-    getBarbeiros(),
-    getAgendamentosDoMes(mesReferencia),
-    getServicosAtivos(),
-    getPayoutsDoMes(mesReferencia),
-    getVendas(),
-    getAssinaturas(),
-    getPlanosAssinatura(),
-    getClientesComHistorico(),
+    getBarbeiros(dono.barbeariaId),
+    getAgendamentosDoMes(mesReferencia, dono.barbeariaId),
+    getServicosAtivos(dono.barbeariaId),
+    getPayoutsDoMes(mesReferencia, dono.barbeariaId),
+    getVendas(dono.barbeariaId),
+    getAssinaturas(dono.barbeariaId),
+    getPlanosAssinatura(dono.barbeariaId),
+    getClientesComHistorico(dono.barbeariaId),
   ])
 
   return (

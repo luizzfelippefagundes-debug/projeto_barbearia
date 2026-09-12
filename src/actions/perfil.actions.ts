@@ -1,6 +1,6 @@
 'use server'
 
-import { eq, ne } from 'drizzle-orm'
+import { and, eq, ne } from 'drizzle-orm'
 import { revalidatePath } from 'next/cache'
 import { getDb } from '../db'
 import { agendamentos, assinaturas, clientes, haircutRecords, vendas } from '../db/schema'
@@ -34,7 +34,10 @@ export async function atualizarMeuTelefone(telefoneInput: string) {
 
   const db = getDb()
 
-  const outros = await db.select().from(clientes).where(ne(clientes.id, clienteAtual.id))
+  const outros = await db
+    .select()
+    .from(clientes)
+    .where(and(ne(clientes.id, clienteAtual.id), eq(clientes.barbeariaId, clienteAtual.barbeariaId)))
   const duplicado = outros.find((c) => mesmoTelefone(c.telefone, telefone))
 
   if (!duplicado) {

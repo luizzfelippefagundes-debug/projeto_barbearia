@@ -1,6 +1,6 @@
 'use server'
 
-import { eq, sql } from 'drizzle-orm'
+import { and, eq, sql } from 'drizzle-orm'
 import { revalidatePath } from 'next/cache'
 import { getDb } from '../db'
 import { assinaturas, planosAssinatura, planoServicosInclusos } from '../db/schema'
@@ -8,18 +8,26 @@ import { assertAdmin } from '../lib/adminAuth'
 import { cancelarAssinaturaComAsaas } from '../lib/asaasCancelamento'
 
 export async function cancelarAssinatura(assinaturaId: string) {
-  await assertAdmin()
+  const dono = await assertAdmin()
+
+  const [assinatura] = await getDb()
+    .select({ id: assinaturas.id })
+    .from(assinaturas)
+    .where(and(eq(assinaturas.id, assinaturaId), eq(assinaturas.barbeariaId, dono.barbeariaId)))
+    .limit(1)
+  if (!assinatura) throw new Error('Assinatura não encontrada.')
+
   await cancelarAssinaturaComAsaas(assinaturaId)
   revalidatePath('/admin/assinaturas')
   revalidatePath('/cliente/perfil')
 }
 
 export async function reenviarCobranca(assinaturaId: string) {
-  await assertAdmin()
+  const dono = await assertAdmin()
   await getDb()
     .update(assinaturas)
     .set({ ultimoReenvioEm: new Date() })
-    .where(eq(assinaturas.id, assinaturaId))
+    .where(and(eq(assinaturas.id, assinaturaId), eq(assinaturas.barbeariaId, dono.barbeariaId)))
   revalidatePath('/admin/assinaturas')
 }
 
@@ -35,11 +43,14 @@ export async function criarPlano(
   valorMensal: number,
   servicosInclusos: Array<{ servicoId: string; limiteMensal: number | null }>,
 ) {
-  await assertAdmin()
+  const dono = await assertAdmin()
   if (!nome.trim()) throw new Error('Nome é obrigatório')
 
   const db = getDb()
-  const rows = await db.insert(planosAssinatura).values({ nome: nome.trim(), valorMensal }).returning()
+  const rows = await db
+    .insert(planosAssinatura)
+    .values({ barbeariaId: dono.barbeariaId, nome: nome.trim(), valorMensal })
+    .returning()
   const plano = rows[0]
 
   if (servicosInclusos.length > 0) {
@@ -62,11 +73,14 @@ export async function atualizarPlano(
   valorMensal: number,
   servicosInclusos: Array<{ servicoId: string; limiteMensal: number | null }>,
 ) {
-  await assertAdmin()
+  const dono = await assertAdmin()
   if (!nome.trim()) throw new Error('Nome é obrigatório')
 
   const db = getDb()
-  await db.update(planosAssinatura).set({ nome: nome.trim(), valorMensal }).where(eq(planosAssinatura.id, id))
+  await db
+    .update(planosAssinatura)
+    .set({ nome: nome.trim(), valorMensal })
+    .where(and(eq(planosAssinatura.id, id), eq(planosAssinatura.barbeariaId, dono.barbeariaId)))
 
   // Refaz a lista de serviços inclusos do zero — mais simples e seguro do
   // que tentar diferenciar o que mudou item a item.
@@ -85,14 +99,24 @@ export async function atualizarPlano(
 }
 
 export async function toggleAtivoPlano(id: string, ativo: boolean) {
-  await assertAdmin()
-  await getDb().update(planosAssinatura).set({ ativo }).where(eq(planosAssinatura.id, id))
+  const dono = await assertAdmin()
+  await getDb()
+    .update(planosAssinatura)
+    .set({ ativo })
+    .where(and(eq(planosAssinatura.id, id), eq(planosAssinatura.barbeariaId, dono.barbeariaId)))
   revalidarTelasDePlano()
 }
 
 export async function apagarPlano(id: string) {
-  await assertAdmin()
+  const dono = await assertAdmin()
   const db = getDb()
+
+  const [plano] = await db
+    .select({ id: planosAssinatura.id })
+    .from(planosAssinatura)
+    .where(and(eq(planosAssinatura.id, id), eq(planosAssinatura.barbeariaId, dono.barbeariaId)))
+    .limit(1)
+  if (!plano) throw new Error('Plano não encontrado.')
 
   const [{ total }] = await db
     .select({ total: sql<number>`count(*)::int` })

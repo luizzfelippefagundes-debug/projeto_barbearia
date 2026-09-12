@@ -30,7 +30,8 @@ import { formatBRL } from '../../../../lib/format'
 import { getHojeISO, mesReferenciaDeData } from '../../../../lib/dateUtils'
 
 export default async function MinhaComissaoPage() {
-  const barbeiro = toAppBarbeiro(await requireBarbeiroAccess())
+  const barbeiroRow = await requireBarbeiroAccess()
+  const barbeiro = toAppBarbeiro(barbeiroRow)
 
   if (barbeiro.papel === 'dono') {
     return (
@@ -48,14 +49,14 @@ export default async function MinhaComissaoPage() {
 
   const [agendamentos, servicos, payouts, vendas, assinaturas, planos, clientes, barbeiros, historicoRepasse] =
     await Promise.all([
-      getAgendamentosDoMes(mesReferencia),
-      getServicosAtivos(),
-      getPayoutsDoMes(mesReferencia),
-      getVendas(),
-      getAssinaturas(),
-      getPlanosAssinatura(),
-      getClientesComHistorico(),
-      getBarbeiros(),
+      getAgendamentosDoMes(mesReferencia, barbeiroRow.barbeariaId),
+      getServicosAtivos(barbeiroRow.barbeariaId),
+      getPayoutsDoMes(mesReferencia, barbeiroRow.barbeariaId),
+      getVendas(barbeiroRow.barbeariaId),
+      getAssinaturas(barbeiroRow.barbeariaId),
+      getPlanosAssinatura(barbeiroRow.barbeariaId),
+      getClientesComHistorico(barbeiroRow.barbeariaId),
+      getBarbeiros(barbeiroRow.barbeariaId),
       getPayoutsDoBarbeiro(barbeiro.id, 6),
     ])
 

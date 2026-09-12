@@ -19,15 +19,19 @@ function toAppAssinatura(row: typeof assinaturas.$inferSelect): Assinatura {
   }
 }
 
-export async function getAssinaturas(): Promise<Assinatura[]> {
-  const rows = await getDb().select().from(assinaturas)
+export async function getAssinaturas(barbeariaId: string): Promise<Assinatura[]> {
+  const rows = await getDb().select().from(assinaturas).where(eq(assinaturas.barbeariaId, barbeariaId))
   return rows.map(toAppAssinatura)
 }
 
-export async function getPlanosAssinatura(): Promise<PlanoAssinatura[]> {
+export async function getPlanosAssinatura(barbeariaId: string): Promise<PlanoAssinatura[]> {
   const db = getDb()
   const [planosRows, inclusoesRows] = await Promise.all([
-    db.select().from(planosAssinatura).orderBy(planosAssinatura.nome),
+    db
+      .select()
+      .from(planosAssinatura)
+      .where(eq(planosAssinatura.barbeariaId, barbeariaId))
+      .orderBy(planosAssinatura.nome),
     db
       .select({
         planoId: planoServicosInclusos.planoId,
@@ -36,7 +40,8 @@ export async function getPlanosAssinatura(): Promise<PlanoAssinatura[]> {
         nome: servicos.nome,
       })
       .from(planoServicosInclusos)
-      .innerJoin(servicos, eq(servicos.id, planoServicosInclusos.servicoId)),
+      .innerJoin(servicos, eq(servicos.id, planoServicosInclusos.servicoId))
+      .where(eq(servicos.barbeariaId, barbeariaId)),
   ])
 
   return planosRows.map((plano) => ({
@@ -52,8 +57,8 @@ export async function getPlanosAssinatura(): Promise<PlanoAssinatura[]> {
 
 /** Só os planos ativos — é essa lista que aparece pro cliente escolher ao
  * assinar. Planos desativados continuam existindo pra quem já é assinante. */
-export async function getPlanosDisponiveisParaAssinar(): Promise<PlanoAssinatura[]> {
-  const planos = await getPlanosAssinatura()
+export async function getPlanosDisponiveisParaAssinar(barbeariaId: string): Promise<PlanoAssinatura[]> {
+  const planos = await getPlanosAssinatura(barbeariaId)
   return planos.filter((p) => p.ativo)
 }
 

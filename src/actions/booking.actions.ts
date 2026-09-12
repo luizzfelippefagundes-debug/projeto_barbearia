@@ -33,6 +33,7 @@ export async function agendarComoCliente(hora: string, barbeiroId: string, servi
     barbeiroId,
     clienteId: cliente.id,
     servicoIds,
+    barbeariaId: cliente.barbeariaId,
   })
 
   revalidatePath('/cliente/agendar')

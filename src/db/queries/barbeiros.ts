@@ -20,11 +20,18 @@ export function toAppBarbeiro(row: typeof barbeiros.$inferSelect): Barbeiro {
   }
 }
 
-export async function getBarbeiros(): Promise<Barbeiro[]> {
-  const rows = await getDb().select().from(barbeiros).orderBy(barbeiros.nome)
+export async function getBarbeiros(barbeariaId: string): Promise<Barbeiro[]> {
+  const rows = await getDb()
+    .select()
+    .from(barbeiros)
+    .where(eq(barbeiros.barbeariaId, barbeariaId))
+    .orderBy(barbeiros.nome)
   return rows.map(toAppBarbeiro)
 }
 
+/** Sem filtro por barbearia de propósito — é o ponto de entrada que
+ * descobre A QUAL barbearia o usuário logado pertence (via barbeariaId do
+ * próprio registro retornado), não algo que já sabemos de antemão. */
 export async function getBarbeiroByClerkId(clerkUserId: string) {
   const rows = await getDb()
     .select()
@@ -35,7 +42,9 @@ export async function getBarbeiroByClerkId(clerkUserId: string) {
 }
 
 /** Convite pendente: cadastro feito pelo dono, mas ainda sem clerk_user_id
- * ligado — usado pra "reivindicar" a conta no primeiro login por e-mail. */
+ * ligado — usado pra "reivindicar" a conta no primeiro login por e-mail.
+ * Sem filtro por barbearia pelo mesmo motivo do getBarbeiroByClerkId: ainda
+ * não sabemos a qual barbearia essa pessoa pertence até achar o convite. */
 export async function getConviteBarbeiroPorEmail(email: string) {
   const db = getDb()
   const rows = await db.select().from(barbeiros).where(eq(barbeiros.emailConvite, email)).limit(1)
@@ -49,19 +58,6 @@ export async function vincularClerkIdAoBarbeiro(barbeiroId: string, clerkUserId:
     .update(barbeiros)
     .set({ clerkUserId })
     .where(eq(barbeiros.id, barbeiroId))
-    .returning()
-  return rows[0]
-}
-
-export async function countBarbeiros(): Promise<number> {
-  const rows = await getDb().select({ id: barbeiros.id }).from(barbeiros)
-  return rows.length
-}
-
-export async function criarDonoComClerkId(clerkUserId: string, nome: string) {
-  const rows = await getDb()
-    .insert(barbeiros)
-    .values({ clerkUserId, nome, papel: 'dono' })
     .returning()
   return rows[0]
 }

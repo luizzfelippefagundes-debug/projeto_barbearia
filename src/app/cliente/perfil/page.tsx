@@ -20,12 +20,12 @@ export default async function PerfilPage() {
   const cliente = await requireClienteAtual()
 
   const [barbeiros, servicos, proximosAgendamentos, assinaturas, planos, clientes, baseUrl] = await Promise.all([
-    getBarbeiros(),
-    getServicosAtivos(),
+    getBarbeiros(cliente.barbeariaId),
+    getServicosAtivos(cliente.barbeariaId),
     getProximosAgendamentosDoCliente(cliente.id, getHojeISO()),
-    getAssinaturas(),
-    getPlanosAssinatura(),
-    getClientesResumo(),
+    getAssinaturas(cliente.barbeariaId),
+    getPlanosAssinatura(cliente.barbeariaId),
+    getClientesResumo(cliente.barbeariaId),
     getBaseUrl(),
   ])
 

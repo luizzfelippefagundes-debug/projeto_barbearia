@@ -13,13 +13,17 @@ export async function registrarVenda(
   quantidade: number,
   clienteId?: string,
 ) {
-  await assertAdmin()
+  const dono = await assertAdmin()
   if (quantidade <= 0) throw new Error('Quantidade inválida')
 
   const db = getDb()
 
   const produto = (
-    await db.select().from(produtos).where(eq(produtos.id, produtoId)).limit(1)
+    await db
+      .select()
+      .from(produtos)
+      .where(and(eq(produtos.id, produtoId), eq(produtos.barbeariaId, dono.barbeariaId)))
+      .limit(1)
   )[0]
   if (!produto) throw new Error('Produto não encontrado')
 
@@ -32,6 +36,7 @@ export async function registrarVenda(
     .where(and(eq(produtos.id, produtoId), gte(produtos.estoque, qtd)))
 
   await db.insert(vendas).values({
+    barbeariaId: dono.barbeariaId,
     produtoId,
     barbeiroId,
     clienteId: clienteId || null,
@@ -51,12 +56,13 @@ export async function criarProduto(
   estoqueMinimo: number,
   categoria: string,
 ) {
-  await assertAdmin()
+  const dono = await assertAdmin()
   if (!nome.trim()) throw new Error('Nome é obrigatório')
 
   const rows = await getDb()
     .insert(produtos)
     .values({
+      barbeariaId: dono.barbeariaId,
       nome: nome.trim(),
       precoVenda,
       estoque: Math.max(0, Math.round(estoque)),

@@ -12,6 +12,7 @@ export interface HaircutRecord {
 
 export interface Cliente {
   id: string
+  barbeariaId: string
   nome: string
   telefone: string
   cpfCnpj?: string

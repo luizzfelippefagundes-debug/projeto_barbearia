@@ -1,4 +1,4 @@
-import { desc, eq } from 'drizzle-orm'
+import { and, desc, eq } from 'drizzle-orm'
 import { getDb } from '../index'
 import { payoutsBarbeiros } from '../schema'
 import { nullToUndefined } from '../../lib/db-map'
@@ -15,11 +15,11 @@ function toAppPayout(row: typeof payoutsBarbeiros.$inferSelect): PayoutBarbeiro 
   }
 }
 
-export async function getPayoutsDoMes(mesReferencia: string): Promise<PayoutBarbeiro[]> {
+export async function getPayoutsDoMes(mesReferencia: string, barbeariaId: string): Promise<PayoutBarbeiro[]> {
   const rows = await getDb()
     .select()
     .from(payoutsBarbeiros)
-    .where(eq(payoutsBarbeiros.mesReferencia, mesReferencia))
+    .where(and(eq(payoutsBarbeiros.mesReferencia, mesReferencia), eq(payoutsBarbeiros.barbeariaId, barbeariaId)))
   return rows.map(toAppPayout)
 }
 

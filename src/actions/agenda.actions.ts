@@ -23,10 +23,10 @@ export async function criarOuAtualizarHorario(
   clienteId: string,
   servicoIds: string[],
 ) {
-  await assertAdmin()
+  const dono = await assertAdmin()
   if (!clienteId) throw new Error('Escolha um cliente.')
 
-  await criarAgendamentoComServicos({ data, hora, barbeiroId, clienteId, servicoIds })
+  await criarAgendamentoComServicos({ data, hora, barbeiroId, clienteId, servicoIds, barbeariaId: dono.barbeariaId })
 
   revalidarAgenda()
 }
@@ -35,13 +35,20 @@ export async function criarOuAtualizarHorario(
  * o cliente não consegue agendar nesse slot. Não bloqueia se já tiver um
  * cliente marcado ali (precisa cancelar o agendamento antes). */
 export async function bloquearHorario(data: string, hora: string, barbeiroId: string) {
-  await assertAdmin()
+  const dono = await assertAdmin()
 
   const db = getDb()
   const existente = await db
     .select()
     .from(agendamentos)
-    .where(and(eq(agendamentos.data, data), eq(agendamentos.hora, hora), eq(agendamentos.barbeiroId, barbeiroId)))
+    .where(
+      and(
+        eq(agendamentos.data, data),
+        eq(agendamentos.hora, hora),
+        eq(agendamentos.barbeiroId, barbeiroId),
+        eq(agendamentos.barbeariaId, dono.barbeariaId),
+      ),
+    )
     .limit(1)
   if (existente[0]?.status === 'confirmado' || existente[0]?.status === 'atendido') {
     throw new Error('Esse horário já tem um cliente marcado — cancele o agendamento antes de bloquear.')
@@ -49,7 +56,7 @@ export async function bloquearHorario(data: string, hora: string, barbeiroId: st
 
   await db
     .insert(agendamentos)
-    .values({ data, hora, barbeiroId, status: 'bloqueado', clienteId: null })
+    .values({ data, hora, barbeiroId, status: 'bloqueado', clienteId: null, barbeariaId: dono.barbeariaId })
     .onConflictDoUpdate({
       target: [agendamentos.data, agendamentos.hora, agendamentos.barbeiroId],
       set: { status: 'bloqueado', clienteId: null },
@@ -59,7 +66,7 @@ export async function bloquearHorario(data: string, hora: string, barbeiroId: st
 }
 
 export async function desbloquearHorario(data: string, hora: string, barbeiroId: string) {
-  await assertAdmin()
+  const dono = await assertAdmin()
 
   await getDb()
     .delete(agendamentos)
@@ -69,6 +76,7 @@ export async function desbloquearHorario(data: string, hora: string, barbeiroId:
         eq(agendamentos.hora, hora),
         eq(agendamentos.barbeiroId, barbeiroId),
         eq(agendamentos.status, 'bloqueado'),
+        eq(agendamentos.barbeariaId, dono.barbeariaId),
       ),
     )
 
@@ -78,13 +86,19 @@ export async function desbloquearHorario(data: string, hora: string, barbeiroId:
 /** Bloqueia o dia inteiro pra um barbeiro (ex: folga, feriado) — pula
  * qualquer horário que já tenha cliente marcado. */
 export async function bloquearDiaInteiro(data: string, barbeiroId: string) {
-  await assertAdmin()
+  const dono = await assertAdmin()
 
   const db = getDb()
   const existentes = await db
     .select()
     .from(agendamentos)
-    .where(and(eq(agendamentos.data, data), eq(agendamentos.barbeiroId, barbeiroId)))
+    .where(
+      and(
+        eq(agendamentos.data, data),
+        eq(agendamentos.barbeiroId, barbeiroId),
+        eq(agendamentos.barbeariaId, dono.barbeariaId),
+      ),
+    )
   const ocupados = new Set(
     existentes.filter((a) => a.status === 'confirmado' || a.status === 'atendido').map((a) => a.hora),
   )
@@ -93,7 +107,7 @@ export async function bloquearDiaInteiro(data: string, barbeiroId: string) {
     if (ocupados.has(hora)) continue
     await db
       .insert(agendamentos)
-      .values({ data, hora, barbeiroId, status: 'bloqueado', clienteId: null })
+      .values({ data, hora, barbeiroId, status: 'bloqueado', clienteId: null, barbeariaId: dono.barbeariaId })
       .onConflictDoUpdate({
         target: [agendamentos.data, agendamentos.hora, agendamentos.barbeiroId],
         set: { status: 'bloqueado', clienteId: null },
@@ -104,7 +118,7 @@ export async function bloquearDiaInteiro(data: string, barbeiroId: string) {
 }
 
 export async function desbloquearDiaInteiro(data: string, barbeiroId: string) {
-  await assertAdmin()
+  const dono = await assertAdmin()
 
   await getDb()
     .delete(agendamentos)
@@ -113,6 +127,7 @@ export async function desbloquearDiaInteiro(data: string, barbeiroId: string) {
         eq(agendamentos.data, data),
         eq(agendamentos.barbeiroId, barbeiroId),
         eq(agendamentos.status, 'bloqueado'),
+        eq(agendamentos.barbeariaId, dono.barbeariaId),
       ),
     )
 
@@ -125,13 +140,19 @@ export async function desbloquearDiaInteiro(data: string, barbeiroId: string) {
  * mais de um slot (serviços com duração somada), marca a continuação
  * junto, pra não sobrar um horário "livre" no meio de um "não compareceu". */
 export async function marcarNaoCompareceu(agendamentoId: string) {
-  await assertAdmin()
+  const dono = await assertAdmin()
 
   const db = getDb()
   const rows = await db
     .update(agendamentos)
     .set({ status: 'nao_compareceu' })
-    .where(and(eq(agendamentos.id, agendamentoId), eq(agendamentos.status, 'confirmado')))
+    .where(
+      and(
+        eq(agendamentos.id, agendamentoId),
+        eq(agendamentos.status, 'confirmado'),
+        eq(agendamentos.barbeariaId, dono.barbeariaId),
+      ),
+    )
     .returning()
   if (rows.length === 0) throw new Error('Esse agendamento não está mais confirmado.')
 
@@ -150,7 +171,11 @@ export async function cancelarAgendamentoAdmin(agendamentoId: string) {
   const dono = await assertAdmin()
 
   const db = getDb()
-  const [agendamento] = await db.select().from(agendamentos).where(eq(agendamentos.id, agendamentoId)).limit(1)
+  const [agendamento] = await db
+    .select()
+    .from(agendamentos)
+    .where(and(eq(agendamentos.id, agendamentoId), eq(agendamentos.barbeariaId, dono.barbeariaId)))
+    .limit(1)
   if (!agendamento) throw new Error('Esse agendamento não foi encontrado.')
 
   // Só avisa se não for o próprio dono cancelando o próprio horário — quem
@@ -181,11 +206,15 @@ export async function cancelarAgendamentoAdmin(agendamentoId: string) {
  * records) e comissão em cima do serviço antigo, e essa troca não teria
  * como corrigir isso retroativamente. */
 export async function editarServicosAgendamento(agendamentoId: string, servicoIds: string[]) {
-  await assertAdmin()
+  const dono = await assertAdmin()
   if (servicoIds.length === 0) throw new Error('Escolha pelo menos um serviço.')
 
   const db = getDb()
-  const [agendamento] = await db.select().from(agendamentos).where(eq(agendamentos.id, agendamentoId)).limit(1)
+  const [agendamento] = await db
+    .select()
+    .from(agendamentos)
+    .where(and(eq(agendamentos.id, agendamentoId), eq(agendamentos.barbeariaId, dono.barbeariaId)))
+    .limit(1)
   if (!agendamento) throw new Error('Esse agendamento não foi encontrado.')
   if (agendamento.status !== 'confirmado') {
     throw new Error('Só dá pra editar os serviços de um horário confirmado que ainda não foi atendido.')
@@ -208,14 +237,20 @@ export async function registrarAtendimentoAdmin(
   formaPagamento?: FormaPagamento,
   caixaDestinoBarbeiroId?: string,
 ) {
-  await assertAdmin()
+  const dono = await assertAdmin()
 
   const db = getDb()
 
   const rows = await db
     .update(agendamentos)
     .set({ status: 'atendido', formaPagamento, caixaDestinoBarbeiroId })
-    .where(and(eq(agendamentos.id, agendamentoId), eq(agendamentos.status, 'confirmado')))
+    .where(
+      and(
+        eq(agendamentos.id, agendamentoId),
+        eq(agendamentos.status, 'confirmado'),
+        eq(agendamentos.barbeariaId, dono.barbeariaId),
+      ),
+    )
     .returning()
   if (rows.length === 0) throw new Error('Atendimento já registrado ou agendamento inválido.')
   const agendamento = rows[0]
@@ -237,6 +272,7 @@ export async function registrarAtendimentoAdmin(
   const hojeISO = getHojeISO()
   await db.insert(haircutRecords).values(
     servicosDoAgendamento.map((s) => ({
+      barbeariaId: dono.barbeariaId,
       clienteId,
       barbeiroId: agendamento.barbeiroId,
       servicoId: s.servicoId,

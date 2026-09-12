@@ -1,6 +1,6 @@
 'use server'
 
-import { eq } from 'drizzle-orm'
+import { and, eq } from 'drizzle-orm'
 import { revalidatePath } from 'next/cache'
 import { getDb } from '../db'
 import { fechamentosCaixa } from '../db/schema'
@@ -16,12 +16,12 @@ export async function fecharCaixaDoDia(dataISO: string) {
   const barbeiro = await assertAdmin()
 
   const [agendamentos, servicos, vendas, assinaturas, planos, clientes] = await Promise.all([
-    getAgendamentosDoDia(dataISO),
-    getServicosAtivos(),
-    getVendas(),
-    getAssinaturas(),
-    getPlanosAssinatura(),
-    getClientesResumo(),
+    getAgendamentosDoDia(dataISO, barbeiro.barbeariaId),
+    getServicosAtivos(barbeiro.barbeariaId),
+    getVendas(barbeiro.barbeariaId),
+    getAssinaturas(barbeiro.barbeariaId),
+    getPlanosAssinatura(barbeiro.barbeariaId),
+    getClientesResumo(barbeiro.barbeariaId),
   ])
 
   const fechamento = getFechamentoCaixaDoDia(
@@ -37,6 +37,7 @@ export async function fecharCaixaDoDia(dataISO: string) {
   await getDb()
     .insert(fechamentosCaixa)
     .values({
+      barbeariaId: barbeiro.barbeariaId,
       data: dataISO,
       avulso: fechamento.avulso,
       produtos: fechamento.produtos,
@@ -50,7 +51,9 @@ export async function fecharCaixaDoDia(dataISO: string) {
 }
 
 export async function reabrirCaixaDoDia(dataISO: string) {
-  await assertAdmin()
-  await getDb().delete(fechamentosCaixa).where(eq(fechamentosCaixa.data, dataISO))
+  const dono = await assertAdmin()
+  await getDb()
+    .delete(fechamentosCaixa)
+    .where(and(eq(fechamentosCaixa.data, dataISO), eq(fechamentosCaixa.barbeariaId, dono.barbeariaId)))
   revalidatePath('/admin/financeiro')
 }

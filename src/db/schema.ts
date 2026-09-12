@@ -50,8 +50,25 @@ export const papelBarbeiroEnum = pgEnum('papel_barbeiro', ['dono', 'barbeiro'])
 
 const money = (col: string) => numeric(col, { precision: 10, scale: 2, mode: 'number' })
 
+/** Uma barbearia = um cliente do SaaS. Toda tabela abaixo que pertence "à
+ * loja" carrega um `barbeariaId` — é o que isola os dados de cada barbearia
+ * uma da outra, todas rodando no mesmo banco e no mesmo deploy. Quem
+ * determina qual barbearia um usuário vê é o próprio login dele
+ * (`barbeiros.barbeariaId`/`clientes.barbeariaId`), não a URL. */
+export const barbearias = pgTable('barbearias', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  nome: text('nome').notNull(),
+  /** Identificador curto e único (ex: "jota-pe") — hoje só usado internamente
+   * pra referência; ainda não vira subdomínio/URL própria. */
+  slug: text('slug').notNull().unique(),
+  criadoEm: timestamp('criado_em').notNull().defaultNow(),
+})
+
 export const servicos = pgTable('servicos', {
   id: uuid('id').primaryKey().defaultRandom(),
+  barbeariaId: uuid('barbearia_id')
+    .notNull()
+    .references(() => barbearias.id, { onDelete: 'cascade' }),
   nome: text('nome').notNull(),
   duracaoMin: integer('duracao_min').notNull(),
   precoAvulso: money('preco_avulso').notNull(),
@@ -61,6 +78,9 @@ export const servicos = pgTable('servicos', {
 
 export const produtos = pgTable('produtos', {
   id: uuid('id').primaryKey().defaultRandom(),
+  barbeariaId: uuid('barbearia_id')
+    .notNull()
+    .references(() => barbearias.id, { onDelete: 'cascade' }),
   nome: text('nome').notNull(),
   precoVenda: money('preco_venda').notNull(),
   estoque: integer('estoque').notNull().default(0),
@@ -72,6 +92,9 @@ export const produtos = pgTable('produtos', {
 
 export const barbeiros = pgTable('barbeiros', {
   id: uuid('id').primaryKey().defaultRandom(),
+  barbeariaId: uuid('barbearia_id')
+    .notNull()
+    .references(() => barbearias.id, { onDelete: 'cascade' }),
   clerkUserId: text('clerk_user_id').unique(),
   /** E-mail informado pelo dono ao cadastrar o barbeiro — usado só para
    * ligar a conta do Clerk automaticamente no primeiro login dele
@@ -99,6 +122,9 @@ export const barbeiros = pgTable('barbeiros', {
 
 export const payoutsBarbeiros = pgTable('payouts_barbeiros', {
   id: uuid('id').primaryKey().defaultRandom(),
+  barbeariaId: uuid('barbearia_id')
+    .notNull()
+    .references(() => barbearias.id, { onDelete: 'cascade' }),
   barbeiroId: uuid('barbeiro_id')
     .notNull()
     .references(() => barbeiros.id, { onDelete: 'cascade' }),
@@ -110,6 +136,9 @@ export const payoutsBarbeiros = pgTable('payouts_barbeiros', {
 
 export const planosAssinatura = pgTable('planos_assinatura', {
   id: uuid('id').primaryKey().defaultRandom(),
+  barbeariaId: uuid('barbearia_id')
+    .notNull()
+    .references(() => barbearias.id, { onDelete: 'cascade' }),
   nome: text('nome').notNull(),
   valorMensal: money('valor_mensal').notNull(),
   /** Só afeta a lista de planos pra assinar (novo cliente). Assinaturas já
@@ -120,7 +149,8 @@ export const planosAssinatura = pgTable('planos_assinatura', {
 
 /** Quais serviços cada plano cobre e com que limite mensal (null = sem
  * limite dentro do plano — ex: cabelo/barba/pezinho ilimitados, mas
- * barboterapia do VIP só 4x/mês). */
+ * barboterapia do VIP só 4x/mês). Sem barbeariaId próprio — planoId e
+ * servicoId já pertencem à mesma barbearia por construção. */
 export const planoServicosInclusos = pgTable(
   'plano_servicos_inclusos',
   {
@@ -138,6 +168,9 @@ export const planoServicosInclusos = pgTable(
 
 export const clientes = pgTable('clientes', {
   id: uuid('id').primaryKey().defaultRandom(),
+  barbeariaId: uuid('barbearia_id')
+    .notNull()
+    .references(() => barbearias.id, { onDelete: 'cascade' }),
   clerkUserId: text('clerk_user_id').unique(),
   nome: text('nome').notNull(),
   telefone: text('telefone').notNull(),
@@ -161,6 +194,9 @@ export const clientes = pgTable('clientes', {
 
 export const assinaturas = pgTable('assinaturas', {
   id: uuid('id').primaryKey().defaultRandom(),
+  barbeariaId: uuid('barbearia_id')
+    .notNull()
+    .references(() => barbearias.id, { onDelete: 'cascade' }),
   clienteId: uuid('cliente_id')
     .notNull()
     .references(() => clientes.id, { onDelete: 'cascade' }),
@@ -182,6 +218,9 @@ export const agendamentos = pgTable(
   'agendamentos',
   {
     id: uuid('id').primaryKey().defaultRandom(),
+    barbeariaId: uuid('barbearia_id')
+      .notNull()
+      .references(() => barbearias.id, { onDelete: 'cascade' }),
     data: date('data').notNull(),
     hora: time('hora').notNull(),
     clienteId: uuid('cliente_id').references(() => clientes.id, { onDelete: 'set null' }),
@@ -217,7 +256,8 @@ export const agendamentos = pgTable(
 )
 
 /** Um agendamento pode ter mais de um serviço (ex: corte + barba no mesmo
- * horário) — cada linha aqui é um serviço pedido naquele agendamento. */
+ * horário) — cada linha aqui é um serviço pedido naquele agendamento. Sem
+ * barbeariaId próprio — escopado via agendamentoId. */
 export const agendamentoServicos = pgTable('agendamento_servicos', {
   id: uuid('id').primaryKey().defaultRandom(),
   agendamentoId: uuid('agendamento_id')
@@ -230,6 +270,9 @@ export const agendamentoServicos = pgTable('agendamento_servicos', {
 
 export const haircutRecords = pgTable('haircut_records', {
   id: uuid('id').primaryKey().defaultRandom(),
+  barbeariaId: uuid('barbearia_id')
+    .notNull()
+    .references(() => barbearias.id, { onDelete: 'cascade' }),
   clienteId: uuid('cliente_id')
     .notNull()
     .references(() => clientes.id, { onDelete: 'cascade' }),
@@ -247,6 +290,9 @@ export const haircutRecords = pgTable('haircut_records', {
 
 export const vendas = pgTable('vendas', {
   id: uuid('id').primaryKey().defaultRandom(),
+  barbeariaId: uuid('barbearia_id')
+    .notNull()
+    .references(() => barbearias.id, { onDelete: 'cascade' }),
   produtoId: uuid('produto_id')
     .notNull()
     .references(() => produtos.id, { onDelete: 'restrict' }),
@@ -259,15 +305,19 @@ export const vendas = pgTable('vendas', {
   valorTotal: money('valor_total').notNull(),
 })
 
-/** Linha única de configurações do negócio (id fixo 'default') — hoje só
- * guarda a meta de faturamento mensal usada em Financeiro. */
+/** Uma linha por barbearia — hoje só guarda a meta de faturamento mensal
+ * usada em Financeiro. `barbeariaId` é a própria chave primária (relação
+ * 1:1 com `barbearias`). */
 export const configuracoes = pgTable('configuracoes', {
-  id: text('id').primaryKey().default('default'),
+  barbeariaId: uuid('barbearia_id')
+    .primaryKey()
+    .references(() => barbearias.id, { onDelete: 'cascade' }),
   metaFaturamentoMensal: money('meta_faturamento_mensal'),
 })
 
 /** Registro de cada notificação de webhook do Asaas já processada — evita
- * reprocessar a mesma cobrança duas vezes se o Asaas reenviar a notificação. */
+ * reprocessar a mesma cobrança duas vezes se o Asaas reenviar a notificação.
+ * Sem barbeariaId — a idempotência é só pelo id do evento do Asaas. */
 export const asaasWebhookEventos = pgTable('asaas_webhook_eventos', {
   id: uuid('id').primaryKey().defaultRandom(),
   asaasEventId: text('asaas_event_id').notNull().unique(),
@@ -276,25 +326,35 @@ export const asaasWebhookEventos = pgTable('asaas_webhook_eventos', {
   recebidoEm: timestamp('recebido_em').notNull().defaultNow(),
 })
 
-/** Uma linha por dia fechado — trava os números do fechamento de caixa
- * daquele dia em vez de deixar só um total calculado ao vivo. */
-export const fechamentosCaixa = pgTable('fechamentos_caixa', {
-  id: uuid('id').primaryKey().defaultRandom(),
-  data: date('data').notNull().unique(),
-  avulso: money('avulso').notNull(),
-  assinatura: money('assinatura').notNull(),
-  produtos: money('produtos').notNull(),
-  total: money('total').notNull(),
-  fechadoEm: timestamp('fechado_em').notNull().defaultNow(),
-  fechadoPorBarbeiroId: uuid('fechado_por_barbeiro_id').references(() => barbeiros.id, {
-    onDelete: 'set null',
-  }),
-})
+/** Uma linha por dia fechado, por barbearia — trava os números do
+ * fechamento de caixa daquele dia em vez de deixar só um total calculado
+ * ao vivo. */
+export const fechamentosCaixa = pgTable(
+  'fechamentos_caixa',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    barbeariaId: uuid('barbearia_id')
+      .notNull()
+      .references(() => barbearias.id, { onDelete: 'cascade' }),
+    data: date('data').notNull(),
+    avulso: money('avulso').notNull(),
+    assinatura: money('assinatura').notNull(),
+    produtos: money('produtos').notNull(),
+    total: money('total').notNull(),
+    fechadoEm: timestamp('fechado_em').notNull().defaultNow(),
+    fechadoPorBarbeiroId: uuid('fechado_por_barbeiro_id').references(() => barbeiros.id, {
+      onDelete: 'set null',
+    }),
+  },
+  (table) => [unique('fechamento_dia_barbearia_unico').on(table.data, table.barbeariaId)],
+)
 
 /** Fila de avisos pro bot do WhatsApp mandar pro barbeiro — usada quando
  * algo acontece PELO SITE (não pelo bot), já que o bot roda numa rede
  * separada (VPS) e não fica sabendo na hora. O bot (projeto separado)
- * verifica essa fila periodicamente e apaga a linha depois de mandar. */
+ * verifica essa fila periodicamente e apaga a linha depois de mandar.
+ * Sem barbeariaId — o bot hoje só atende uma barbearia (multi-instância
+ * do bot fica pra outra etapa). */
 export const avisosBarbeiro = pgTable('avisos_barbeiro', {
   id: uuid('id').primaryKey().defaultRandom(),
   barbeiroTelefone: text('barbeiro_telefone').notNull(),

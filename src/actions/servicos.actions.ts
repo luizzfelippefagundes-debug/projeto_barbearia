@@ -1,6 +1,6 @@
 'use server'
 
-import { eq } from 'drizzle-orm'
+import { and, eq } from 'drizzle-orm'
 import { revalidatePath } from 'next/cache'
 import { getDb } from '../db'
 import { servicos } from '../db/schema'
@@ -14,12 +14,13 @@ function revalidarTelasDeServico() {
 }
 
 export async function criarServico(nome: string, duracaoMin: number, precoAvulso: number) {
-  await assertAdmin()
+  const dono = await assertAdmin()
   if (!nome.trim()) throw new Error('Nome é obrigatório')
 
   const rows = await getDb()
     .insert(servicos)
     .values({
+      barbeariaId: dono.barbeariaId,
       nome: nome.trim(),
       duracaoMin: Math.max(5, Math.round(duracaoMin)),
       precoAvulso,
@@ -31,7 +32,7 @@ export async function criarServico(nome: string, duracaoMin: number, precoAvulso
 }
 
 export async function atualizarServico(id: string, nome: string, duracaoMin: number, precoAvulso: number) {
-  await assertAdmin()
+  const dono = await assertAdmin()
   if (!nome.trim()) throw new Error('Nome é obrigatório')
 
   const rows = await getDb()
@@ -41,7 +42,7 @@ export async function atualizarServico(id: string, nome: string, duracaoMin: num
       duracaoMin: Math.max(5, Math.round(duracaoMin)),
       precoAvulso,
     })
-    .where(eq(servicos.id, id))
+    .where(and(eq(servicos.id, id), eq(servicos.barbeariaId, dono.barbeariaId)))
     .returning()
 
   revalidarTelasDeServico()
@@ -49,7 +50,10 @@ export async function atualizarServico(id: string, nome: string, duracaoMin: num
 }
 
 export async function toggleServicoAtivo(id: string, ativo: boolean) {
-  await assertAdmin()
-  await getDb().update(servicos).set({ ativo }).where(eq(servicos.id, id))
+  const dono = await assertAdmin()
+  await getDb()
+    .update(servicos)
+    .set({ ativo })
+    .where(and(eq(servicos.id, id), eq(servicos.barbeariaId, dono.barbeariaId)))
   revalidarTelasDeServico()
 }

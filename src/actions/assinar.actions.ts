@@ -1,6 +1,6 @@
 'use server'
 
-import { eq } from 'drizzle-orm'
+import { and, eq } from 'drizzle-orm'
 import { revalidatePath } from 'next/cache'
 import { getDb } from '../db'
 import { assinaturas, clientes, planosAssinatura } from '../db/schema'
@@ -35,7 +35,7 @@ export async function assinarPlano(planoId: string, cpfInput: string) {
   const planoRows = await db
     .select()
     .from(planosAssinatura)
-    .where(eq(planosAssinatura.id, planoId))
+    .where(and(eq(planosAssinatura.id, planoId), eq(planosAssinatura.barbeariaId, clienteRow.barbeariaId)))
     .limit(1)
   const plano = planoRows[0]
   if (!plano) throw new Error('Plano não encontrado.')
@@ -59,6 +59,7 @@ export async function assinarPlano(planoId: string, cpfInput: string) {
   const novasRows = await db
     .insert(assinaturas)
     .values({
+      barbeariaId: clienteRow.barbeariaId,
       clienteId: clienteRow.id,
       planoId,
       status: 'aguardando',

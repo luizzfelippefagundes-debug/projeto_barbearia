@@ -19,7 +19,7 @@ export default async function PagarAssinaturaPage({
   const assinatura = await getAssinaturaPorId(assinaturaId)
   if (!assinatura || assinatura.clienteId !== cliente.id) redirect('/cliente/assinar')
 
-  const planos = await getPlanosAssinatura()
+  const planos = await getPlanosAssinatura(cliente.barbeariaId)
   const plano = planos.find((p) => p.id === assinatura.planoId)
 
   const statusAtual = await verificarPagamentoAssinatura(assinaturaId).catch(() => assinatura.status)

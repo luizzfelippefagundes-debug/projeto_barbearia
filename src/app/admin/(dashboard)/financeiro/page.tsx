@@ -6,6 +6,7 @@ import { PriceSimulator } from '../../../../components/financeiro/PriceSimulator
 import { MetaFaturamentoCard } from '../../../../components/financeiro/MetaFaturamentoCard'
 import { FechamentoCaixaResumo } from '../../../../components/financeiro/FechamentoCaixaResumo'
 import { ResumoPagamentosCard } from '../../../../components/financeiro/ResumoPagamentosCard'
+import { assertAdmin } from '../../../../lib/adminAuth'
 import { getBarbeiros } from '../../../../db/queries/barbeiros'
 import { getMetaFaturamentoMensal } from '../../../../db/queries/configuracoes'
 import { getAgendamentosDoMes, getAgendamentosDoDia } from '../../../../db/queries/agendamentos'
@@ -24,6 +25,7 @@ import { getHojeISO, mesReferenciaDeData, getInicioFimSemana } from '../../../..
 import type { Agendamento } from '../../../../types'
 
 export default async function FinanceiroPage() {
+  const dono = await assertAdmin()
   const hojeISO = getHojeISO()
   const mesReferencia = mesReferenciaDeData(hojeISO)
   const { inicio: inicioSemana, fim: fimSemana } = getInicioFimSemana(hojeISO)
@@ -43,20 +45,20 @@ export default async function FinanceiroPage() {
     clientesResumo,
     fechamentoSalvo,
   ] = await Promise.all([
-    getBarbeiros(),
-    getAgendamentosDoMes(mesReferencia),
+    getBarbeiros(dono.barbeariaId),
+    getAgendamentosDoMes(mesReferencia, dono.barbeariaId),
     mesReferenciaInicioSemana === mesReferencia
       ? Promise.resolve<Agendamento[]>([])
-      : getAgendamentosDoMes(mesReferenciaInicioSemana),
-    getServicosAtivos(),
-    getVendas(),
-    getAssinaturas(),
-    getPlanosAssinatura(),
-    getClientesComHistorico(),
-    getMetaFaturamentoMensal(),
-    getAgendamentosDoDia(hojeISO),
-    getClientesResumo(),
-    getFechamentoCaixaSalvo(hojeISO),
+      : getAgendamentosDoMes(mesReferenciaInicioSemana, dono.barbeariaId),
+    getServicosAtivos(dono.barbeariaId),
+    getVendas(dono.barbeariaId),
+    getAssinaturas(dono.barbeariaId),
+    getPlanosAssinatura(dono.barbeariaId),
+    getClientesComHistorico(dono.barbeariaId),
+    getMetaFaturamentoMensal(dono.barbeariaId),
+    getAgendamentosDoDia(hojeISO, dono.barbeariaId),
+    getClientesResumo(dono.barbeariaId),
+    getFechamentoCaixaSalvo(hojeISO, dono.barbeariaId),
   ])
 
   // A semana atual pode cruzar dois meses — junta os agendamentos dos dois

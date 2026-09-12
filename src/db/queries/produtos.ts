@@ -1,4 +1,4 @@
-import { eq } from 'drizzle-orm'
+import { and, eq } from 'drizzle-orm'
 import { getDb } from '../index'
 import { produtos } from '../schema'
 import type { Produto } from '../../types'
@@ -14,7 +14,11 @@ function toAppProduto(row: typeof produtos.$inferSelect): Produto {
   }
 }
 
-export async function getProdutosAtivos(): Promise<Produto[]> {
-  const rows = await getDb().select().from(produtos).where(eq(produtos.ativo, true)).orderBy(produtos.nome)
+export async function getProdutosAtivos(barbeariaId: string): Promise<Produto[]> {
+  const rows = await getDb()
+    .select()
+    .from(produtos)
+    .where(and(eq(produtos.barbeariaId, barbeariaId), eq(produtos.ativo, true)))
+    .orderBy(produtos.nome)
   return rows.map(toAppProduto)
 }

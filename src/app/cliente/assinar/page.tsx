@@ -10,7 +10,7 @@ export default async function AssinarPage() {
   const ativa = await getAssinaturaAtivaDoCliente(cliente.id)
   if (ativa) redirect('/cliente/perfil')
 
-  const planos = await getPlanosDisponiveisParaAssinar()
+  const planos = await getPlanosDisponiveisParaAssinar(cliente.barbeariaId)
 
   return (
     <div className="flex flex-col gap-4 lg:mx-auto lg:max-w-3xl">

@@ -1,4 +1,4 @@
-import { desc, eq } from 'drizzle-orm'
+import { and, desc, eq } from 'drizzle-orm'
 import { getDb } from '../index'
 import { clientes, haircutRecords } from '../schema'
 import { nullToUndefined } from '../../lib/db-map'
@@ -7,6 +7,7 @@ import type { Cliente, HaircutRecord } from '../../types'
 function toAppCliente(row: typeof clientes.$inferSelect, historico: HaircutRecord[] = []): Cliente {
   return {
     id: row.id,
+    barbeariaId: row.barbeariaId,
     nome: row.nome,
     telefone: row.telefone,
     cpfCnpj: nullToUndefined(row.cpfCnpj),
@@ -38,8 +39,12 @@ function toAppHaircutRecord(row: typeof haircutRecords.$inferSelect): HaircutRec
 
 /** Lista de clientes sem histórico (para a lista com busca) — evita carregar
  * todos os haircut_records de todo mundo só pra mostrar nome/telefone. */
-export async function getClientesResumo(): Promise<Cliente[]> {
-  const rows = await getDb().select().from(clientes).orderBy(clientes.nome)
+export async function getClientesResumo(barbeariaId: string): Promise<Cliente[]> {
+  const rows = await getDb()
+    .select()
+    .from(clientes)
+    .where(eq(clientes.barbeariaId, barbeariaId))
+    .orderBy(clientes.nome)
   return rows.map((r) => toAppCliente(r))
 }
 
@@ -52,9 +57,16 @@ export async function getClienteIdPorCodigoIndicacao(codigo: string): Promise<st
   return rows[0]?.id ?? null
 }
 
-export async function getClienteComHistorico(id: string): Promise<Cliente | null> {
+/** `barbeariaId` é obrigatório aqui porque o `id` costuma vir de um
+ * parâmetro de URL (`?cliente=...`) — sem essa checagem, o dono de uma
+ * barbearia poderia ver o histórico de um cliente de outra só editando a URL. */
+export async function getClienteComHistorico(id: string, barbeariaId: string): Promise<Cliente | null> {
   const db = getDb()
-  const [clienteRow] = await db.select().from(clientes).where(eq(clientes.id, id)).limit(1)
+  const [clienteRow] = await db
+    .select()
+    .from(clientes)
+    .where(and(eq(clientes.id, id), eq(clientes.barbeariaId, barbeariaId)))
+    .limit(1)
   if (!clienteRow) return null
 
   const historicoRows = await db
@@ -68,10 +80,10 @@ export async function getClienteComHistorico(id: string): Promise<Cliente | null
 
 /** Todos os clientes com histórico completo — usado pelas métricas do
  * Financeiro (clientes sumindo, frequência de retorno). */
-export async function getClientesComHistorico(): Promise<Cliente[]> {
+export async function getClientesComHistorico(barbeariaId: string): Promise<Cliente[]> {
   const db = getDb()
-  const clienteRows = await db.select().from(clientes).orderBy(clientes.nome)
-  const historicoRows = await db.select().from(haircutRecords)
+  const clienteRows = await db.select().from(clientes).where(eq(clientes.barbeariaId, barbeariaId)).orderBy(clientes.nome)
+  const historicoRows = await db.select().from(haircutRecords).where(eq(haircutRecords.barbeariaId, barbeariaId))
 
   const porCliente = new Map<string, HaircutRecord[]>()
   for (const row of historicoRows) {

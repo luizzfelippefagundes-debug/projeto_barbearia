@@ -23,11 +23,11 @@ export default async function AgendaPage({
   const dataISO = data || getHojeISO()
 
   const [barbeiros, clientes, servicos, assinaturas, planos] = await Promise.all([
-    getBarbeiros(),
-    getClientesResumo(),
-    getServicosAtivos(),
-    getAssinaturas(),
-    getPlanosAssinatura(),
+    getBarbeiros(dono.barbeariaId),
+    getClientesResumo(dono.barbeariaId),
+    getServicosAtivos(dono.barbeariaId),
+    getAssinaturas(dono.barbeariaId),
+    getPlanosAssinatura(dono.barbeariaId),
   ])
 
   const barbeirosAtivos = barbeiros.filter((b) => b.ativo)
@@ -36,7 +36,7 @@ export default async function AgendaPage({
 
   const idsParaGrade =
     barbeiroSelecionado === 'todos' ? barbeirosAtivos.map((b) => b.id) : [barbeiroSelecionado]
-  const grade = await getGradeAgendaDoDia(dataISO, idsParaGrade, TIME_SLOTS)
+  const grade = await getGradeAgendaDoDia(dataISO, idsParaGrade, TIME_SLOTS, dono.barbeariaId)
 
   const horaAtual = getHoraAtualBrasil()
   const horaSugerida = [...TIME_SLOTS].reverse().find((h) => h <= horaAtual) ?? TIME_SLOTS[0]

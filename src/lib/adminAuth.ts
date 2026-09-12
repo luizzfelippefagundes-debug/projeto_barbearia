@@ -1,36 +1,21 @@
-import { auth, currentUser } from '@clerk/nextjs/server'
+import { auth } from '@clerk/nextjs/server'
 import { redirect } from 'next/navigation'
-import {
-  countBarbeiros,
-  criarDonoComClerkId,
-  getBarbeiroByClerkId,
-} from '../db/queries/barbeiros'
+import { getBarbeiroByClerkId } from '../db/queries/barbeiros'
 
-/** Garante que quem está acessando /admin é o DONO. Se ninguém foi
- * cadastrado ainda (banco zerado), a primeira pessoa que fizer login vira
- * automaticamente o dono fundador — não há fluxo de auto-serviço depois disso.
- * Um barbeiro comum (papel !== 'dono') é redirecionado pra própria área. */
+/** Garante que quem está acessando /admin é o DONO de alguma barbearia já
+ * cadastrada. Cadastro de barbearia nova (e do primeiro dono dela) é feito
+ * manualmente por trás — não existe auto-cadastro de "primeiro dono" aqui,
+ * já que isso só fazia sentido quando só existia uma barbearia no sistema
+ * (hoje várias barbearias compartilham o mesmo banco/deploy). Um barbeiro
+ * comum (papel !== 'dono') é redirecionado pra própria área. */
 export async function requireAdminAccess() {
   const { userId } = await auth()
   if (!userId) redirect('/entrar/dono')
 
   const existente = await getBarbeiroByClerkId(userId)
-  if (existente) {
-    if (existente.papel !== 'dono') redirect('/barbeiro')
-    return existente
-  }
-
-  const totalBarbeiros = await countBarbeiros()
-  if (totalBarbeiros === 0) {
-    const user = await currentUser()
-    const nome =
-      [user?.firstName, user?.lastName].filter(Boolean).join(' ') ||
-      user?.emailAddresses[0]?.emailAddress ||
-      'Dono da barbearia'
-    return criarDonoComClerkId(userId, nome)
-  }
-
-  redirect('/sem-acesso')
+  if (!existente) redirect('/sem-acesso')
+  if (existente.papel !== 'dono') redirect('/barbeiro')
+  return existente
 }
 
 /** Usado dentro de Server Actions do painel do dono — elas são endpoints

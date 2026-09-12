@@ -12,6 +12,7 @@ export async function criarClienteComClerkId(
   clerkUserId: string,
   nome: string,
   telefone: string,
+  barbeariaId: string,
   indicadoPor?: string,
 ) {
   const db = getDb()
@@ -19,7 +20,7 @@ export async function criarClienteComClerkId(
     try {
       const rows = await db
         .insert(clientes)
-        .values({ clerkUserId, nome, telefone, indicadoPor, codigoIndicacao: gerarCodigoIndicacao() })
+        .values({ clerkUserId, nome, telefone, barbeariaId, indicadoPor, codigoIndicacao: gerarCodigoIndicacao() })
         .returning()
       return rows[0]
     } catch (err) {

@@ -34,7 +34,7 @@ export async function bloquearMeuHorario(data: string, hora: string) {
 
   await db
     .insert(agendamentos)
-    .values({ data, hora, barbeiroId: barbeiro.id, status: 'bloqueado', clienteId: null })
+    .values({ data, hora, barbeiroId: barbeiro.id, status: 'bloqueado', clienteId: null, barbeariaId: barbeiro.barbeariaId })
     .onConflictDoUpdate({
       target: [agendamentos.data, agendamentos.hora, agendamentos.barbeiroId],
       set: { status: 'bloqueado', clienteId: null },
@@ -78,7 +78,7 @@ export async function bloquearMeuDiaInteiro(data: string) {
     if (ocupados.has(hora)) continue
     await db
       .insert(agendamentos)
-      .values({ data, hora, barbeiroId: barbeiro.id, status: 'bloqueado', clienteId: null })
+      .values({ data, hora, barbeiroId: barbeiro.id, status: 'bloqueado', clienteId: null, barbeariaId: barbeiro.barbeariaId })
       .onConflictDoUpdate({
         target: [agendamentos.data, agendamentos.hora, agendamentos.barbeiroId],
         set: { status: 'bloqueado', clienteId: null },
@@ -199,6 +199,7 @@ export async function registrarMeuAtendimento(formData: FormData) {
   const hojeISO = getHojeISO()
   await db.insert(haircutRecords).values(
     servicosDoAgendamento.map((s) => ({
+      barbeariaId: barbeiro.barbeariaId,
       clienteId,
       barbeiroId: barbeiro.id,
       servicoId: s.servicoId,
@@ -294,6 +295,7 @@ export async function criarAtendimentoAvulso(params: {
     const [novoCliente] = await db
       .insert(clientes)
       .values({
+        barbeariaId: barbeiro.barbeariaId,
         nome: params.nomeNovoCliente.trim(),
         telefone: (params.telefoneNovoCliente ?? '').trim(),
         codigoIndicacao: gerarCodigoIndicacao(),
@@ -309,6 +311,7 @@ export async function criarAtendimentoAvulso(params: {
     barbeiroId: barbeiro.id,
     clienteId,
     servicoIds,
+    barbeariaId: barbeiro.barbeariaId,
     status: 'atendido',
     formaPagamento,
     caixaDestinoBarbeiroId,
@@ -316,6 +319,7 @@ export async function criarAtendimentoAvulso(params: {
 
   await db.insert(haircutRecords).values(
     servicoIds.map((servicoId) => ({
+      barbeariaId: barbeiro.barbeariaId,
       clienteId,
       barbeiroId: barbeiro.id,
       servicoId,
@@ -344,7 +348,13 @@ export async function registrarMinhaVenda(produtoId: string, quantidade: number,
 
   const db = getDb()
 
-  const produto = (await db.select().from(produtos).where(eq(produtos.id, produtoId)).limit(1))[0]
+  const produto = (
+    await db
+      .select()
+      .from(produtos)
+      .where(and(eq(produtos.id, produtoId), eq(produtos.barbeariaId, barbeiro.barbeariaId)))
+      .limit(1)
+  )[0]
   if (!produto) throw new Error('Produto não encontrado')
 
   const qtd = Math.min(quantidade, produto.estoque)
@@ -356,6 +366,7 @@ export async function registrarMinhaVenda(produtoId: string, quantidade: number,
     .where(and(eq(produtos.id, produtoId), gte(produtos.estoque, qtd)))
 
   await db.insert(vendas).values({
+    barbeariaId: barbeiro.barbeariaId,
     produtoId,
     barbeiroId: barbeiro.id,
     clienteId: clienteId || null,

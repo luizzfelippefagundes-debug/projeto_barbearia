@@ -17,17 +17,18 @@ import { DIAS_SEMANA, getHojeISO, mesReferenciaDeData } from '../../../../lib/da
 import { getBaseUrl } from '../../../../lib/baseUrl'
 
 export default async function MeuPerfilPage() {
-  const barbeiro = toAppBarbeiro(await requireBarbeiroAccess())
+  const barbeiroRow = await requireBarbeiroAccess()
+  const barbeiro = toAppBarbeiro(barbeiroRow)
   const mesReferencia = mesReferenciaDeData(getHojeISO())
 
   const [agendamentos, servicos, vendas, assinaturas, planos, clientes, barbeiros, baseUrl] = await Promise.all([
-    getAgendamentosDoMes(mesReferencia),
-    getServicosAtivos(),
-    getVendas(),
-    getAssinaturas(),
-    getPlanosAssinatura(),
-    getClientesComHistorico(),
-    getBarbeiros(),
+    getAgendamentosDoMes(mesReferencia, barbeiroRow.barbeariaId),
+    getServicosAtivos(barbeiroRow.barbeariaId),
+    getVendas(barbeiroRow.barbeariaId),
+    getAssinaturas(barbeiroRow.barbeariaId),
+    getPlanosAssinatura(barbeiroRow.barbeariaId),
+    getClientesComHistorico(barbeiroRow.barbeariaId),
+    getBarbeiros(barbeiroRow.barbeariaId),
     getBaseUrl(),
   ])
 

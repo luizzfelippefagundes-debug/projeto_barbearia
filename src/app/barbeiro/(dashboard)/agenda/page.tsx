@@ -21,12 +21,12 @@ export default async function MinhaAgendaPage({
   const dataISO = data || getHojeISO()
 
   const [grade, clientes, servicos, assinaturas, planos, barbeiros] = await Promise.all([
-    getGradeAgendaDoDia(dataISO, [barbeiro.id], TIME_SLOTS),
-    getClientesResumo(),
-    getServicosAtivos(),
-    getAssinaturas(),
-    getPlanosAssinatura(),
-    getBarbeiros(),
+    getGradeAgendaDoDia(dataISO, [barbeiro.id], TIME_SLOTS, barbeiro.barbeariaId),
+    getClientesResumo(barbeiro.barbeariaId),
+    getServicosAtivos(barbeiro.barbeariaId),
+    getAssinaturas(barbeiro.barbeariaId),
+    getPlanosAssinatura(barbeiro.barbeariaId),
+    getBarbeiros(barbeiro.barbeariaId),
   ])
 
   const meus = [...grade].sort((a, b) => a.hora.localeCompare(b.hora))

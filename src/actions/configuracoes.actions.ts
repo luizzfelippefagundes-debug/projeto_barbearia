@@ -6,13 +6,13 @@ import { configuracoes } from '../db/schema'
 import { assertAdmin } from '../lib/adminAuth'
 
 export async function setMetaFaturamento(valor: number) {
-  await assertAdmin()
+  const dono = await assertAdmin()
 
   await getDb()
     .insert(configuracoes)
-    .values({ id: 'default', metaFaturamentoMensal: valor })
+    .values({ barbeariaId: dono.barbeariaId, metaFaturamentoMensal: valor })
     .onConflictDoUpdate({
-      target: configuracoes.id,
+      target: configuracoes.barbeariaId,
       set: { metaFaturamentoMensal: valor },
     })
 

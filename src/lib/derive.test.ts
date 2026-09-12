@@ -77,6 +77,7 @@ const barbeiroB: Barbeiro = {
 function cliente(id: string, historico: Cliente['historico'] = []): Cliente {
   return {
     id,
+    barbeariaId: 'barbearia-teste',
     nome: `Cliente ${id}`,
     telefone: '27999999999',
     tags: [],

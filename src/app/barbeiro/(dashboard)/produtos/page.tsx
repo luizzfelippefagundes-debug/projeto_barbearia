@@ -1,10 +1,12 @@
 import { Card, EmptyState, SectionHeading } from '../../../../components/ui'
 import { VenderProdutoButton } from '../../../../components/barbeiro-self/VenderProdutoButton'
+import { assertBarbeiroLogado } from '../../../../lib/barbeiroAuth'
 import { getProdutosAtivos } from '../../../../db/queries/produtos'
 import { formatBRL } from '../../../../lib/format'
 
 export default async function VenderProdutoPage() {
-  const produtos = await getProdutosAtivos()
+  const barbeiro = await assertBarbeiroLogado()
+  const produtos = await getProdutosAtivos(barbeiro.barbeariaId)
 
   return (
     <div>

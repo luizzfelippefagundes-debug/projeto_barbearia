@@ -1,3 +1,4 @@
+import { eq } from 'drizzle-orm'
 import { getDb } from '../index'
 import { vendas } from '../schema'
 import { nullToUndefined } from '../../lib/db-map'
@@ -15,7 +16,7 @@ function toAppVenda(row: typeof vendas.$inferSelect): Venda {
   }
 }
 
-export async function getVendas(): Promise<Venda[]> {
-  const rows = await getDb().select().from(vendas)
+export async function getVendas(barbeariaId: string): Promise<Venda[]> {
+  const rows = await getDb().select().from(vendas).where(eq(vendas.barbeariaId, barbeariaId))
   return rows.map(toAppVenda)
 }

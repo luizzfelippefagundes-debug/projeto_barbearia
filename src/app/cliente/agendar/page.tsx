@@ -24,14 +24,14 @@ export default async function AgendarPage({
   const dataISO = dataSolicitada < hojeISO || dataSolicitada > maxData ? hojeISO : dataSolicitada
 
   const [barbeiros, servicos, assinaturas, planos] = await Promise.all([
-    getBarbeiros(),
-    getServicosAtivos(),
-    getAssinaturas(),
-    getPlanosAssinatura(),
+    getBarbeiros(cliente.barbeariaId),
+    getServicosAtivos(cliente.barbeariaId),
+    getAssinaturas(cliente.barbeariaId),
+    getPlanosAssinatura(cliente.barbeariaId),
   ])
 
   const barbeirosAtivos = barbeiros.filter((b) => b.ativo)
-  const grade = await getGradeAgendaDoDia(dataISO, barbeirosAtivos.map((b) => b.id), TIME_SLOTS)
+  const grade = await getGradeAgendaDoDia(dataISO, barbeirosAtivos.map((b) => b.id), TIME_SLOTS, cliente.barbeariaId)
 
   const assinatura = assinaturas.find((a) => a.clienteId === cliente.id && a.status !== 'cancelado')
   const plano = assinatura ? planos.find((p) => p.id === assinatura.planoId) : undefined

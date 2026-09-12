@@ -20,6 +20,7 @@ export async function criarAgendamentoComServicos(params: {
   barbeiroId: string
   clienteId: string
   servicoIds: string[]
+  barbeariaId: string
   /** 'atendido' pra registrar um atendimento avulso que já aconteceu (o
    * barbeiro loga depois de cortar, sem passar pela etapa de "confirmado"
    * antes). Default 'confirmado', o fluxo normal de agendamento futuro. */
@@ -35,6 +36,7 @@ export async function criarAgendamentoComServicos(params: {
     barbeiroId,
     clienteId,
     servicoIds,
+    barbeariaId,
     status = 'confirmado',
     formaPagamento,
     caixaDestinoBarbeiroId,
@@ -66,7 +68,7 @@ export async function criarAgendamentoComServicos(params: {
 
   const [anchor] = await db
     .insert(agendamentos)
-    .values({ data, hora: slots[0], barbeiroId, clienteId, status, formaPagamento, caixaDestinoBarbeiroId })
+    .values({ data, hora: slots[0], barbeiroId, clienteId, status, formaPagamento, caixaDestinoBarbeiroId, barbeariaId })
     .onConflictDoUpdate({
       target: [agendamentos.data, agendamentos.hora, agendamentos.barbeiroId],
       set: { status, clienteId, continuacaoDeId: null, formaPagamento, caixaDestinoBarbeiroId },
@@ -78,7 +80,7 @@ export async function criarAgendamentoComServicos(params: {
   for (const slot of slots.slice(1)) {
     await db
       .insert(agendamentos)
-      .values({ data, hora: slot, barbeiroId, clienteId, status, continuacaoDeId: anchor.id })
+      .values({ data, hora: slot, barbeiroId, clienteId, status, continuacaoDeId: anchor.id, barbeariaId })
       .onConflictDoUpdate({
         target: [agendamentos.data, agendamentos.hora, agendamentos.barbeiroId],
         set: { status, clienteId, continuacaoDeId: anchor.id },
