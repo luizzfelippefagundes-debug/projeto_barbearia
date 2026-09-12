@@ -16,7 +16,6 @@ import {
   Menu,
 } from 'lucide-react'
 import { cn } from '../../lib/cn'
-import { NOME_BARBEARIA } from '../../lib/constants'
 import { LogoMark } from '../ui/LogoMark'
 import { IconButton } from '../ui/IconButton'
 import { MobileNavDrawer } from '../ui/MobileNavDrawer'
@@ -64,7 +63,7 @@ function NavLinks({ expanded, onNavigate }: { expanded: boolean; onNavigate?: ()
   )
 }
 
-export function Sidebar({ nome }: { nome: string }) {
+export function Sidebar({ nome, barbeariaNome }: { nome: string; barbeariaNome: string }) {
   const [drawerAberto, setDrawerAberto] = useState(false)
 
   return (
@@ -72,7 +71,7 @@ export function Sidebar({ nome }: { nome: string }) {
       <div className="flex items-center justify-between border-b border-border bg-surface px-4 py-3 lg:hidden">
         <div className="flex items-center gap-2.5">
           <LogoMark />
-          <span className="font-heading text-base font-bold text-text-primary">{NOME_BARBEARIA}</span>
+          <span className="font-heading text-base font-bold text-text-primary">{barbeariaNome}</span>
         </div>
         <IconButton icon={<Menu size={18} aria-hidden="true" />} label="Abrir menu" onClick={() => setDrawerAberto(true)} />
       </div>
@@ -80,7 +79,7 @@ export function Sidebar({ nome }: { nome: string }) {
       <MobileNavDrawer open={drawerAberto} onClose={() => setDrawerAberto(false)}>
         <div className="flex items-center gap-2.5 px-4 py-5">
           <LogoMark />
-          <span className="font-heading text-base font-bold text-text-primary">{NOME_BARBEARIA}</span>
+          <span className="font-heading text-base font-bold text-text-primary">{barbeariaNome}</span>
         </div>
         <NavLinks expanded onNavigate={() => setDrawerAberto(false)} />
         <div className="flex items-center gap-2.5 border-t border-border px-4 py-4">
@@ -95,7 +94,7 @@ export function Sidebar({ nome }: { nome: string }) {
         <div className="flex items-center gap-2.5 px-4 py-5 lg:px-6">
           <LogoMark />
           <span className="hidden font-heading text-base font-bold text-text-primary lg:inline">
-            {NOME_BARBEARIA}
+            {barbeariaNome}
           </span>
         </div>
 

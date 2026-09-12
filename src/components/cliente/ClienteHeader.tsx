@@ -4,7 +4,6 @@ import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
 import { CalendarPlus, ChevronLeft, CreditCard, Home, User } from 'lucide-react'
 import { UserButton } from '@clerk/nextjs'
-import { NOME_BARBEARIA } from '../../lib/constants'
 import { LogoMark } from '../ui/LogoMark'
 import { SairButton } from '../auth/SairButton'
 import { ThemeToggle } from '../theme/ThemeToggle'
@@ -19,7 +18,7 @@ const NAV_ITEMS = [
   { href: '/cliente/perfil', label: 'Perfil', icon: User },
 ]
 
-export function ClienteHeader() {
+export function ClienteHeader({ barbeariaNome }: { barbeariaNome: string }) {
   const pathname = usePathname()
   const router = useRouter()
   const isRotaPrincipal = ROTAS_PRINCIPAIS.includes(pathname)
@@ -40,7 +39,7 @@ export function ClienteHeader() {
           )}
           <Link href="/cliente" className="flex items-center gap-2">
             <LogoMark size="sm" />
-            <span className="font-heading text-sm font-bold text-text-primary">{NOME_BARBEARIA}</span>
+            <span className="font-heading text-sm font-bold text-text-primary">{barbeariaNome}</span>
           </Link>
         </div>
 

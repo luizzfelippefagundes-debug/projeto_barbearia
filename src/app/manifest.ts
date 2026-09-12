@@ -1,10 +1,10 @@
 import type { MetadataRoute } from 'next'
-import { NOME_BARBEARIA } from '../lib/constants'
+import { NOME_PLATAFORMA } from '../lib/constants'
 
 export default function manifest(): MetadataRoute.Manifest {
   return {
-    name: NOME_BARBEARIA,
-    short_name: 'Jota Pê',
+    name: NOME_PLATAFORMA,
+    short_name: NOME_PLATAFORMA,
     description: 'Agendamento, assinaturas e gestão da barbearia.',
     start_url: '/',
     display: 'standalone',

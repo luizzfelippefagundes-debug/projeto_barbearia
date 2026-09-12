@@ -11,7 +11,7 @@ export function LogoMark({ size = 'md', className }: { size?: 'sm' | 'md' | 'lg'
   return (
     <Image
       src="/logo.jpg"
-      alt="Jota Pê Barbearia"
+      alt="Logo"
       width={128}
       height={128}
       priority

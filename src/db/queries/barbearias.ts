@@ -7,6 +7,11 @@ export async function getBarbeariaPorSlug(slug: string) {
   return rows[0] ?? null
 }
 
+export async function getBarbeariaPorId(id: string) {
+  const rows = await getDb().select().from(barbearias).where(eq(barbearias.id, id)).limit(1)
+  return rows[0] ?? null
+}
+
 /** Barbearia usada quando um cliente novo se cadastra sozinho pelo site
  * público (`/cadastro/cliente`) — ainda não existe um jeito de saber, só
  * pela URL, a qual barbearia esse cadastro pertence (isso exigiria

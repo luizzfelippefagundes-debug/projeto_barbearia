@@ -1,7 +1,8 @@
 import Link from 'next/link'
 import { CalendarPlus, ChevronRight, CreditCard, User } from 'lucide-react'
 import { Card } from '../../components/ui'
-import { NOME_BARBEARIA } from '../../lib/constants'
+import { requireClienteAtual } from '../../lib/clienteAuth'
+import { getBarbeariaPorId } from '../../db/queries/barbearias'
 
 const LINKS = [
   {
@@ -24,11 +25,14 @@ const LINKS = [
   },
 ]
 
-export default function PublicHomePage() {
+export default async function PublicHomePage() {
+  const cliente = await requireClienteAtual()
+  const barbearia = await getBarbeariaPorId(cliente.barbeariaId)
+
   return (
     <div className="flex flex-col gap-8">
       <div className="rounded-2xl border border-border bg-surface p-6 lg:p-10">
-        <h1 className="text-2xl text-accent lg:text-4xl">{NOME_BARBEARIA}</h1>
+        <h1 className="text-2xl text-accent lg:text-4xl">{barbearia?.nome ?? 'Minha barbearia'}</h1>
         <p className="mt-1 text-sm text-text-secondary lg:text-base">
           Corte clássico, atendimento sob medida.
         </p>

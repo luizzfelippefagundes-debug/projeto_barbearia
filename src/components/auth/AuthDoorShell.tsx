@@ -1,4 +1,4 @@
-import { NOME_BARBEARIA } from '../../lib/constants'
+import { NOME_PLATAFORMA } from '../../lib/constants'
 import { LogoMark } from '../ui/LogoMark'
 
 export function AuthDoorShell({
@@ -14,7 +14,7 @@ export function AuthDoorShell({
     <div className="theme-forcar-claro relative flex min-h-screen flex-col items-center justify-center gap-6 bg-bg p-4">
       <div className="flex items-center gap-2">
         <LogoMark />
-        <span className="font-heading text-sm font-bold text-text-primary">{NOME_BARBEARIA}</span>
+        <span className="font-heading text-sm font-bold text-text-primary">{NOME_PLATAFORMA}</span>
       </div>
 
       <div className="flex flex-col items-center gap-1 text-center">

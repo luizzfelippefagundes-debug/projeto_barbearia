@@ -2,7 +2,7 @@ import type { Metadata, Viewport } from "next";
 import { Plus_Jakarta_Sans, Inter, JetBrains_Mono } from "next/font/google";
 import { Analytics } from "@vercel/analytics/next";
 import "./globals.css";
-import { NOME_BARBEARIA } from "../lib/constants";
+import { NOME_PLATAFORMA } from "../lib/constants";
 import { ThemeProvider } from "../components/theme/ThemeProvider";
 import { ThemedClerkProvider } from "../components/theme/ThemedClerkProvider";
 import { ServiceWorkerRegister } from "../components/pwa/ServiceWorkerRegister";
@@ -39,7 +39,7 @@ const jetbrainsMono = JetBrains_Mono({
 });
 
 export const metadata: Metadata = {
-  title: NOME_BARBEARIA,
+  title: NOME_PLATAFORMA,
   description: "Painel de gestão e agendamento da barbearia.",
   icons: {
     icon: [

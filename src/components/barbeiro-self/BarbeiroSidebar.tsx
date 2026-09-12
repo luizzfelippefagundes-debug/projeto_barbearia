@@ -6,7 +6,6 @@ import { usePathname } from 'next/navigation'
 import { UserButton } from '@clerk/nextjs'
 import { CalendarDays, Wallet, Package, User, Menu, ArrowLeftRight } from 'lucide-react'
 import { cn } from '../../lib/cn'
-import { NOME_BARBEARIA } from '../../lib/constants'
 import { LogoMark } from '../ui/LogoMark'
 import { IconButton } from '../ui/IconButton'
 import { MobileNavDrawer } from '../ui/MobileNavDrawer'
@@ -50,7 +49,15 @@ function NavLinks({ expanded, onNavigate }: { expanded: boolean; onNavigate?: ()
   )
 }
 
-export function BarbeiroSidebar({ nome, ehDono }: { nome: string; ehDono?: boolean }) {
+export function BarbeiroSidebar({
+  nome,
+  ehDono,
+  barbeariaNome,
+}: {
+  nome: string
+  ehDono?: boolean
+  barbeariaNome: string
+}) {
   const [drawerAberto, setDrawerAberto] = useState(false)
 
   return (
@@ -58,7 +65,7 @@ export function BarbeiroSidebar({ nome, ehDono }: { nome: string; ehDono?: boole
       <div className="flex items-center justify-between border-b border-border bg-surface px-4 py-3 lg:hidden">
         <div className="flex items-center gap-2.5">
           <LogoMark />
-          <span className="font-heading text-base font-bold text-text-primary">{NOME_BARBEARIA}</span>
+          <span className="font-heading text-base font-bold text-text-primary">{barbeariaNome}</span>
         </div>
         <IconButton icon={<Menu size={18} aria-hidden="true" />} label="Abrir menu" onClick={() => setDrawerAberto(true)} />
       </div>
@@ -66,7 +73,7 @@ export function BarbeiroSidebar({ nome, ehDono }: { nome: string; ehDono?: boole
       <MobileNavDrawer open={drawerAberto} onClose={() => setDrawerAberto(false)}>
         <div className="flex items-center gap-2.5 px-4 py-5">
           <LogoMark />
-          <span className="font-heading text-base font-bold text-text-primary">{NOME_BARBEARIA}</span>
+          <span className="font-heading text-base font-bold text-text-primary">{barbeariaNome}</span>
         </div>
         <NavLinks expanded onNavigate={() => setDrawerAberto(false)} />
         {ehDono && (
@@ -93,7 +100,7 @@ export function BarbeiroSidebar({ nome, ehDono }: { nome: string; ehDono?: boole
         <div className="flex items-center gap-2.5 px-4 py-5 lg:px-6">
           <LogoMark />
           <span className="hidden font-heading text-base font-bold text-text-primary lg:inline">
-            {NOME_BARBEARIA}
+            {barbeariaNome}
           </span>
         </div>
 
