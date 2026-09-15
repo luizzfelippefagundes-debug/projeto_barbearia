@@ -7,10 +7,18 @@ const SIZE_CLASSES = {
   lg: 'h-16 w-16',
 }
 
-export function LogoMark({ size = 'md', className }: { size?: 'sm' | 'md' | 'lg'; className?: string }) {
+export function LogoMark({
+  size = 'md',
+  className,
+  src = '/logo-plataforma.svg',
+}: {
+  size?: 'sm' | 'md' | 'lg'
+  className?: string
+  src?: string
+}) {
   return (
     <Image
-      src="/logo.jpg"
+      src={src}
       alt="Logo"
       width={128}
       height={128}

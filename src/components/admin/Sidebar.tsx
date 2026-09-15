@@ -63,14 +63,22 @@ function NavLinks({ expanded, onNavigate }: { expanded: boolean; onNavigate?: ()
   )
 }
 
-export function Sidebar({ nome, barbeariaNome }: { nome: string; barbeariaNome: string }) {
+export function Sidebar({
+  nome,
+  barbeariaNome,
+  logoSrc,
+}: {
+  nome: string
+  barbeariaNome: string
+  logoSrc: string
+}) {
   const [drawerAberto, setDrawerAberto] = useState(false)
 
   return (
     <>
       <div className="flex items-center justify-between border-b border-border bg-surface px-4 py-3 lg:hidden">
         <div className="flex items-center gap-2.5">
-          <LogoMark />
+          <LogoMark src={logoSrc} />
           <span className="font-heading text-base font-bold text-text-primary">{barbeariaNome}</span>
         </div>
         <IconButton icon={<Menu size={18} aria-hidden="true" />} label="Abrir menu" onClick={() => setDrawerAberto(true)} />
@@ -78,7 +86,7 @@ export function Sidebar({ nome, barbeariaNome }: { nome: string; barbeariaNome: 
 
       <MobileNavDrawer open={drawerAberto} onClose={() => setDrawerAberto(false)}>
         <div className="flex items-center gap-2.5 px-4 py-5">
-          <LogoMark />
+          <LogoMark src={logoSrc} />
           <span className="font-heading text-base font-bold text-text-primary">{barbeariaNome}</span>
         </div>
         <NavLinks expanded onNavigate={() => setDrawerAberto(false)} />
@@ -92,7 +100,7 @@ export function Sidebar({ nome, barbeariaNome }: { nome: string; barbeariaNome: 
 
       <aside className="hidden h-screen w-16 shrink-0 flex-col border-r border-border bg-surface lg:flex lg:w-64">
         <div className="flex items-center gap-2.5 px-4 py-5 lg:px-6">
-          <LogoMark />
+          <LogoMark src={logoSrc} />
           <span className="hidden font-heading text-base font-bold text-text-primary lg:inline">
             {barbeariaNome}
           </span>

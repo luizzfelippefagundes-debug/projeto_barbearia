@@ -1,6 +1,7 @@
 import { BarbeiroSidebar } from '../../../components/barbeiro-self/BarbeiroSidebar'
 import { requireBarbeiroAccess } from '../../../lib/barbeiroAuth'
 import { getBarbeariaPorId } from '../../../db/queries/barbearias'
+import { getLogoBarbearia } from '../../../lib/logoBarbearia'
 
 export default async function BarbeiroDashboardLayout({ children }: { children: React.ReactNode }) {
   const barbeiro = await requireBarbeiroAccess()
@@ -12,6 +13,7 @@ export default async function BarbeiroDashboardLayout({ children }: { children: 
         nome={barbeiro.nome}
         ehDono={barbeiro.papel === 'dono'}
         barbeariaNome={barbearia?.nome ?? 'Minha barbearia'}
+        logoSrc={getLogoBarbearia(barbearia?.slug)}
       />
       <main className="min-w-0 flex-1 overflow-x-hidden overflow-y-auto px-4 py-6 sm:px-8">
         <div className="mx-auto max-w-4xl">{children}</div>

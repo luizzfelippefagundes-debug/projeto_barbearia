@@ -18,7 +18,7 @@ const NAV_ITEMS = [
   { href: '/cliente/perfil', label: 'Perfil', icon: User },
 ]
 
-export function ClienteHeader({ barbeariaNome }: { barbeariaNome: string }) {
+export function ClienteHeader({ barbeariaNome, logoSrc }: { barbeariaNome: string; logoSrc: string }) {
   const pathname = usePathname()
   const router = useRouter()
   const isRotaPrincipal = ROTAS_PRINCIPAIS.includes(pathname)
@@ -38,7 +38,7 @@ export function ClienteHeader({ barbeariaNome }: { barbeariaNome: string }) {
             </button>
           )}
           <Link href="/cliente" className="flex items-center gap-2">
-            <LogoMark size="sm" />
+            <LogoMark size="sm" src={logoSrc} />
             <span className="font-heading text-sm font-bold text-text-primary">{barbeariaNome}</span>
           </Link>
         </div>
