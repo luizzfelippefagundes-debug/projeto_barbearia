@@ -1,3 +1,4 @@
+import Image from 'next/image'
 import Link from 'next/link'
 import type { Metadata } from 'next'
 import {
@@ -23,21 +24,35 @@ const WHATSAPP_NUMERO = '5527997506203'
 const WHATSAPP_MENSAGEM = encodeURIComponent(`Olá! Quero conhecer o ${NOME_PLATAFORMA}.`)
 const LINK_WHATSAPP = `https://wa.me/${WHATSAPP_NUMERO}?text=${WHATSAPP_MENSAGEM}`
 
-const RECURSOS = [
-  {
-    icon: CalendarClock,
-    titulo: 'Agendamento online',
-    descricao: 'Cliente marca sozinho pelo site, escolhendo barbeiro, serviço e horário — sem depender de telefone.',
-  },
+function TelaDoSistema({
+  src,
+  alt,
+  className,
+}: {
+  src: string
+  alt: string
+  className?: string
+}) {
+  return (
+    <div className={className}>
+      <div className="overflow-hidden rounded-2xl border border-border bg-surface shadow-xl">
+        <div className="flex items-center gap-1.5 border-b border-border bg-surface-raised px-3.5 py-2.5">
+          <span className="h-2.5 w-2.5 rounded-full bg-status-red/60" />
+          <span className="h-2.5 w-2.5 rounded-full bg-status-amber/60" />
+          <span className="h-2.5 w-2.5 rounded-full bg-status-green/60" />
+        </div>
+        <Image src={src} alt={alt} width={1366} height={768} className="w-full" />
+      </div>
+      <p className="mt-2 text-center text-[11px] text-text-secondary">Tela ilustrativa — dados de exemplo</p>
+    </div>
+  )
+}
+
+const RECURSOS_SIMPLES = [
   {
     icon: MessageCircle,
     titulo: 'Bot de WhatsApp com IA',
     descricao: 'Agenda, cancela e manda lembrete sozinho — entende até áudio, e checa disponibilidade real antes de responder.',
-  },
-  {
-    icon: Wallet,
-    titulo: 'Cobrança automática via PIX',
-    descricao: 'Assinatura do cliente é cobrada sozinha todo mês, com confirmação automática — sem precisar cobrar por fora.',
   },
   {
     icon: Repeat,
@@ -45,14 +60,36 @@ const RECURSOS = [
     descricao: 'Cada barbeiro acompanha em tempo real quanto vai receber — sem planilha, sem discussão no fim do mês.',
   },
   {
-    icon: LineChart,
-    titulo: 'Financeiro completo',
-    descricao: 'Fechamento de caixa, MRR, ranking de barbeiros e alerta de cliente sumindo — tudo automático.',
-  },
-  {
     icon: Gift,
     titulo: 'Fidelidade e indicação',
     descricao: 'Programa de pontos e link de indicação pra transformar cliente satisfeito em cliente novo.',
+  },
+]
+
+const RECURSOS_COM_TELA = [
+  {
+    icon: CalendarClock,
+    titulo: 'Agenda organizada, sem furo',
+    descricao:
+      'Cada barbeiro vê o próprio dia, o dono vê a loja inteira. Bloqueia horário, registra atendimento e sai mais cedo com um clique.',
+    src: '/screenshots/agenda.png',
+    alt: 'Tela de agenda do sistema, com horários do dia e status de cada atendimento',
+  },
+  {
+    icon: Wallet,
+    titulo: 'Cobrança automática via PIX',
+    descricao:
+      'Assinatura do cliente é cobrada sozinha todo mês, com confirmação automática — e você acompanha quem está em dia em tempo real.',
+    src: '/screenshots/assinaturas.png',
+    alt: 'Tela de assinaturas do sistema, mostrando receita recorrente e lista de assinantes',
+  },
+  {
+    icon: LineChart,
+    titulo: 'Financeiro que fecha sozinho',
+    descricao:
+      'Fechamento de caixa, ticket médio, frequência de retorno e alerta de cliente sumindo — sem abrir planilha nenhuma.',
+    src: '/screenshots/financeiro.png',
+    alt: 'Tela financeira do sistema, com fechamento de caixa e métricas do negócio',
   },
 ]
 
@@ -103,7 +140,7 @@ export default function PlanosPage() {
   return (
     <div className="theme-forcar-claro min-h-screen bg-bg">
       <header className="border-b border-border bg-surface">
-        <div className="mx-auto flex max-w-5xl items-center justify-between px-5 py-4">
+        <div className="mx-auto flex max-w-6xl items-center justify-between px-5 py-4">
           <div className="flex items-center gap-2">
             <LogoMark size="sm" />
             <span className="font-heading text-sm font-bold text-text-primary">{NOME_PLATAFORMA}</span>
@@ -119,54 +156,83 @@ export default function PlanosPage() {
 
       <main>
         {/* Hero */}
-        <section className="mx-auto max-w-3xl px-5 pt-16 pb-14 text-center sm:pt-24 sm:pb-20">
-          <span className="mono-value inline-flex items-center gap-1.5 rounded-full bg-accent-muted px-3 py-1 text-xs font-semibold text-accent">
-            <Sparkles size={13} aria-hidden="true" />
-            Feito por quem também é dono de barbearia
-          </span>
-          <h1 className="mt-5 text-3xl leading-tight text-text-primary sm:text-5xl">
-            Sua barbearia rodando sozinha — agenda, cobrança e comissão no automático
-          </h1>
-          <p className="mt-4 text-base text-text-secondary sm:text-lg">
-            Cliente marca e paga sem falar com ninguém, o barbeiro sabe quanto vai receber em tempo real, e você
-            fecha o caixa sem abrir planilha.
-          </p>
-          <div className="mt-8 flex flex-col items-center justify-center gap-3 sm:flex-row">
-            <a
-              href={LINK_WHATSAPP}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-flex items-center justify-center gap-2 rounded-full border border-accent bg-accent px-6 py-3 text-base font-semibold text-white shadow-sm transition-colors hover:bg-accent-hover"
-            >
-              <MessageCircle size={18} aria-hidden="true" />
-              Quero conhecer
-            </a>
-            <a
-              href="#planos"
-              className="inline-flex items-center justify-center gap-2 rounded-full border border-brass/40 bg-surface px-6 py-3 text-base font-semibold text-brass transition-colors hover:bg-brass-muted"
-            >
-              Ver planos e preços
-            </a>
+        <section className="mx-auto max-w-6xl px-5 pt-14 pb-16 sm:pt-20">
+          <div className="grid grid-cols-1 items-center gap-10 lg:grid-cols-2 lg:gap-14">
+            <div className="text-center lg:text-left">
+              <span className="mono-value inline-flex items-center gap-1.5 rounded-full bg-accent-muted px-3 py-1 text-xs font-semibold text-accent">
+                <Sparkles size={13} aria-hidden="true" />
+                Feito por quem também é dono de barbearia
+              </span>
+              <h1 className="mt-5 text-3xl leading-tight text-text-primary sm:text-5xl">
+                Sua barbearia rodando sozinha — agenda, cobrança e comissão no automático
+              </h1>
+              <p className="mt-4 text-base text-text-secondary sm:text-lg">
+                Cliente marca e paga sem falar com ninguém, o barbeiro sabe quanto vai receber em tempo real, e você
+                fecha o caixa sem abrir planilha.
+              </p>
+              <div className="mt-8 flex flex-col items-center justify-center gap-3 sm:flex-row lg:justify-start">
+                <a
+                  href={LINK_WHATSAPP}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center justify-center gap-2 rounded-full border border-accent bg-accent px-6 py-3 text-base font-semibold text-white shadow-sm transition-colors hover:bg-accent-hover"
+                >
+                  <MessageCircle size={18} aria-hidden="true" />
+                  Quero conhecer
+                </a>
+                <a
+                  href="#planos"
+                  className="inline-flex items-center justify-center gap-2 rounded-full border border-brass/40 bg-surface px-6 py-3 text-base font-semibold text-brass transition-colors hover:bg-brass-muted"
+                >
+                  Ver planos e preços
+                </a>
+              </div>
+            </div>
+
+            <TelaDoSistema src="/screenshots/dashboard-resumo.png" alt="Dashboard do sistema, com resumo do dia e horários agendados" />
           </div>
         </section>
 
-        {/* Recursos */}
+        {/* Recursos com tela real, alternando lado */}
         <section className="border-y border-border bg-surface-raised py-16">
-          <div className="mx-auto max-w-5xl px-5">
-            <h2 className="text-center text-2xl text-text-primary">O que já vem pronto</h2>
-            <div className="mt-10 grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
-              {RECURSOS.map(({ icon: Icon, titulo, descricao }) => (
-                <div key={titulo} className="card flex flex-col gap-3 p-5">
-                  <span className="flex h-10 w-10 items-center justify-center rounded-full bg-accent-muted text-accent">
-                    <Icon size={18} aria-hidden="true" />
-                  </span>
-                  <div>
-                    <p className="text-sm font-semibold text-text-primary">{titulo}</p>
-                    <p className="mt-1 text-sm text-text-secondary">{descricao}</p>
+          <div className="mx-auto max-w-6xl px-5">
+            <h2 className="text-center text-2xl text-text-primary sm:text-3xl">Por dentro do sistema</h2>
+            <div className="mt-12 flex flex-col gap-16">
+              {RECURSOS_COM_TELA.map(({ icon: Icon, titulo, descricao, src, alt }, i) => (
+                <div
+                  key={titulo}
+                  className={`grid grid-cols-1 items-center gap-8 lg:grid-cols-2 lg:gap-12 ${
+                    i % 2 === 1 ? 'lg:[&>*:first-child]:order-2' : ''
+                  }`}
+                >
+                  <div className="text-center lg:text-left">
+                    <span className="flex h-11 w-11 items-center justify-center rounded-full bg-accent-muted text-accent lg:mx-0 mx-auto">
+                      <Icon size={20} aria-hidden="true" />
+                    </span>
+                    <h3 className="mt-4 text-xl text-text-primary">{titulo}</h3>
+                    <p className="mt-2 text-sm text-text-secondary sm:text-base">{descricao}</p>
                   </div>
+                  <TelaDoSistema src={src} alt={alt} />
                 </div>
               ))}
             </div>
+          </div>
+        </section>
+
+        {/* Recursos simples, sem tela */}
+        <section className="mx-auto max-w-5xl px-5 py-16">
+          <div className="grid grid-cols-1 gap-5 sm:grid-cols-3">
+            {RECURSOS_SIMPLES.map(({ icon: Icon, titulo, descricao }) => (
+              <div key={titulo} className="card flex flex-col gap-3 p-5">
+                <span className="flex h-10 w-10 items-center justify-center rounded-full bg-accent-muted text-accent">
+                  <Icon size={18} aria-hidden="true" />
+                </span>
+                <div>
+                  <p className="text-sm font-semibold text-text-primary">{titulo}</p>
+                  <p className="mt-1 text-sm text-text-secondary">{descricao}</p>
+                </div>
+              </div>
+            ))}
           </div>
         </section>
 

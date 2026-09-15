@@ -10,7 +10,7 @@ const SIZE_CLASSES = {
 export function LogoMark({
   size = 'md',
   className,
-  src = '/logo-plataforma.svg',
+  src = '/logo-plataforma.jpg',
 }: {
   size?: 'sm' | 'md' | 'lg'
   className?: string
