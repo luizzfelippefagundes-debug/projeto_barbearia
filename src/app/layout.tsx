@@ -68,8 +68,12 @@ export default function RootLayout({
       className={`${headingFont.variable} ${inter.variable} ${jetbrainsMono.variable}`}
       suppressHydrationWarning
     >
-      <body className="bg-bg text-text-primary antialiased">
+      <head>
+        {/* Roda antes de qualquer coisa do body pintar — evita o "flash" de
+         * um tema errado enquanto o resto da página ainda carrega. */}
         <script dangerouslySetInnerHTML={{ __html: THEME_INIT_SCRIPT }} />
+      </head>
+      <body className="bg-bg text-text-primary antialiased">
         <ServiceWorkerRegister />
         <InstallPrompt />
         <ThemeProvider>
