@@ -9,7 +9,7 @@ import { getClienteRowByClerkId } from '../db/queries/clientePorClerkId'
  * onde mandar cada um com base em quem está logado. */
 export default async function Home() {
   const { userId } = await auth()
-  if (!userId) redirect('/planos')
+  if (!userId) redirect('/sign-in')
 
   const barbeiro = await getBarbeiroByClerkId(userId)
   if (barbeiro) redirect(barbeiro.papel === 'dono' ? '/admin/agenda' : '/barbeiro')
