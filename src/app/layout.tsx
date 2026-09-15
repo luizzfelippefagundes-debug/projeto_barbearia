@@ -39,6 +39,7 @@ const jetbrainsMono = JetBrains_Mono({
 });
 
 export const metadata: Metadata = {
+  metadataBase: new URL("https://nexobarber.nexosystem.online"),
   title: NOME_PLATAFORMA,
   description: "Painel de gestão e agendamento da barbearia.",
   icons: {
@@ -51,7 +52,7 @@ export const metadata: Metadata = {
   appleWebApp: {
     capable: true,
     statusBarStyle: "black-translucent",
-    title: "Jota Pê",
+    title: NOME_PLATAFORMA,
   },
 };
 

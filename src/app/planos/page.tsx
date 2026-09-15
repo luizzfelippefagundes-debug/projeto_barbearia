@@ -14,10 +14,26 @@ import { LogoMark } from '../../components/ui/LogoMark'
 import { PlanosHeader } from '../../components/planos/PlanosHeader'
 import { NOME_PLATAFORMA } from '../../lib/constants'
 
+const TITULO = `${NOME_PLATAFORMA} — Sistema de gestão para barbearias`
+const DESCRICAO =
+  'Agendamento online, cobrança automática via PIX, comissão do barbeiro e um assistente de WhatsApp com IA — tudo num só sistema pra sua barbearia.'
+const URL_PAGINA = 'https://nexobarber.nexosystem.online/planos'
+
 export const metadata: Metadata = {
-  title: `Planos — ${NOME_PLATAFORMA}`,
-  description:
-    'Agendamento, cobrança automática via PIX, comissão e um assistente de WhatsApp com IA — tudo num só sistema pra sua barbearia.',
+  title: TITULO,
+  description: DESCRICAO,
+  keywords: ['NexoBarber', 'sistema para barbearia', 'agenda para barbearia', 'gestão de barbearia', 'assinatura barbearia'],
+  alternates: {
+    canonical: URL_PAGINA,
+  },
+  openGraph: {
+    title: TITULO,
+    description: DESCRICAO,
+    url: URL_PAGINA,
+    siteName: NOME_PLATAFORMA,
+    locale: 'pt_BR',
+    type: 'website',
+  },
 }
 
 const WHATSAPP_NUMERO = '5527997506203'
