@@ -652,4 +652,10 @@ async function onboardCobranca(barbeariaId: string, params: { nomeDono: string; 
 ## Depois de tudo
 
 - [ ] Configurar o webhook no painel da conta Asaas da plataforma (não é uma chamada de API neste plano — é uma ação manual no painel do Asaas): URL `https://<domínio-de-produção>/api/webhooks/asaas-plataforma`, evento pelo menos `PAYMENT_RECEIVED`, `PAYMENT_CONFIRMED`, `PAYMENT_OVERDUE`, com o token gerado na Task 4 configurado como "Token de acesso" do webhook.
-- [ ] Rodar `npm run build` uma vez no final, com todas as tasks aplicadas, pra confirmar que o projeto inteiro compila.
+- [x] Rodar `npm run build` uma vez no final, com todas as tasks aplicadas, pra confirmar que o projeto inteiro compila. ✅ Build e `npm test` (22/22) limpos.
+
+## Gap conhecido, aceito conscientemente pro merge (decisão do Luiz em 2026-09-16)
+
+O bloqueio por atraso hoje só cobre navegação de página (`src/app/admin/(dashboard)/layout.tsx` e `src/app/barbeiro/(dashboard)/layout.tsx`) — **não cobre Server Actions** (`assertAdmin` em `src/lib/adminAuth.ts`, `assertBarbeiroLogado` em `src/lib/barbeiroAuth.ts`, usadas em 18 pontos de entrada ao todo). Quem já está com o painel aberto numa aba continua conseguindo mutar dados da própria barbearia (criar agendamento, editar caixa etc.) mesmo depois de atrasado, até fazer uma navegação nova (refresh/nova página). Não é vazamento entre barbearias — é só uma janela de tempo em que o bloqueio não pega uma sessão já aberta.
+
+Decisão consciente: mergear assim e resolver depois, não antes. Achado durante a revisão final desta branch (não fazia parte do plano original de 8 tasks). Quando for endereçar: o ponto natural pra centralizar a checagem é `src/proxy.ts` (já intercepta toda requisição sob `/admin` e `/barbeiro`, incluindo as chamadas de Server Action, ao contrário de duplicar a checagem em 18 call sites) — mas rodar em Edge runtime tem custo/latência de fazer lookup no banco ali — vale pesar isso antes de decidir a abordagem.
