@@ -61,6 +61,12 @@ export const barbearias = pgTable('barbearias', {
   /** Identificador curto e único (ex: "jota-pe") — hoje só usado internamente
    * pra referência; ainda não vira subdomínio/URL própria. */
   slug: text('slug').notNull().unique(),
+  /** Cobrança da MENSALIDADE DA PLATAFORMA (a barbearia pagando o dono do
+   * sistema) — conta Asaas separada da conta de cada barbearia, que cobra
+   * o cliente final. Nulo até o onboarding criar a assinatura. */
+  asaasCustomerId: text('asaas_customer_id').unique(),
+  asaasSubscriptionId: text('asaas_subscription_id').unique(),
+  statusPagamento: statusPagamentoEnum('status_pagamento').notNull().default('em_dia'),
   criadoEm: timestamp('criado_em').notNull().defaultNow(),
 })
 
