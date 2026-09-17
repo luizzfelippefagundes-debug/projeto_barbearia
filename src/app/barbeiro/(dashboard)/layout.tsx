@@ -1,3 +1,4 @@
+import { redirect } from 'next/navigation'
 import { BarbeiroSidebar } from '../../../components/barbeiro-self/BarbeiroSidebar'
 import { requireBarbeiroAccess } from '../../../lib/barbeiroAuth'
 import { getBarbeariaPorId } from '../../../db/queries/barbearias'
@@ -6,6 +7,7 @@ import { getLogoBarbearia } from '../../../lib/logoBarbearia'
 export default async function BarbeiroDashboardLayout({ children }: { children: React.ReactNode }) {
   const barbeiro = await requireBarbeiroAccess()
   const barbearia = await getBarbeariaPorId(barbeiro.barbeariaId)
+  if (barbearia?.statusPagamento === 'atrasado') redirect('/pagamento-pendente')
 
   return (
     <div className="flex h-screen flex-col bg-bg lg:flex-row">
