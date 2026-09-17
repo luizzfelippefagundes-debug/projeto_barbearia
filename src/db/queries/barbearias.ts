@@ -24,3 +24,15 @@ export async function getBarbeariaPadrao() {
   if (!barbearia) throw new Error('Barbearia padrão (jota-pe) não encontrada.')
   return barbearia
 }
+
+/** Grava os ids da cobrança da plataforma numa barbearia — chamado uma vez
+ * no onboarding, depois de criar o cliente e a assinatura no Asaas. */
+export async function salvarCobrancaPlataforma(
+  barbeariaId: string,
+  dados: { asaasCustomerId: string; asaasSubscriptionId: string },
+) {
+  await getDb()
+    .update(barbearias)
+    .set({ asaasCustomerId: dados.asaasCustomerId, asaasSubscriptionId: dados.asaasSubscriptionId })
+    .where(eq(barbearias.id, barbeariaId))
+}
