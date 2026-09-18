@@ -50,8 +50,8 @@ export default async function PlanoPage() {
       </div>
 
       <Card className="flex flex-col gap-4 p-6">
-        <div className="flex items-center justify-between gap-3">
-          <div>
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div className="min-w-0">
             <p className="text-sm font-semibold text-text-primary">NexoBarber — {formatBRL(VALOR_MENSALIDADE)}/mês</p>
             <p className="text-xs text-text-secondary">
               Plano único, sem fidelidade
