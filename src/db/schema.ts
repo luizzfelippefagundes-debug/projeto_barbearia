@@ -67,6 +67,9 @@ export const barbearias = pgTable('barbearias', {
   asaasCustomerId: text('asaas_customer_id').unique(),
   asaasSubscriptionId: text('asaas_subscription_id').unique(),
   statusPagamento: statusPagamentoEnum('status_pagamento').notNull().default('em_dia'),
+  /** CPF ou CNPJ informado pelo dono ao pagar a mensalidade — só dígitos,
+   * guardado pra não precisar redigitar em cobranças futuras. */
+  cpfCnpj: text('cpf_cnpj'),
   criadoEm: timestamp('criado_em').notNull().defaultNow(),
 })
 

@@ -36,3 +36,9 @@ export async function salvarCobrancaPlataforma(
     .set({ asaasCustomerId: dados.asaasCustomerId, asaasSubscriptionId: dados.asaasSubscriptionId })
     .where(eq(barbearias.id, barbeariaId))
 }
+
+/** Grava o CPF/CNPJ informado pelo dono ao pagar a mensalidade — evita
+ * pedir de novo numa próxima cobrança. */
+export async function salvarCpfCnpjBarbearia(barbeariaId: string, cpfCnpj: string) {
+  await getDb().update(barbearias).set({ cpfCnpj }).where(eq(barbearias.id, barbeariaId))
+}

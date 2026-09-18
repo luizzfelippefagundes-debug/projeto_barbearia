@@ -97,3 +97,32 @@ export async function buscarPrimeiroPagamentoDaAssinaturaPlataforma(
   )
   return result.data[0] ?? null
 }
+
+export async function buscarStatusPagamentoPlataforma(paymentId: string): Promise<AsaasPlataformaPayment> {
+  return asaasPlataformaFetch<AsaasPlataformaPayment>(`/payments/${encodeURIComponent(paymentId)}`)
+}
+
+export interface AsaasPlataformaPixQrCode {
+  encodedImage: string
+  payload: string
+  expirationDate: string | null
+}
+
+/** QR code + código copia-e-cola do Pix pra pagar a mensalidade. */
+export async function buscarPixQrCodePlataforma(paymentId: string): Promise<AsaasPlataformaPixQrCode> {
+  return asaasPlataformaFetch<AsaasPlataformaPixQrCode>(`/payments/${encodeURIComponent(paymentId)}/pixQrCode`)
+}
+
+/** Trava a cobrança em cartão de crédito e devolve o link seguro hospedado
+ * pelo Asaas — mesma lógica de `definirCobrancaComoCartao` em lib/asaas.ts,
+ * só que na conta da plataforma. */
+export async function definirCobrancaComoCartaoPlataforma(
+  paymentId: string,
+  value: number,
+  dueDate: string,
+): Promise<AsaasPlataformaPayment> {
+  return asaasPlataformaFetch<AsaasPlataformaPayment>(`/payments/${encodeURIComponent(paymentId)}`, {
+    method: 'PUT',
+    body: JSON.stringify({ billingType: 'CREDIT_CARD', value, dueDate }),
+  })
+}

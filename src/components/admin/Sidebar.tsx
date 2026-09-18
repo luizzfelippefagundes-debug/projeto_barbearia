@@ -14,6 +14,7 @@ import {
   Package,
   Tag,
   Menu,
+  CreditCard,
 } from 'lucide-react'
 import { cn } from '../../lib/cn'
 import { LogoMark } from '../ui/LogoMark'
@@ -31,6 +32,7 @@ const NAV_ITEMS = [
   { href: '/admin/assinaturas', label: 'Assinaturas', icon: Repeat },
   { href: '/admin/financeiro', label: 'Financeiro', icon: LineChart },
   { href: '/admin/produtos', label: 'Produtos', icon: Package },
+  { href: '/admin/plano', label: 'Plano', icon: CreditCard },
 ]
 
 function NavLinks({ expanded, onNavigate }: { expanded: boolean; onNavigate?: () => void }) {
