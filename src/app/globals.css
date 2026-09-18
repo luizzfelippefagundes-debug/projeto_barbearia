@@ -123,4 +123,28 @@
   .mono-value {
     @apply font-mono tabular-nums;
   }
+
+  /* Scrollbar fina, discreta, seguindo as cores do tema — usada em listas
+   * com altura limitada (ex: assinantes em /admin/assinaturas). */
+  .scroll-fino {
+    scrollbar-width: thin;
+    scrollbar-color: var(--color-border) transparent;
+  }
+
+  .scroll-fino::-webkit-scrollbar {
+    width: 6px;
+  }
+
+  .scroll-fino::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  .scroll-fino::-webkit-scrollbar-thumb {
+    background-color: var(--color-border);
+    border-radius: 9999px;
+  }
+
+  .scroll-fino::-webkit-scrollbar-thumb:hover {
+    background-color: var(--color-text-secondary);
+  }
 }

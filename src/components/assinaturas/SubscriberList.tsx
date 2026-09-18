@@ -56,7 +56,7 @@ export function SubscriberList({
       {filtradas.length === 0 ? (
         <EmptyState title="Nenhum assinante" description="Ninguém com esse status no momento." />
       ) : (
-        <Card className="max-h-[26rem] overflow-y-auto">
+        <Card className="scroll-fino max-h-[26rem] overflow-y-auto">
           {filtradas.map((assinatura) => (
             <SubscriberRow
               key={assinatura.id}
