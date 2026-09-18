@@ -32,7 +32,7 @@ const NAV_ITEMS = [
   { href: '/admin/assinaturas', label: 'Assinaturas', icon: Repeat },
   { href: '/admin/financeiro', label: 'Financeiro', icon: LineChart },
   { href: '/admin/produtos', label: 'Produtos', icon: Package },
-  { href: '/admin/plano', label: 'Plano', icon: CreditCard },
+  { href: '/admin/plano', label: 'Plano NexoBarber', icon: CreditCard },
 ]
 
 function NavLinks({ expanded, onNavigate }: { expanded: boolean; onNavigate?: () => void }) {

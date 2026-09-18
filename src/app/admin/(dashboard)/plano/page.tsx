@@ -4,7 +4,7 @@ import { PagamentoPlataformaCard } from '../../../../components/plano/PagamentoP
 import { assertAdmin } from '../../../../lib/adminAuth'
 import { getBarbeariaPorId } from '../../../../db/queries/barbearias'
 import { verificarPagamentoPlataforma } from '../../../../actions/cobrancaPlataforma.actions'
-import { formatBRL } from '../../../../lib/format'
+import { formatBRL, formatDataCurta } from '../../../../lib/format'
 
 const VALOR_MENSALIDADE = 250
 
@@ -33,8 +33,14 @@ export default async function PlanoPage() {
   // status_pagamento no banco fica "em_dia" por padrão até o webhook (ou
   // essa checagem) confirmar de verdade, então não dá pra confiar só nele
   // pra saber se a mensalidade já foi paga.
-  const statusAtual = cobrancaJaIniciada ? await verificarPagamentoPlataforma() : barbearia.statusPagamento
+  const { status: statusAtual, proximaCobranca } = cobrancaJaIniciada
+    ? await verificarPagamentoPlataforma()
+    : { status: barbearia.statusPagamento, proximaCobranca: null }
   const precisaPagar = !cobrancaJaIniciada || statusAtual !== 'em_dia'
+  // status_pagamento nasce "em_dia" por padrão, mesmo sem nenhuma cobrança
+  // real ainda — sem isso o pill mostraria "Em dia" ao lado do formulário
+  // de pagamento, dando a entender (errado) que já tá tudo pago.
+  const statusExibido = cobrancaJaIniciada ? statusAtual : 'aguardando'
 
   return (
     <div className="flex flex-col gap-6">
@@ -47,9 +53,12 @@ export default async function PlanoPage() {
         <div className="flex items-center justify-between gap-3">
           <div>
             <p className="text-sm font-semibold text-text-primary">NexoBarber — {formatBRL(VALOR_MENSALIDADE)}/mês</p>
-            <p className="text-xs text-text-secondary">Plano único, sem fidelidade</p>
+            <p className="text-xs text-text-secondary">
+              Plano único, sem fidelidade
+              {proximaCobranca && ` · próxima cobrança ${formatDataCurta(proximaCobranca)}`}
+            </p>
           </div>
-          <StatusPill status={statusAtual} />
+          <StatusPill status={statusExibido} />
         </div>
         <ul className="flex flex-col gap-2">
           {BENEFICIOS.map((beneficio) => (
@@ -66,7 +75,10 @@ export default async function PlanoPage() {
       ) : (
         <Card className="flex items-center gap-3 p-4">
           <CheckCircle2 size={20} className="shrink-0 text-status-green" aria-hidden="true" />
-          <p className="text-sm text-text-primary">Sua mensalidade está em dia.</p>
+          <p className="text-sm text-text-primary">
+            Sua mensalidade está em dia.
+            {proximaCobranca && ` Próxima cobrança: ${formatDataCurta(proximaCobranca)}.`}
+          </p>
         </Card>
       )}
 

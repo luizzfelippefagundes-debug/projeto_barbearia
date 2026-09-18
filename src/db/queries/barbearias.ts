@@ -1,6 +1,7 @@
 import { eq } from 'drizzle-orm'
 import { getDb } from '../index'
 import { barbearias } from '../schema'
+import type { StatusPagamento } from '../../types'
 
 export async function getBarbeariaPorSlug(slug: string) {
   const rows = await getDb().select().from(barbearias).where(eq(barbearias.slug, slug)).limit(1)
@@ -29,11 +30,15 @@ export async function getBarbeariaPadrao() {
  * no onboarding, depois de criar o cliente e a assinatura no Asaas. */
 export async function salvarCobrancaPlataforma(
   barbeariaId: string,
-  dados: { asaasCustomerId: string; asaasSubscriptionId: string },
+  dados: { asaasCustomerId: string; asaasSubscriptionId: string; statusPagamento?: StatusPagamento },
 ) {
   await getDb()
     .update(barbearias)
-    .set({ asaasCustomerId: dados.asaasCustomerId, asaasSubscriptionId: dados.asaasSubscriptionId })
+    .set({
+      asaasCustomerId: dados.asaasCustomerId,
+      asaasSubscriptionId: dados.asaasSubscriptionId,
+      ...(dados.statusPagamento ? { statusPagamento: dados.statusPagamento } : {}),
+    })
     .where(eq(barbearias.id, barbeariaId))
 }
 

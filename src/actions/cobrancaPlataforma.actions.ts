@@ -38,6 +38,7 @@ export async function iniciarPagamentoPlataforma(cpfInput: string) {
   }
 
   let { asaasCustomerId, asaasSubscriptionId } = barbearia
+  const assinaturaCriadaAgora = !asaasSubscriptionId
 
   if (!asaasCustomerId) {
     const cliente = await criarClienteAsaasPlataforma({
@@ -56,7 +57,15 @@ export async function iniciarPagamentoPlataforma(cpfInput: string) {
     asaasSubscriptionId = assinatura.id
   }
 
-  await salvarCobrancaPlataforma(barbearia.id, { asaasCustomerId, asaasSubscriptionId })
+  await salvarCobrancaPlataforma(barbearia.id, {
+    asaasCustomerId,
+    asaasSubscriptionId,
+    // status_pagamento nasce "em_dia" por padrão (valor otimista pra quando
+    // ninguém nunca cobrou nada ainda) — assim que a cobrança de verdade é
+    // criada, precisa virar "aguardando" até o pagamento confirmar de fato,
+    // senão o painel mostra "em dia" sem nunca ter sido pago.
+    ...(assinaturaCriadaAgora ? { statusPagamento: 'aguardando' as const } : {}),
+  })
 
   revalidatePath('/admin/plano')
   revalidatePath('/pagamento-pendente')
@@ -88,20 +97,25 @@ export async function buscarLinkCartaoDaMensalidade() {
 }
 
 /** Fallback pro webhook: confere direto com o Asaas se a mensalidade já foi
- * paga. Chamado toda vez que a tela de plano/bloqueio carrega. */
+ * paga, e devolve a data de vencimento da cobrança atual junto. Chamado
+ * toda vez que a tela de plano/bloqueio carrega. */
 export async function verificarPagamentoPlataforma() {
   const dono = await assertAdmin()
   const barbearia = await getBarbeariaPorId(dono.barbeariaId)
-  if (!barbearia?.asaasSubscriptionId) return barbearia?.statusPagamento ?? 'em_dia'
+  if (!barbearia?.asaasSubscriptionId) {
+    return { status: barbearia?.statusPagamento ?? 'em_dia', proximaCobranca: null as string | null }
+  }
 
   const pagamento = await buscarPrimeiroPagamentoDaAssinaturaPlataforma(barbearia.asaasSubscriptionId)
-  if (!pagamento) return barbearia.statusPagamento
+  if (!pagamento) return { status: barbearia.statusPagamento, proximaCobranca: null }
 
   const novoStatus = mapStatusPagamentoAsaas(pagamento.status)
-  if (!novoStatus || novoStatus === barbearia.statusPagamento) return barbearia.statusPagamento
+  if (!novoStatus || novoStatus === barbearia.statusPagamento) {
+    return { status: barbearia.statusPagamento, proximaCobranca: pagamento.dueDate }
+  }
 
   await getDb().update(barbearias).set({ statusPagamento: novoStatus }).where(eq(barbearias.id, barbearia.id))
   revalidatePath('/admin/plano')
   revalidatePath('/pagamento-pendente')
-  return novoStatus
+  return { status: novoStatus, proximaCobranca: pagamento.dueDate }
 }
