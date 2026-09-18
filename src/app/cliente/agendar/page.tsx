@@ -33,7 +33,9 @@ export default async function AgendarPage({
   const barbeirosAtivos = barbeiros.filter((b) => b.ativo)
   const grade = await getGradeAgendaDoDia(dataISO, barbeirosAtivos.map((b) => b.id), TIME_SLOTS, cliente.barbeariaId)
 
-  const assinatura = assinaturas.find((a) => a.clienteId === cliente.id && a.status !== 'cancelado')
+  const assinatura = assinaturas.find(
+    (a) => a.clienteId === cliente.id && (a.status === 'em_dia' || a.status === 'atrasado'),
+  )
   const plano = assinatura ? planos.find((p) => p.id === assinatura.planoId) : undefined
 
   return (
