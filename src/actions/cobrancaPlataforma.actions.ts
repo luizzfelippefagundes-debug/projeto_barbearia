@@ -8,6 +8,7 @@ import { assertAdmin } from '../lib/adminAuth'
 import { getBarbeariaPorId, salvarCobrancaPlataforma, salvarCpfCnpjBarbearia } from '../db/queries/barbearias'
 import { mapStatusPagamentoAsaas } from '../lib/asaas'
 import {
+  buscarAssinaturaPlataforma,
   buscarPixQrCodePlataforma,
   buscarPrimeiroPagamentoDaAssinaturaPlataforma,
   buscarStatusPagamentoPlataforma,
@@ -97,8 +98,8 @@ export async function buscarLinkCartaoDaMensalidade() {
 }
 
 /** Fallback pro webhook: confere direto com o Asaas se a mensalidade já foi
- * paga, e devolve a data de vencimento da cobrança atual junto. Chamado
- * toda vez que a tela de plano/bloqueio carrega. */
+ * paga, e devolve a data da próxima cobrança junto. Chamado toda vez que a
+ * tela de plano/bloqueio carrega. */
 export async function verificarPagamentoPlataforma() {
   const dono = await assertAdmin()
   const barbearia = await getBarbeariaPorId(dono.barbeariaId)
@@ -106,16 +107,25 @@ export async function verificarPagamentoPlataforma() {
     return { status: barbearia?.statusPagamento ?? 'em_dia', proximaCobranca: null as string | null }
   }
 
-  const pagamento = await buscarPrimeiroPagamentoDaAssinaturaPlataforma(barbearia.asaasSubscriptionId)
-  if (!pagamento) return { status: barbearia.statusPagamento, proximaCobranca: null }
+  // A data da próxima cobrança vem da assinatura, não da fatura — o Asaas
+  // só gera a fatura de um ciclo alguns dias antes do vencimento, então
+  // logo depois de pagar (ou renovar) pode não existir fatura nenhuma
+  // ainda, mas a assinatura já sabe a data certa.
+  const [pagamento, assinatura] = await Promise.all([
+    buscarPrimeiroPagamentoDaAssinaturaPlataforma(barbearia.asaasSubscriptionId),
+    buscarAssinaturaPlataforma(barbearia.asaasSubscriptionId).catch(() => null),
+  ])
+  const proximaCobranca = assinatura?.nextDueDate ?? pagamento?.dueDate ?? null
+
+  if (!pagamento) return { status: barbearia.statusPagamento, proximaCobranca }
 
   const novoStatus = mapStatusPagamentoAsaas(pagamento.status)
   if (!novoStatus || novoStatus === barbearia.statusPagamento) {
-    return { status: barbearia.statusPagamento, proximaCobranca: pagamento.dueDate }
+    return { status: barbearia.statusPagamento, proximaCobranca }
   }
 
   await getDb().update(barbearias).set({ statusPagamento: novoStatus }).where(eq(barbearias.id, barbearia.id))
   revalidatePath('/admin/plano')
   revalidatePath('/pagamento-pendente')
-  return { status: novoStatus, proximaCobranca: pagamento.dueDate }
+  return { status: novoStatus, proximaCobranca }
 }

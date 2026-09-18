@@ -77,6 +77,17 @@ export async function criarAssinaturaMensalidadeAsaas(params: {
   })
 }
 
+/** Busca a assinatura direto — usada pra saber a data da próxima cobrança
+ * (`nextDueDate`) mesmo antes do Asaas gerar a fatura desse ciclo, o que
+ * só acontece alguns dias antes do vencimento. */
+export async function buscarAssinaturaPlataforma(
+  subscriptionId: string,
+): Promise<{ nextDueDate: string }> {
+  return asaasPlataformaFetch<{ nextDueDate: string }>(
+    `/subscriptions/${encodeURIComponent(subscriptionId)}`,
+  )
+}
+
 export interface AsaasPlataformaPayment {
   id: string
   status: string
