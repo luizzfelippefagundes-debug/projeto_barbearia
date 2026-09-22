@@ -124,6 +124,39 @@
     @apply font-mono tabular-nums;
   }
 
+  /* Entrada suave de cards/elementos ao montar — 4px de subida, rápida.
+   * Opt-in: precisa da classe .anim-in explicitamente, não afeta .card
+   * sozinho, pra não animar todo card já existente no app de uma vez. */
+  @keyframes fade-in-up {
+    from {
+      opacity: 0;
+      transform: translateY(4px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  .anim-in {
+    animation: fade-in-up 320ms ease-out backwards;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .anim-in {
+      animation: none;
+    }
+  }
+
+  /* Hover sutil de card: só a borda clareia, sem deslocar nem sombrear. */
+  .card-hover-border {
+    transition: border-color 150ms ease;
+  }
+
+  .card-hover-border:hover {
+    border-color: var(--color-text-secondary);
+  }
+
   /* Scrollbar fina, discreta, seguindo as cores do tema — usada em listas
    * com altura limitada (ex: assinantes em /admin/assinaturas). */
   .scroll-fino {
