@@ -88,19 +88,24 @@ export default async function DashboardPage() {
         <p className="text-sm text-text-secondary">Aqui está o resumo de hoje.</p>
       </div>
 
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-        <Card className="p-4">
-          <p className="text-xs text-text-secondary">Faturado hoje</p>
-          <p className="mono-value mt-1 text-2xl text-accent">{formatBRL(fechamentoDoDia.total)}</p>
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-[2fr_1fr]">
+        <Card
+          className="anim-in card-hover-border flex flex-col justify-between border-accent bg-accent p-6"
+          style={{ animationDelay: '0ms' }}
+        >
+          <p className="text-xs text-white/70">Faturado hoje</p>
+          <p className="mono-value mt-2 text-4xl text-white">{formatBRL(fechamentoDoDia.total)}</p>
         </Card>
-        <Card className="p-4">
-          <p className="text-xs text-text-secondary">Agendamentos hoje</p>
-          <p className="mono-value mt-1 text-2xl text-text-primary">{confirmadosHoje.length}</p>
-        </Card>
-        <Card className="p-4">
-          <p className="text-xs text-text-secondary">Assinantes em dia</p>
-          <p className="mono-value mt-1 text-2xl text-text-primary">{assinantesEmDia}</p>
-        </Card>
+        <div className="flex flex-col gap-4">
+          <Card className="anim-in card-hover-border p-4" style={{ animationDelay: '60ms' }}>
+            <p className="text-xs text-text-secondary">Agendamentos hoje</p>
+            <p className="mono-value mt-1 text-2xl text-text-primary">{confirmadosHoje.length}</p>
+          </Card>
+          <Card className="anim-in card-hover-border p-4" style={{ animationDelay: '100ms' }}>
+            <p className="text-xs text-text-secondary">Assinantes em dia</p>
+            <p className="mono-value mt-1 text-2xl text-text-primary">{assinantesEmDia}</p>
+          </Card>
+        </div>
       </div>
 
       <div className="flex flex-wrap gap-3">
@@ -124,7 +129,7 @@ export default async function DashboardPage() {
           <EmptyState title="Nada agendado hoje" description="A agenda de hoje está livre." />
         ) : (
           <div className="flex flex-col gap-2">
-            {confirmadosHoje.map((a) => {
+            {confirmadosHoje.map((a, index) => {
               const cliente = clientes.find((c) => c.id === a.clienteId)
               const barbeiro = barbeiros.find((b) => b.id === a.barbeiroId)
               const nomesServicos = a.servicoIds
@@ -132,7 +137,11 @@ export default async function DashboardPage() {
                 .filter(Boolean)
                 .join(' + ')
               return (
-                <Card key={a.id} className="flex items-center justify-between px-4 py-3">
+                <Card
+                  key={a.id}
+                  className="anim-in card-hover-border flex items-center justify-between px-4 py-3"
+                  style={{ animationDelay: `${index * 40}ms` }}
+                >
                   <div>
                     <p className="text-sm text-text-primary">{cliente?.nome ?? 'Cliente avulso'}</p>
                     <p className="text-xs text-text-secondary">
