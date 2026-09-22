@@ -1,6 +1,7 @@
 import Link from 'next/link'
 import { CalendarPlus, ChevronRight, CreditCard, User } from 'lucide-react'
 import { Card } from '../../components/ui'
+import { CadastrarWhatsappCard } from '../../components/perfil/CadastrarWhatsappCard'
 import { requireClienteAtual } from '../../lib/clienteAuth'
 import { getBarbeariaPorId } from '../../db/queries/barbearias'
 
@@ -37,6 +38,12 @@ export default async function PublicHomePage() {
           Corte clássico, atendimento sob medida.
         </p>
       </div>
+
+      {!cliente.telefone && (
+        <div className="lg:mx-auto lg:w-full lg:max-w-xl">
+          <CadastrarWhatsappCard />
+        </div>
+      )}
 
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 lg:gap-5">
         {LINKS.map(({ href, label, descricao, icon: Icon }) => (

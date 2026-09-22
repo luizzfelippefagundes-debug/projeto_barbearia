@@ -1,5 +1,6 @@
 import { BookingFlowClient } from '../../../components/booking/BookingFlowClient'
 import { ClienteDatePicker } from '../../../components/booking/ClienteDatePicker'
+import { CadastrarWhatsappCard } from '../../../components/perfil/CadastrarWhatsappCard'
 import { requireClienteAtual } from '../../../lib/clienteAuth'
 import { getBarbeiros } from '../../../db/queries/barbeiros'
 import { getServicosAtivos } from '../../../db/queries/servicos'
@@ -16,6 +17,15 @@ export default async function AgendarPage({
   searchParams: Promise<{ data?: string }>
 }) {
   const cliente = await requireClienteAtual()
+
+  if (!cliente.telefone) {
+    return (
+      <div className="lg:mx-auto lg:max-w-3xl">
+        <CadastrarWhatsappCard titulo="Antes de agendar, cadastre seu WhatsApp" />
+      </div>
+    )
+  }
+
   const hojeISO = getHojeISO()
   const maxData = addDays(hojeISO, JANELA_DIAS_AGENDAMENTO)
 

@@ -30,7 +30,7 @@ function mesmoTelefone(a: string, b: string): boolean {
 export async function atualizarMeuTelefone(telefoneInput: string) {
   const clienteAtual = await getClienteAtualOuFalhar()
   const telefone = apenasDigitos(telefoneInput)
-  if (telefone.length < 10) throw new Error('Digite um telefone válido, com DDD.')
+  if (telefone.length < 10 || telefone.length > 13) throw new Error('Digite um telefone válido, com DDD.')
 
   const db = getDb()
 
