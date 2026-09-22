@@ -6,6 +6,7 @@ import { getDb } from '../db'
 import { assinaturas, clientes, planosAssinatura } from '../db/schema'
 import { getClienteAtualOuFalhar } from '../lib/clienteAuth'
 import { getAssinaturaAtivaDoCliente } from '../db/queries/assinaturas'
+import { cancelarAssinaturaComAsaas } from '../lib/asaasCancelamento'
 import {
   buscarPixQrCode,
   buscarPrimeiroPagamentoDaAssinatura,
@@ -38,6 +39,21 @@ export async function assinarPlano(
   if (cpf.length !== 11) return { error: 'Digite um CPF válido (11 dígitos).' }
 
   const db = getDb()
+
+  // Se ele já tinha começado a assinar antes e nunca terminou de pagar
+  // (ficou "aguardando"), essa tentativa antiga continua rodando sozinha
+  // no Asaas até vencer — sem cancelar ela agora, mais tarde ela vira
+  // "atrasado" por conta própria e a tela passa a mostrar essa fantasma
+  // em vez da assinatura nova que ele realmente pagou.
+  const pendentes = await db
+    .select({ id: assinaturas.id })
+    .from(assinaturas)
+    .where(and(eq(assinaturas.clienteId, clienteRow.id), eq(assinaturas.status, 'aguardando')))
+  for (const pendente of pendentes) {
+    await cancelarAssinaturaComAsaas(pendente.id).catch((err) => {
+      console.error('[assinarPlano] falha ao cancelar assinatura pendente antiga', pendente.id, err)
+    })
+  }
 
   const planoRows = await db
     .select()

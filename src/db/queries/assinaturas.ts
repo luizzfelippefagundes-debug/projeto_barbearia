@@ -71,6 +71,19 @@ export async function getAssinaturaPorId(id: string): Promise<Assinatura | null>
  * momento (em_dia ou atrasado) — uma assinatura que ficou "aguardando" e o
  * cliente nunca terminou de pagar não conta como nada pra ele: pode tentar
  * assinar de novo, sem precisar cancelar primeiro. */
+/** Escolhe qual assinatura mostrar pro cliente, entre as que já foram
+ * pagas em algum momento (em_dia ou atrasado) — prioriza "em_dia" mesmo
+ * que não seja a mais antiga. Existe porque uma tentativa de assinatura
+ * anterior, nunca cancelada de verdade, pode ficar rodando sozinha no
+ * Asaas e vencer (virando "atrasado") depois que uma tentativa mais nova
+ * já foi paga — sem essa prioridade, a tela mostrava a antiga vencida em
+ * vez da nova em dia. */
+export function escolherAssinaturaPrincipal(assinaturasDoCliente: Assinatura[]): Assinatura | undefined {
+  const emDia = assinaturasDoCliente.find((a) => a.status === 'em_dia')
+  if (emDia) return emDia
+  return assinaturasDoCliente.find((a) => a.status === 'atrasado')
+}
+
 export async function getAssinaturaAtivaDoCliente(clienteId: string): Promise<Assinatura | null> {
   const rows = await getDb()
     .select()

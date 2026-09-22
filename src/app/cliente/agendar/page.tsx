@@ -5,7 +5,7 @@ import { requireClienteAtual } from '../../../lib/clienteAuth'
 import { getBarbeiros } from '../../../db/queries/barbeiros'
 import { getServicosAtivos } from '../../../db/queries/servicos'
 import { getGradeAgendaDoDia } from '../../../db/queries/agendamentos'
-import { getAssinaturas, getPlanosAssinatura } from '../../../db/queries/assinaturas'
+import { escolherAssinaturaPrincipal, getAssinaturas, getPlanosAssinatura } from '../../../db/queries/assinaturas'
 import { addDays, getHojeISO, TIME_SLOTS } from '../../../lib/dateUtils'
 
 /** Cliente só pode agendar hoje + os próximos 6 dias (7 dias no total). */
@@ -43,9 +43,7 @@ export default async function AgendarPage({
   const barbeirosAtivos = barbeiros.filter((b) => b.ativo)
   const grade = await getGradeAgendaDoDia(dataISO, barbeirosAtivos.map((b) => b.id), TIME_SLOTS, cliente.barbeariaId)
 
-  const assinatura = assinaturas.find(
-    (a) => a.clienteId === cliente.id && (a.status === 'em_dia' || a.status === 'atrasado'),
-  )
+  const assinatura = escolherAssinaturaPrincipal(assinaturas.filter((a) => a.clienteId === cliente.id))
   const plano = assinatura ? planos.find((p) => p.id === assinatura.planoId) : undefined
 
   return (

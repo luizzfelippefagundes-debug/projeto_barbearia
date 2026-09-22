@@ -12,7 +12,7 @@ import { getBaseUrl } from '../../../lib/baseUrl'
 import { getBarbeiros } from '../../../db/queries/barbeiros'
 import { getServicosAtivos } from '../../../db/queries/servicos'
 import { getProximosAgendamentosDoCliente } from '../../../db/queries/agendamentos'
-import { getAssinaturas, getPlanosAssinatura } from '../../../db/queries/assinaturas'
+import { escolherAssinaturaPrincipal, getAssinaturas, getPlanosAssinatura } from '../../../db/queries/assinaturas'
 import { getClientesResumo } from '../../../db/queries/clientes'
 import { getHojeISO } from '../../../lib/dateUtils'
 
@@ -29,9 +29,7 @@ export default async function PerfilPage() {
     getBaseUrl(),
   ])
 
-  const assinatura = assinaturas.find(
-    (a) => a.clienteId === cliente.id && (a.status === 'em_dia' || a.status === 'atrasado'),
-  )
+  const assinatura = escolherAssinaturaPrincipal(assinaturas.filter((a) => a.clienteId === cliente.id))
   const plano = assinatura ? planos.find((p) => p.id === assinatura.planoId) : undefined
 
   const totalIndicados = clientes.filter((c) => c.indicadoPor === cliente.id).length
