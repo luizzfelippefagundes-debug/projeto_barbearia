@@ -39,10 +39,14 @@ export function NovoHorarioModal({ dataISO, barbeiros, clientes, servicos }: Nov
     setSalvando(true)
     setErro(null)
     try {
-      await criarOuAtualizarHorario(dataISO, hora, barbeiroId, clienteId, servicoIds)
+      const resultado = await criarOuAtualizarHorario(dataISO, hora, barbeiroId, clienteId, servicoIds)
+      if (resultado.error) {
+        setErro(resultado.error)
+        return
+      }
       setOpen(false)
-    } catch (err) {
-      setErro(err instanceof Error ? err.message : 'Não foi possível salvar. Tente de novo.')
+    } catch {
+      setErro('Não foi possível salvar. Tente de novo.')
     } finally {
       setSalvando(false)
     }

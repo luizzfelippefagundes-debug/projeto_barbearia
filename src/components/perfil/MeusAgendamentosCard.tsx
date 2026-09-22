@@ -31,9 +31,10 @@ function LinhaAgendamento({
     setErro(null)
     startTransition(async () => {
       try {
-        await cancelarMeuAgendamento(agendamento.id)
-      } catch (err) {
-        setErro(err instanceof Error ? err.message : 'Não foi possível cancelar.')
+        const resultado = await cancelarMeuAgendamento(agendamento.id)
+        if (resultado.error) setErro(resultado.error)
+      } catch {
+        setErro('Não foi possível cancelar.')
       }
     })
   }

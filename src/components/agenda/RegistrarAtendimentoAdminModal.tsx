@@ -44,16 +44,20 @@ export function RegistrarAtendimentoAdminModal({
     setErro(null)
     startTransition(async () => {
       try {
-        await registrarAtendimentoAdmin(
+        const resultado = await registrarAtendimentoAdmin(
           agendamentoId,
           clienteId,
           nota,
           ehAvulso ? formaPagamento : undefined,
           ehAvulso ? caixaDestinoBarbeiroId : undefined,
         )
+        if (resultado.error) {
+          setErro(resultado.error)
+          return
+        }
         fechar()
-      } catch (err) {
-        setErro(err instanceof Error ? err.message : 'Não foi possível registrar.')
+      } catch {
+        setErro('Não foi possível registrar.')
       }
     })
   }

@@ -13,9 +13,17 @@ function revalidarTelasDeServico() {
   revalidatePath('/cliente/agendar')
 }
 
-export async function criarServico(nome: string, duracaoMin: number, precoAvulso: number) {
+/** Ações desse arquivo devolvem `{ error }` em vez de lançar exceção nas
+ * validações — em produção, o Next.js esconde a mensagem de erros
+ * lançados numa Server Action, então a única forma confiável do cliente
+ * ver a mensagem certa é como dado de retorno normal. */
+export async function criarServico(
+  nome: string,
+  duracaoMin: number,
+  precoAvulso: number,
+): Promise<{ error: string } | (typeof servicos.$inferSelect)> {
   const dono = await assertAdmin()
-  if (!nome.trim()) throw new Error('Nome é obrigatório')
+  if (!nome.trim()) return { error: 'Nome é obrigatório' }
 
   const rows = await getDb()
     .insert(servicos)
@@ -31,9 +39,14 @@ export async function criarServico(nome: string, duracaoMin: number, precoAvulso
   return rows[0]
 }
 
-export async function atualizarServico(id: string, nome: string, duracaoMin: number, precoAvulso: number) {
+export async function atualizarServico(
+  id: string,
+  nome: string,
+  duracaoMin: number,
+  precoAvulso: number,
+): Promise<{ error: string } | (typeof servicos.$inferSelect)> {
   const dono = await assertAdmin()
-  if (!nome.trim()) throw new Error('Nome é obrigatório')
+  if (!nome.trim()) return { error: 'Nome é obrigatório' }
 
   const rows = await getDb()
     .update(servicos)

@@ -20,7 +20,11 @@ export function NovoClienteButton() {
     setSalvando(true)
     setErro(null)
     try {
-      await criarCliente(nome, telefone)
+      const resultado = await criarCliente(nome, telefone)
+      if ('error' in resultado) {
+        setErro(resultado.error)
+        return
+      }
       setNome('')
       setTelefone('')
       setOpen(false)

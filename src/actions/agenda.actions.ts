@@ -10,6 +10,13 @@ import { registrarAvisoCancelamento } from '../lib/avisoBarbeiro'
 import { getHojeISO, TIME_SLOTS } from '../lib/dateUtils'
 import type { FormaPagamento } from '../types'
 
+/** Todas as ações desse arquivo devolvem `{ error }` em vez de lançar
+ * exceção — em produção, o Next.js esconde a mensagem de erros lançados
+ * numa Server Action (vira "Minified React error #441"), então a única
+ * forma confiável do cliente ver a mensagem certa é como dado de
+ * retorno normal. */
+type Resultado = { error?: string }
+
 function revalidarAgenda() {
   revalidatePath('/admin/agenda')
   revalidatePath('/barbeiro/agenda')
@@ -22,19 +29,24 @@ export async function criarOuAtualizarHorario(
   barbeiroId: string,
   clienteId: string,
   servicoIds: string[],
-) {
+): Promise<Resultado> {
   const dono = await assertAdmin()
-  if (!clienteId) throw new Error('Escolha um cliente.')
+  if (!clienteId) return { error: 'Escolha um cliente.' }
 
-  await criarAgendamentoComServicos({ data, hora, barbeiroId, clienteId, servicoIds, barbeariaId: dono.barbeariaId })
+  try {
+    await criarAgendamentoComServicos({ data, hora, barbeiroId, clienteId, servicoIds, barbeariaId: dono.barbeariaId })
+  } catch (err) {
+    return { error: err instanceof Error ? err.message : 'Não foi possível salvar o horário.' }
+  }
 
   revalidarAgenda()
+  return {}
 }
 
 /** Bloqueia um horário específico de um barbeiro (ex: almoço, compromisso) —
  * o cliente não consegue agendar nesse slot. Não bloqueia se já tiver um
  * cliente marcado ali (precisa cancelar o agendamento antes). */
-export async function bloquearHorario(data: string, hora: string, barbeiroId: string) {
+export async function bloquearHorario(data: string, hora: string, barbeiroId: string): Promise<Resultado> {
   const dono = await assertAdmin()
 
   const db = getDb()
@@ -51,7 +63,7 @@ export async function bloquearHorario(data: string, hora: string, barbeiroId: st
     )
     .limit(1)
   if (existente[0]?.status === 'confirmado' || existente[0]?.status === 'atendido') {
-    throw new Error('Esse horário já tem um cliente marcado — cancele o agendamento antes de bloquear.')
+    return { error: 'Esse horário já tem um cliente marcado — cancele o agendamento antes de bloquear.' }
   }
 
   await db
@@ -63,9 +75,10 @@ export async function bloquearHorario(data: string, hora: string, barbeiroId: st
     })
 
   revalidarAgenda()
+  return {}
 }
 
-export async function desbloquearHorario(data: string, hora: string, barbeiroId: string) {
+export async function desbloquearHorario(data: string, hora: string, barbeiroId: string): Promise<Resultado> {
   const dono = await assertAdmin()
 
   await getDb()
@@ -81,11 +94,12 @@ export async function desbloquearHorario(data: string, hora: string, barbeiroId:
     )
 
   revalidarAgenda()
+  return {}
 }
 
 /** Bloqueia o dia inteiro pra um barbeiro (ex: folga, feriado) — pula
  * qualquer horário que já tenha cliente marcado. */
-export async function bloquearDiaInteiro(data: string, barbeiroId: string) {
+export async function bloquearDiaInteiro(data: string, barbeiroId: string): Promise<Resultado> {
   const dono = await assertAdmin()
 
   const db = getDb()
@@ -115,9 +129,10 @@ export async function bloquearDiaInteiro(data: string, barbeiroId: string) {
   }
 
   revalidarAgenda()
+  return {}
 }
 
-export async function desbloquearDiaInteiro(data: string, barbeiroId: string) {
+export async function desbloquearDiaInteiro(data: string, barbeiroId: string): Promise<Resultado> {
   const dono = await assertAdmin()
 
   await getDb()
@@ -132,6 +147,7 @@ export async function desbloquearDiaInteiro(data: string, barbeiroId: string) {
     )
 
   revalidarAgenda()
+  return {}
 }
 
 /** Marca que o cliente confirmado não apareceu — diferente de bloquear ou
@@ -139,7 +155,7 @@ export async function desbloquearDiaInteiro(data: string, barbeiroId: string) {
  * mas não conta como atendimento nem comissão. Se o agendamento ocupou
  * mais de um slot (serviços com duração somada), marca a continuação
  * junto, pra não sobrar um horário "livre" no meio de um "não compareceu". */
-export async function marcarNaoCompareceu(agendamentoId: string) {
+export async function marcarNaoCompareceu(agendamentoId: string): Promise<Resultado> {
   const dono = await assertAdmin()
 
   const db = getDb()
@@ -154,7 +170,7 @@ export async function marcarNaoCompareceu(agendamentoId: string) {
       ),
     )
     .returning()
-  if (rows.length === 0) throw new Error('Esse agendamento não está mais confirmado.')
+  if (rows.length === 0) return { error: 'Esse agendamento não está mais confirmado.' }
 
   await db
     .update(agendamentos)
@@ -162,12 +178,13 @@ export async function marcarNaoCompareceu(agendamentoId: string) {
     .where(and(eq(agendamentos.continuacaoDeId, agendamentoId), eq(agendamentos.status, 'confirmado')))
 
   revalidarAgenda()
+  return {}
 }
 
 /** Cancela um agendamento de verdade (diferente de "não compareceu") —
  * apaga a linha e libera o horário pra outra pessoa marcar. Serviços
  * ligados e eventuais continuações (por duração) somem junto, em cascata. */
-export async function cancelarAgendamentoAdmin(agendamentoId: string) {
+export async function cancelarAgendamentoAdmin(agendamentoId: string): Promise<Resultado> {
   const dono = await assertAdmin()
 
   const db = getDb()
@@ -176,7 +193,7 @@ export async function cancelarAgendamentoAdmin(agendamentoId: string) {
     .from(agendamentos)
     .where(and(eq(agendamentos.id, agendamentoId), eq(agendamentos.barbeariaId, dono.barbeariaId)))
     .limit(1)
-  if (!agendamento) throw new Error('Esse agendamento não foi encontrado.')
+  if (!agendamento) return { error: 'Esse agendamento não foi encontrado.' }
 
   // Só avisa se não for o próprio dono cancelando o próprio horário — quem
   // faz a ação já sabe que cancelou, não precisa de aviso pra si mesmo.
@@ -194,9 +211,10 @@ export async function cancelarAgendamentoAdmin(agendamentoId: string) {
   }
 
   const rows = await db.delete(agendamentos).where(eq(agendamentos.id, agendamentoId)).returning()
-  if (rows.length === 0) throw new Error('Esse agendamento não foi encontrado.')
+  if (rows.length === 0) return { error: 'Esse agendamento não foi encontrado.' }
 
   revalidarAgenda()
+  return {}
 }
 
 /** Troca quais serviços estão ligados a um agendamento já marcado — pra
@@ -205,9 +223,9 @@ export async function cancelarAgendamentoAdmin(agendamentoId: string) {
  * barbeiro registra o atendimento, já gerou histórico de corte (haircut
  * records) e comissão em cima do serviço antigo, e essa troca não teria
  * como corrigir isso retroativamente. */
-export async function editarServicosAgendamento(agendamentoId: string, servicoIds: string[]) {
+export async function editarServicosAgendamento(agendamentoId: string, servicoIds: string[]): Promise<Resultado> {
   const dono = await assertAdmin()
-  if (servicoIds.length === 0) throw new Error('Escolha pelo menos um serviço.')
+  if (servicoIds.length === 0) return { error: 'Escolha pelo menos um serviço.' }
 
   const db = getDb()
   const [agendamento] = await db
@@ -215,15 +233,16 @@ export async function editarServicosAgendamento(agendamentoId: string, servicoId
     .from(agendamentos)
     .where(and(eq(agendamentos.id, agendamentoId), eq(agendamentos.barbeariaId, dono.barbeariaId)))
     .limit(1)
-  if (!agendamento) throw new Error('Esse agendamento não foi encontrado.')
+  if (!agendamento) return { error: 'Esse agendamento não foi encontrado.' }
   if (agendamento.status !== 'confirmado') {
-    throw new Error('Só dá pra editar os serviços de um horário confirmado que ainda não foi atendido.')
+    return { error: 'Só dá pra editar os serviços de um horário confirmado que ainda não foi atendido.' }
   }
 
   await db.delete(agendamentoServicos).where(eq(agendamentoServicos.agendamentoId, agendamentoId))
   await db.insert(agendamentoServicos).values(servicoIds.map((servicoId) => ({ agendamentoId, servicoId })))
 
   revalidarAgenda()
+  return {}
 }
 
 /** Registra que o atendimento aconteceu — equivalente ao "Registrar
@@ -236,7 +255,7 @@ export async function registrarAtendimentoAdmin(
   nota: string,
   formaPagamento?: FormaPagamento,
   caixaDestinoBarbeiroId?: string,
-) {
+): Promise<Resultado> {
   const dono = await assertAdmin()
 
   const db = getDb()
@@ -252,7 +271,7 @@ export async function registrarAtendimentoAdmin(
       ),
     )
     .returning()
-  if (rows.length === 0) throw new Error('Atendimento já registrado ou agendamento inválido.')
+  if (rows.length === 0) return { error: 'Atendimento já registrado ou agendamento inválido.' }
   const agendamento = rows[0]
 
   // Se esse agendamento ocupou mais de um slot (serviços com duração
@@ -267,7 +286,7 @@ export async function registrarAtendimentoAdmin(
     .select()
     .from(agendamentoServicos)
     .where(eq(agendamentoServicos.agendamentoId, agendamentoId))
-  if (servicosDoAgendamento.length === 0) throw new Error('Agendamento sem serviço associado.')
+  if (servicosDoAgendamento.length === 0) return { error: 'Agendamento sem serviço associado.' }
 
   const hojeISO = getHojeISO()
   await db.insert(haircutRecords).values(
@@ -289,4 +308,5 @@ export async function registrarAtendimentoAdmin(
     .where(eq(clientes.id, clienteId))
 
   revalidarAgenda()
+  return {}
 }

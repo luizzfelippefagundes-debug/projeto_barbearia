@@ -23,13 +23,12 @@ export function BloquearHorarioButton({
     setErro(null)
     startTransition(async () => {
       try {
-        if (bloqueado) {
-          await desbloquearHorario(data, hora, barbeiroId)
-        } else {
-          await bloquearHorario(data, hora, barbeiroId)
-        }
-      } catch (err) {
-        setErro(err instanceof Error ? err.message : 'Não foi possível atualizar.')
+        const resultado = bloqueado
+          ? await desbloquearHorario(data, hora, barbeiroId)
+          : await bloquearHorario(data, hora, barbeiroId)
+        if (resultado.error) setErro(resultado.error)
+      } catch {
+        setErro('Não foi possível atualizar.')
       }
     })
   }

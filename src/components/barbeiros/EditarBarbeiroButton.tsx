@@ -31,10 +31,14 @@ export function EditarBarbeiroButton({
     setSalvando(true)
     setErro(null)
     try {
-      await editarBarbeiro(barbeiroId, nome, telefone)
+      const resultado = await editarBarbeiro(barbeiroId, nome, telefone)
+      if (resultado.error) {
+        setErro(resultado.error)
+        return
+      }
       setOpen(false)
-    } catch (err) {
-      setErro(err instanceof Error ? err.message : 'Não foi possível salvar.')
+    } catch {
+      setErro('Não foi possível salvar.')
     } finally {
       setSalvando(false)
     }

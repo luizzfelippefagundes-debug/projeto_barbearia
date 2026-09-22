@@ -7,7 +7,13 @@ import { assinaturas, planosAssinatura, planoServicosInclusos } from '../db/sche
 import { assertAdmin } from '../lib/adminAuth'
 import { cancelarAssinaturaComAsaas } from '../lib/asaasCancelamento'
 
-export async function cancelarAssinatura(assinaturaId: string) {
+/** Ações desse arquivo devolvem `{ error }` em vez de lançar exceção — em
+ * produção, o Next.js esconde a mensagem de erros lançados numa Server
+ * Action (vira "Minified React error #441"), então a única forma
+ * confiável do cliente ver a mensagem certa é como dado de retorno normal. */
+type Resultado = { error?: string }
+
+export async function cancelarAssinatura(assinaturaId: string): Promise<Resultado> {
   const dono = await assertAdmin()
 
   const [assinatura] = await getDb()
@@ -15,20 +21,27 @@ export async function cancelarAssinatura(assinaturaId: string) {
     .from(assinaturas)
     .where(and(eq(assinaturas.id, assinaturaId), eq(assinaturas.barbeariaId, dono.barbeariaId)))
     .limit(1)
-  if (!assinatura) throw new Error('Assinatura não encontrada.')
+  if (!assinatura) return { error: 'Assinatura não encontrada.' }
 
-  await cancelarAssinaturaComAsaas(assinaturaId)
+  try {
+    await cancelarAssinaturaComAsaas(assinaturaId)
+  } catch (err) {
+    return { error: err instanceof Error ? err.message : 'Não foi possível cancelar a assinatura.' }
+  }
+
   revalidatePath('/admin/assinaturas')
   revalidatePath('/cliente/perfil')
+  return {}
 }
 
-export async function reenviarCobranca(assinaturaId: string) {
+export async function reenviarCobranca(assinaturaId: string): Promise<Resultado> {
   const dono = await assertAdmin()
   await getDb()
     .update(assinaturas)
     .set({ ultimoReenvioEm: new Date() })
     .where(and(eq(assinaturas.id, assinaturaId), eq(assinaturas.barbeariaId, dono.barbeariaId)))
   revalidatePath('/admin/assinaturas')
+  return {}
 }
 
 function revalidarTelasDePlano() {
@@ -42,9 +55,9 @@ export async function criarPlano(
   nome: string,
   valorMensal: number,
   servicosInclusos: Array<{ servicoId: string; limiteMensal: number | null }>,
-) {
+): Promise<{ error: string } | (typeof planosAssinatura.$inferSelect)> {
   const dono = await assertAdmin()
-  if (!nome.trim()) throw new Error('Nome é obrigatório')
+  if (!nome.trim()) return { error: 'Nome é obrigatório' }
 
   const db = getDb()
   const rows = await db
@@ -72,9 +85,9 @@ export async function atualizarPlano(
   nome: string,
   valorMensal: number,
   servicosInclusos: Array<{ servicoId: string; limiteMensal: number | null }>,
-) {
+): Promise<Resultado> {
   const dono = await assertAdmin()
-  if (!nome.trim()) throw new Error('Nome é obrigatório')
+  if (!nome.trim()) return { error: 'Nome é obrigatório' }
 
   const db = getDb()
   await db
@@ -96,18 +109,20 @@ export async function atualizarPlano(
   }
 
   revalidarTelasDePlano()
+  return {}
 }
 
-export async function toggleAtivoPlano(id: string, ativo: boolean) {
+export async function toggleAtivoPlano(id: string, ativo: boolean): Promise<Resultado> {
   const dono = await assertAdmin()
   await getDb()
     .update(planosAssinatura)
     .set({ ativo })
     .where(and(eq(planosAssinatura.id, id), eq(planosAssinatura.barbeariaId, dono.barbeariaId)))
   revalidarTelasDePlano()
+  return {}
 }
 
-export async function apagarPlano(id: string) {
+export async function apagarPlano(id: string): Promise<Resultado> {
   const dono = await assertAdmin()
   const db = getDb()
 
@@ -116,7 +131,7 @@ export async function apagarPlano(id: string) {
     .from(planosAssinatura)
     .where(and(eq(planosAssinatura.id, id), eq(planosAssinatura.barbeariaId, dono.barbeariaId)))
     .limit(1)
-  if (!plano) throw new Error('Plano não encontrado.')
+  if (!plano) return { error: 'Plano não encontrado.' }
 
   const [{ total }] = await db
     .select({ total: sql<number>`count(*)::int` })
@@ -124,11 +139,12 @@ export async function apagarPlano(id: string) {
     .where(eq(assinaturas.planoId, id))
 
   if (total > 0) {
-    throw new Error(
-      `Esse plano já teve ${total} assinatura(s) vinculada(s) — não dá pra apagar. Desative em vez disso.`,
-    )
+    return {
+      error: `Esse plano já teve ${total} assinatura(s) vinculada(s) — não dá pra apagar. Desative em vez disso.`,
+    }
   }
 
   await db.delete(planosAssinatura).where(eq(planosAssinatura.id, id))
   revalidarTelasDePlano()
+  return {}
 }

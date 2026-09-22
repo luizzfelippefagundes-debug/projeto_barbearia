@@ -16,10 +16,15 @@ export function CadastrarWhatsappCard({ titulo = 'Cadastre seu WhatsApp' }: { ti
     setSalvando(true)
     setErro(null)
     try {
-      await atualizarMeuTelefone(telefone)
+      const resultado = await atualizarMeuTelefone(telefone)
+      if (resultado.error) {
+        setErro(resultado.error)
+        setSalvando(false)
+        return
+      }
       router.refresh()
-    } catch (err) {
-      setErro(err instanceof Error ? err.message : 'Não foi possível salvar.')
+    } catch {
+      setErro('Não foi possível salvar. Tenta de novo.')
       setSalvando(false)
     }
   }

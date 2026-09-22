@@ -32,6 +32,7 @@ export function RegistrarAtendimentoModal({
   const [formaPagamento, setFormaPagamento] = useState<FormaPagamento>('pix')
   const [caixaDestinoBarbeiroId, setCaixaDestinoBarbeiroId] = useState(barbeiros[0]?.id ?? '')
   const [pending, startTransition] = useTransition()
+  const [erro, setErro] = useState<string | null>(null)
   const formRef = useRef<HTMLFormElement>(null)
 
   function handleFotoSelecionada(e: React.ChangeEvent<HTMLInputElement>) {
@@ -47,11 +48,20 @@ export function RegistrarAtendimentoModal({
       formData.set('formaPagamento', formaPagamento)
       formData.set('caixaDestinoBarbeiroId', caixaDestinoBarbeiroId)
     }
+    setErro(null)
     startTransition(async () => {
-      await registrarMeuAtendimento(formData)
-      setOpen(false)
-      setFotoPreview(undefined)
-      formRef.current?.reset()
+      try {
+        const resultado = await registrarMeuAtendimento(formData)
+        if (resultado.error) {
+          setErro(resultado.error)
+          return
+        }
+        setOpen(false)
+        setFotoPreview(undefined)
+        formRef.current?.reset()
+      } catch {
+        setErro('Não foi possível registrar.')
+      }
     })
   }
 
@@ -95,6 +105,8 @@ export function RegistrarAtendimentoModal({
               />
             )}
           </div>
+
+          {erro && <p className="text-xs text-status-red">{erro}</p>}
 
           <div className="flex justify-end gap-2">
             <Button type="button" variant="ghost" onClick={() => setOpen(false)}>

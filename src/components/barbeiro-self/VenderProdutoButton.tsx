@@ -9,13 +9,21 @@ export function VenderProdutoButton({ produto }: { produto: Produto }) {
   const [open, setOpen] = useState(false)
   const [quantidade, setQuantidade] = useState(1)
   const [salvando, setSalvando] = useState(false)
+  const [erro, setErro] = useState<string | null>(null)
 
   async function handleConfirmar() {
     setSalvando(true)
+    setErro(null)
     try {
-      await registrarMinhaVenda(produto.id, quantidade)
+      const resultado = await registrarMinhaVenda(produto.id, quantidade)
+      if (resultado.error) {
+        setErro(resultado.error)
+        return
+      }
       setOpen(false)
       setQuantidade(1)
+    } catch {
+      setErro('Não foi possível registrar a venda.')
     } finally {
       setSalvando(false)
     }
@@ -38,6 +46,7 @@ export function VenderProdutoButton({ produto }: { produto: Produto }) {
             onChange={(e) => setQuantidade(Math.max(1, Number(e.target.value)))}
           />
           <p className="text-xs text-text-secondary">{produto.estoque} em estoque</p>
+          {erro && <p className="text-xs text-status-red">{erro}</p>}
           <div className="flex justify-end gap-2">
             <Button variant="ghost" onClick={() => setOpen(false)}>
               Cancelar

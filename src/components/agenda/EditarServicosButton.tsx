@@ -38,10 +38,14 @@ export function EditarServicosButton({
     setSalvando(true)
     setErro(null)
     try {
-      await editarServicosAgendamento(agendamentoId, servicoIds)
+      const resultado = await editarServicosAgendamento(agendamentoId, servicoIds)
+      if (resultado.error) {
+        setErro(resultado.error)
+        return
+      }
       setOpen(false)
-    } catch (err) {
-      setErro(err instanceof Error ? err.message : 'Não foi possível salvar.')
+    } catch {
+      setErro('Não foi possível salvar.')
     } finally {
       setSalvando(false)
     }

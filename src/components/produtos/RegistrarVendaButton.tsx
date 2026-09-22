@@ -16,14 +16,22 @@ export function RegistrarVendaButton({
   const [barbeiroId, setBarbeiroId] = useState(barbeiros[0]?.id ?? '')
   const [quantidade, setQuantidade] = useState(1)
   const [salvando, setSalvando] = useState(false)
+  const [erro, setErro] = useState<string | null>(null)
 
   async function handleConfirmar() {
     if (!barbeiroId) return
     setSalvando(true)
+    setErro(null)
     try {
-      await registrarVenda(produto.id, barbeiroId, quantidade)
+      const resultado = await registrarVenda(produto.id, barbeiroId, quantidade)
+      if (resultado.error) {
+        setErro(resultado.error)
+        return
+      }
       setOpen(false)
       setQuantidade(1)
+    } catch {
+      setErro('Não foi possível registrar a venda.')
     } finally {
       setSalvando(false)
     }
@@ -64,6 +72,7 @@ export function RegistrarVendaButton({
           />
 
           <p className="text-xs text-text-secondary">{produto.estoque} em estoque</p>
+          {erro && <p className="text-xs text-status-red">{erro}</p>}
 
           <div className="flex justify-end gap-2">
             <Button variant="ghost" onClick={() => setOpen(false)}>

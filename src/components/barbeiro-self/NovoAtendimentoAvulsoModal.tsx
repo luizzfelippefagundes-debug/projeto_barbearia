@@ -57,7 +57,7 @@ export function NovoAtendimentoAvulsoModal({
     setSalvando(true)
     setErro(null)
     try {
-      await criarAtendimentoAvulso({
+      const resultado = await criarAtendimentoAvulso({
         clienteId: modoNovoCliente ? undefined : clienteId,
         nomeNovoCliente: modoNovoCliente ? nomeNovo : undefined,
         telefoneNovoCliente: modoNovoCliente ? telefoneNovo : undefined,
@@ -66,9 +66,13 @@ export function NovoAtendimentoAvulsoModal({
         formaPagamento,
         caixaDestinoBarbeiroId,
       })
+      if (resultado.error) {
+        setErro(resultado.error)
+        return
+      }
       fechar()
-    } catch (err) {
-      setErro(err instanceof Error ? err.message : 'Não foi possível registrar. Tente de novo.')
+    } catch {
+      setErro('Não foi possível registrar. Tente de novo.')
     } finally {
       setSalvando(false)
     }

@@ -47,6 +47,10 @@ export function NovoBarbeiroButton() {
     setErro(null)
     try {
       const resultado = await criarBarbeiro(nome, email, foto ?? undefined)
+      if ('error' in resultado) {
+        setErro(resultado.error)
+        return
+      }
       setSucesso({
         nome: resultado.nome,
         conviteEnviado: resultado.conviteEnviado,

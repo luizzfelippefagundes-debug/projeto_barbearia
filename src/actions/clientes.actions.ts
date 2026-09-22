@@ -9,9 +9,16 @@ import { assertAdmin } from '../lib/adminAuth'
 import { getHojeISO } from '../lib/dateUtils'
 import { gerarCodigoIndicacao } from '../lib/codigoIndicacao'
 
-export async function criarCliente(nome: string, telefone: string) {
+/** Ações desse arquivo devolvem `{ error }` em vez de lançar exceção nas
+ * validações — em produção, o Next.js esconde a mensagem de erros
+ * lançados numa Server Action, então a única forma confiável do cliente
+ * ver a mensagem certa é como dado de retorno normal. */
+export async function criarCliente(
+  nome: string,
+  telefone: string,
+): Promise<{ error: string } | (typeof clientes.$inferSelect)> {
   const dono = await assertAdmin()
-  if (!nome.trim()) throw new Error('Nome é obrigatório')
+  if (!nome.trim()) return { error: 'Nome é obrigatório' }
 
   const rows = await getDb()
     .insert(clientes)
@@ -28,7 +35,7 @@ export async function criarCliente(nome: string, telefone: string) {
   return rows[0]
 }
 
-export async function registrarAtendimento(clienteId: string, formData: FormData) {
+export async function registrarAtendimento(clienteId: string, formData: FormData): Promise<{ error?: string }> {
   const dono = await assertAdmin()
 
   const barbeiroId = String(formData.get('barbeiroId') ?? '')
@@ -36,7 +43,7 @@ export async function registrarAtendimento(clienteId: string, formData: FormData
   const nota = String(formData.get('nota') ?? '').trim()
   const foto = formData.get('foto')
 
-  if (!clienteId || !barbeiroId || !servicoId) throw new Error('Dados incompletos')
+  if (!clienteId || !barbeiroId || !servicoId) return { error: 'Dados incompletos' }
 
   let fotoUrl: string | undefined
   if (foto instanceof File && foto.size > 0) {
@@ -65,4 +72,5 @@ export async function registrarAtendimento(clienteId: string, formData: FormData
     .where(eq(clientes.id, clienteId))
 
   revalidatePath('/admin/clientes')
+  return {}
 }

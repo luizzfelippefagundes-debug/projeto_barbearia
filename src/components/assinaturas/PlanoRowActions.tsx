@@ -16,9 +16,10 @@ export function PlanoRowActions({ plano, servicos }: { plano: PlanoAssinatura; s
     setErro(null)
     startTransition(async () => {
       try {
-        await apagarPlano(plano.id)
-      } catch (err) {
-        setErro(err instanceof Error ? err.message : 'Não foi possível apagar.')
+        const resultado = await apagarPlano(plano.id)
+        if (resultado.error) setErro(resultado.error)
+      } catch {
+        setErro('Não foi possível apagar.')
       }
     })
   }
@@ -31,7 +32,11 @@ export function PlanoRowActions({ plano, servicos }: { plano: PlanoAssinatura; s
           icon={plano.ativo ? <EyeOff size={14} aria-hidden="true" /> : <Eye size={14} aria-hidden="true" />}
           label={plano.ativo ? 'Desativar plano' : 'Reativar plano'}
           disabled={pending}
-          onClick={() => startTransition(() => toggleAtivoPlano(plano.id, !plano.ativo))}
+          onClick={() =>
+            startTransition(async () => {
+              await toggleAtivoPlano(plano.id, !plano.ativo)
+            })
+          }
         />
         <IconButton
           icon={<Trash2 size={14} aria-hidden="true" />}

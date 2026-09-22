@@ -11,9 +11,13 @@ import { assertAdmin } from '../lib/adminAuth'
 import { getBaseUrl } from '../lib/baseUrl'
 import { getHojeISO } from '../lib/dateUtils'
 
-export async function atualizarFotoBarbeiro(barbeiroId: string, foto: File) {
+/** Devolve `{ error }` em vez de lançar exceção nas validações — em
+ * produção, o Next.js esconde a mensagem de erros lançados numa Server
+ * Action, então a única forma confiável do cliente ver a mensagem certa
+ * é como dado de retorno normal, não como erro lançado. */
+export async function atualizarFotoBarbeiro(barbeiroId: string, foto: File): Promise<{ error?: string }> {
   const dono = await assertAdmin()
-  if (!(foto instanceof File) || foto.size === 0) throw new Error('Selecione uma foto')
+  if (!(foto instanceof File) || foto.size === 0) return { error: 'Selecione uma foto' }
 
   const blob = await put(`barbeiros/${barbeiroId}-${Date.now()}-${foto.name}`, foto, { access: 'public' })
   await getDb()
@@ -24,6 +28,7 @@ export async function atualizarFotoBarbeiro(barbeiroId: string, foto: File) {
   revalidatePath('/admin/barbeiros')
   revalidatePath('/cliente/agendar')
   revalidatePath('/barbeiro')
+  return {}
 }
 
 /** O repasse pro barbeiro é manual (o dono paga por fora — Pix, dinheiro
@@ -70,7 +75,7 @@ export async function marcarRepasseComoPago(barbeiroId: string, mesReferencia: s
  * o dono precisa só desativar (campo `ativo`), não excluir de verdade.
  * Apagar uma conta de dono só é permitido se sobrar pelo menos outra —
  * senão ninguém mais conseguiria entrar no painel administrativo. */
-export async function apagarBarbeiro(barbeiroId: string) {
+export async function apagarBarbeiro(barbeiroId: string): Promise<{ error?: string }> {
   const dono = await assertAdmin()
 
   const db = getDb()
@@ -79,7 +84,7 @@ export async function apagarBarbeiro(barbeiroId: string) {
     .from(barbeiros)
     .where(and(eq(barbeiros.id, barbeiroId), eq(barbeiros.barbeariaId, dono.barbeariaId)))
     .limit(1)
-  if (!alvo) throw new Error('Barbeiro não encontrado')
+  if (!alvo) return { error: 'Barbeiro não encontrado' }
 
   if (alvo.papel === 'dono') {
     const [{ count: totalDonos }] = await db
@@ -87,7 +92,7 @@ export async function apagarBarbeiro(barbeiroId: string) {
       .from(barbeiros)
       .where(and(eq(barbeiros.papel, 'dono'), eq(barbeiros.barbeariaId, dono.barbeariaId)))
     if (Number(totalDonos) <= 1) {
-      throw new Error('Não dá pra apagar o último dono — ninguém mais conseguiria entrar no painel.')
+      return { error: 'Não dá pra apagar o último dono — ninguém mais conseguiria entrar no painel.' }
     }
   }
 
@@ -101,16 +106,17 @@ export async function apagarBarbeiro(barbeiroId: string) {
     .where(eq(vendas.barbeiroId, barbeiroId))
 
   if (Number(totalAtendimentos) > 0 || Number(totalVendas) > 0) {
-    throw new Error('Esse barbeiro já tem histórico de atendimentos ou vendas — desative em vez de apagar.')
+    return { error: 'Esse barbeiro já tem histórico de atendimentos ou vendas — desative em vez de apagar.' }
   }
 
   await db.delete(barbeiros).where(eq(barbeiros.id, barbeiroId))
   revalidatePath('/admin/barbeiros')
+  return {}
 }
 
-export async function editarBarbeiro(barbeiroId: string, nome: string, telefone: string) {
+export async function editarBarbeiro(barbeiroId: string, nome: string, telefone: string): Promise<{ error?: string }> {
   const dono = await assertAdmin()
-  if (!nome.trim()) throw new Error('Nome é obrigatório')
+  if (!nome.trim()) return { error: 'Nome é obrigatório' }
 
   await getDb()
     .update(barbeiros)
@@ -119,6 +125,7 @@ export async function editarBarbeiro(barbeiroId: string, nome: string, telefone:
   revalidatePath('/admin/barbeiros')
   revalidatePath('/cliente/agendar')
   revalidatePath('/barbeiro')
+  return {}
 }
 
 /** Só filtra o que aparece pro CLIENTE agendar (site + bot do WhatsApp) —
@@ -130,10 +137,10 @@ export async function editarHorarioTrabalho(
   diasTrabalho: number[],
   horaInicio: string,
   horaFim: string,
-) {
+): Promise<{ error?: string }> {
   const dono = await assertAdmin()
-  if (diasTrabalho.length === 0) throw new Error('Escolha pelo menos um dia da semana.')
-  if (horaInicio >= horaFim) throw new Error('O horário de início precisa ser antes do de fim.')
+  if (diasTrabalho.length === 0) return { error: 'Escolha pelo menos um dia da semana.' }
+  if (horaInicio >= horaFim) return { error: 'O horário de início precisa ser antes do de fim.' }
 
   await getDb()
     .update(barbeiros)
@@ -142,6 +149,7 @@ export async function editarHorarioTrabalho(
   revalidatePath('/admin/barbeiros')
   revalidatePath('/barbeiro/perfil')
   revalidatePath('/cliente/agendar')
+  return {}
 }
 
 export async function toggleAtivoBarbeiro(barbeiroId: string, ativo: boolean) {
@@ -155,10 +163,14 @@ export async function toggleAtivoBarbeiro(barbeiroId: string, ativo: boolean) {
   revalidatePath('/cliente/agendar')
 }
 
-export async function criarBarbeiro(nome: string, emailConvite: string, foto?: File) {
+export async function criarBarbeiro(
+  nome: string,
+  emailConvite: string,
+  foto?: File,
+): Promise<{ error: string } | (typeof barbeiros.$inferSelect & { conviteEnviado: boolean; emailJaExiste: boolean })> {
   const dono = await assertAdmin()
-  if (!nome.trim()) throw new Error('Nome é obrigatório')
-  if (!emailConvite.trim()) throw new Error('E-mail é obrigatório para o convite')
+  if (!nome.trim()) return { error: 'Nome é obrigatório' }
+  if (!emailConvite.trim()) return { error: 'E-mail é obrigatório para o convite' }
 
   const email = emailConvite.trim().toLowerCase()
 

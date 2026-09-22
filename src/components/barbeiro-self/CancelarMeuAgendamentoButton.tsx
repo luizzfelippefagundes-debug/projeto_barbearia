@@ -14,9 +14,10 @@ export function CancelarMeuAgendamentoButton({ agendamentoId, clienteNome }: { a
     setErro(null)
     startTransition(async () => {
       try {
-        await cancelarMeuAgendamentoComoBarbeiro(agendamentoId)
-      } catch (err) {
-        setErro(err instanceof Error ? err.message : 'Não foi possível cancelar.')
+        const resultado = await cancelarMeuAgendamentoComoBarbeiro(agendamentoId)
+        if (resultado.error) setErro(resultado.error)
+      } catch {
+        setErro('Não foi possível cancelar.')
       }
     })
   }

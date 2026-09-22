@@ -45,10 +45,14 @@ export function StepConfirmar({
     setErro(null)
     startTransition(async () => {
       try {
-        await agendarComoCliente(hora, barbeiro.id, servicoIds, dataISO)
+        const resultado = await agendarComoCliente(hora, barbeiro.id, servicoIds, dataISO)
+        if (resultado.error) {
+          setErro(resultado.error)
+          return
+        }
         setConfirmado(true)
-      } catch (err) {
-        setErro(err instanceof Error ? err.message : 'Não foi possível agendar. Tente outro horário.')
+      } catch {
+        setErro('Não foi possível agendar. Tente outro horário.')
       }
     })
   }

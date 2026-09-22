@@ -23,7 +23,11 @@ export function NovoProdutoButton() {
     setSalvando(true)
     setErro(null)
     try {
-      await criarProduto(nome, preco, estoque, estoqueMinimo, categoria)
+      const resultado = await criarProduto(nome, preco, estoque, estoqueMinimo, categoria)
+      if ('error' in resultado) {
+        setErro(resultado.error)
+        return
+      }
       setNome('')
       setPreco(0)
       setEstoque(0)

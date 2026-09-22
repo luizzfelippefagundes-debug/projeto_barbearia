@@ -25,14 +25,19 @@ function apenasDigitos(valor: string): string {
 /** Garante que a barbearia tem cliente + assinatura na conta Asaas da
  * plataforma, criando na primeira vez que o dono tenta pagar. Chamadas
  * seguintes (ex: mês seguinte, se a cobrança anterior venceu) reaproveitam
- * o que já existe. */
-export async function iniciarPagamentoPlataforma(cpfInput: string) {
+ * o que já existe.
+ *
+ * Devolve `{ error }` em vez de lançar exceção — em produção, o Next.js
+ * esconde a mensagem de erros lançados numa Server Action (vira "Minified
+ * React error #441"), então a única forma confiável do cliente ver a
+ * mensagem certa é como dado de retorno normal. */
+export async function iniciarPagamentoPlataforma(cpfInput: string): Promise<{ error?: string }> {
   const dono = await assertAdmin()
   const cpf = apenasDigitos(cpfInput)
-  if (cpf.length !== 11 && cpf.length !== 14) throw new Error('Digite um CPF ou CNPJ válido.')
+  if (cpf.length !== 11 && cpf.length !== 14) return { error: 'Digite um CPF ou CNPJ válido.' }
 
   const barbearia = await getBarbeariaPorId(dono.barbeariaId)
-  if (!barbearia) throw new Error('Barbearia não encontrada.')
+  if (!barbearia) return { error: 'Barbearia não encontrada.' }
 
   if (barbearia.cpfCnpj !== cpf) {
     await salvarCpfCnpjBarbearia(barbearia.id, cpf)
@@ -41,21 +46,26 @@ export async function iniciarPagamentoPlataforma(cpfInput: string) {
   let { asaasCustomerId, asaasSubscriptionId } = barbearia
   const assinaturaCriadaAgora = !asaasSubscriptionId
 
-  if (!asaasCustomerId) {
-    const cliente = await criarClienteAsaasPlataforma({
-      name: barbearia.nome,
-      cpfCnpj: cpf,
-      externalReference: barbearia.id,
-    })
-    asaasCustomerId = cliente.id
-  }
+  try {
+    if (!asaasCustomerId) {
+      const cliente = await criarClienteAsaasPlataforma({
+        name: barbearia.nome,
+        cpfCnpj: cpf,
+        externalReference: barbearia.id,
+      })
+      asaasCustomerId = cliente.id
+    }
 
-  if (!asaasSubscriptionId) {
-    const assinatura = await criarAssinaturaMensalidadeAsaas({
-      customer: asaasCustomerId,
-      nextDueDate: getHojeISO(),
-    })
-    asaasSubscriptionId = assinatura.id
+    if (!asaasSubscriptionId) {
+      const assinatura = await criarAssinaturaMensalidadeAsaas({
+        customer: asaasCustomerId,
+        nextDueDate: getHojeISO(),
+      })
+      asaasSubscriptionId = assinatura.id
+    }
+  } catch (err) {
+    console.error('[iniciarPagamentoPlataforma] erro ao criar cobrança no Asaas', err)
+    return { error: 'Não foi possível criar a cobrança agora. Tente novamente em instantes.' }
   }
 
   await salvarCobrancaPlataforma(barbearia.id, {
@@ -70,10 +80,12 @@ export async function iniciarPagamentoPlataforma(cpfInput: string) {
 
   revalidatePath('/admin/plano')
   revalidatePath('/pagamento-pendente')
-  return { ok: true }
+  return {}
 }
 
-async function pagamentoPendenteDaBarbearia() {
+/** Lança erro (capturado pelas duas funções abaixo, nunca sai daqui) —
+ * mantido como exceção interna só porque simplifica o fluxo entre elas. */
+async function pagamentoPendenteDaBarbearia(): Promise<string> {
   const dono = await assertAdmin()
   const barbearia = await getBarbeariaPorId(dono.barbeariaId)
   if (!barbearia?.asaasSubscriptionId) throw new Error('Nenhuma cobrança iniciada ainda.')
@@ -84,17 +96,27 @@ async function pagamentoPendenteDaBarbearia() {
 }
 
 /** QR code + copia-e-cola do Pix pra pagar a mensalidade da plataforma. */
-export async function buscarPixDaMensalidade() {
-  const paymentId = await pagamentoPendenteDaBarbearia()
-  return buscarPixQrCodePlataforma(paymentId)
+export async function buscarPixDaMensalidade(): Promise<
+  { error: string } | { encodedImage: string; payload: string }
+> {
+  try {
+    const paymentId = await pagamentoPendenteDaBarbearia()
+    return await buscarPixQrCodePlataforma(paymentId)
+  } catch (err) {
+    return { error: err instanceof Error ? err.message : 'Não foi possível gerar o Pix agora.' }
+  }
 }
 
 /** Trava a cobrança em cartão e devolve o link seguro hospedado pelo Asaas. */
-export async function buscarLinkCartaoDaMensalidade() {
-  const paymentId = await pagamentoPendenteDaBarbearia()
-  const atual = await buscarStatusPagamentoPlataforma(paymentId)
-  const atualizado = await definirCobrancaComoCartaoPlataforma(paymentId, atual.value, atual.dueDate)
-  return { invoiceUrl: atualizado.invoiceUrl }
+export async function buscarLinkCartaoDaMensalidade(): Promise<{ error: string } | { invoiceUrl: string }> {
+  try {
+    const paymentId = await pagamentoPendenteDaBarbearia()
+    const atual = await buscarStatusPagamentoPlataforma(paymentId)
+    const atualizado = await definirCobrancaComoCartaoPlataforma(paymentId, atual.value, atual.dueDate)
+    return { invoiceUrl: atualizado.invoiceUrl }
+  } catch (err) {
+    return { error: err instanceof Error ? err.message : 'Não foi possível preparar o pagamento com cartão agora.' }
+  }
 }
 
 /** Fallback pro webhook: confere direto com o Asaas se a mensalidade já foi

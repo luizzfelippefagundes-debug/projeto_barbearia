@@ -36,10 +36,14 @@ export function HorarioTrabalhoButton({
     setSalvando(true)
     setErro(null)
     try {
-      await editarHorarioTrabalho(barbeiroId, dias, horaInicio, horaFim)
+      const resultado = await editarHorarioTrabalho(barbeiroId, dias, horaInicio, horaFim)
+      if (resultado.error) {
+        setErro(resultado.error)
+        return
+      }
       setOpen(false)
-    } catch (err) {
-      setErro(err instanceof Error ? err.message : 'Não foi possível salvar.')
+    } catch {
+      setErro('Não foi possível salvar.')
     } finally {
       setSalvando(false)
     }

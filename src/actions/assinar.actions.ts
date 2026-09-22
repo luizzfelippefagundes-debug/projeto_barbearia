@@ -21,14 +21,21 @@ function apenasDigitos(valor: string): string {
   return valor.replace(/\D/g, '')
 }
 
-export async function assinarPlano(planoId: string, cpfInput: string) {
+/** Devolve `{ error }` em vez de lançar exceção — em produção, o Next.js
+ * esconde a mensagem de erros lançados numa Server Action (vira "Minified
+ * React error #441"), então a única forma confiável do cliente ver a
+ * mensagem certa é como dado de retorno normal. */
+export async function assinarPlano(
+  planoId: string,
+  cpfInput: string,
+): Promise<{ error: string } | { assinaturaId: string }> {
   const clienteRow = await getClienteAtualOuFalhar()
 
   const ativa = await getAssinaturaAtivaDoCliente(clienteRow.id)
-  if (ativa) throw new Error('Você já tem uma assinatura ativa.')
+  if (ativa) return { error: 'Você já tem uma assinatura ativa.' }
 
   const cpf = apenasDigitos(cpfInput)
-  if (cpf.length !== 11) throw new Error('Digite um CPF válido (11 dígitos).')
+  if (cpf.length !== 11) return { error: 'Digite um CPF válido (11 dígitos).' }
 
   const db = getDb()
 
@@ -38,7 +45,7 @@ export async function assinarPlano(planoId: string, cpfInput: string) {
     .where(and(eq(planosAssinatura.id, planoId), eq(planosAssinatura.barbeariaId, clienteRow.barbeariaId)))
     .limit(1)
   const plano = planoRows[0]
-  if (!plano) throw new Error('Plano não encontrado.')
+  if (!plano) return { error: 'Plano não encontrado.' }
 
   if (clienteRow.cpfCnpj !== cpf) {
     await db.update(clientes).set({ cpfCnpj: cpf }).where(eq(clientes.id, clienteRow.id))
@@ -95,7 +102,7 @@ export async function assinarPlano(planoId: string, cpfInput: string) {
     }
   } catch (err) {
     console.error('[assinarPlano] erro ao criar assinatura no Asaas', err)
-    throw new Error('Não foi possível criar a cobrança agora. Tente novamente em instantes.')
+    return { error: 'Não foi possível criar a cobrança agora. Tente novamente em instantes.' }
   }
 
   revalidatePath('/cliente/assinar')
@@ -150,16 +157,28 @@ async function assinaturaComPagamentoDoCliente(assinaturaId: string) {
 
 /** QR code + copia-e-cola do Pix pra pagar a primeira cobrança da minha
  * assinatura — nunca sai da nossa tela, nenhum dado sensível envolvido. */
-export async function buscarPixDaMinhaAssinatura(assinaturaId: string) {
-  const paymentId = await assinaturaComPagamentoDoCliente(assinaturaId)
-  return buscarPixQrCode(paymentId)
+export async function buscarPixDaMinhaAssinatura(
+  assinaturaId: string,
+): Promise<{ error: string } | { encodedImage: string; payload: string }> {
+  try {
+    const paymentId = await assinaturaComPagamentoDoCliente(assinaturaId)
+    return await buscarPixQrCode(paymentId)
+  } catch (err) {
+    return { error: err instanceof Error ? err.message : 'Não foi possível gerar o Pix agora.' }
+  }
 }
 
 /** Trava a cobrança em cartão de crédito e devolve o link seguro hospedado
  * pelo próprio Asaas — a gente nunca vê o número do cartão. */
-export async function buscarLinkCartaoDaMinhaAssinatura(assinaturaId: string) {
-  const paymentId = await assinaturaComPagamentoDoCliente(assinaturaId)
-  const atual = await buscarStatusPagamento(paymentId)
-  const atualizado = await definirCobrancaComoCartao(paymentId, atual.value, atual.dueDate)
-  return { invoiceUrl: atualizado.invoiceUrl }
+export async function buscarLinkCartaoDaMinhaAssinatura(
+  assinaturaId: string,
+): Promise<{ error: string } | { invoiceUrl: string }> {
+  try {
+    const paymentId = await assinaturaComPagamentoDoCliente(assinaturaId)
+    const atual = await buscarStatusPagamento(paymentId)
+    const atualizado = await definirCobrancaComoCartao(paymentId, atual.value, atual.dueDate)
+    return { invoiceUrl: atualizado.invoiceUrl }
+  } catch (err) {
+    return { error: err instanceof Error ? err.message : 'Não foi possível preparar o pagamento com cartão agora.' }
+  }
 }

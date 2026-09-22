@@ -41,7 +41,11 @@ export function DeclinedCardAlert({
                   size="sm"
                   variant="danger"
                   disabled={pending}
-                  onClick={() => startTransition(() => reenviarCobranca(assinatura.id))}
+                  onClick={() =>
+                    startTransition(async () => {
+                      await reenviarCobranca(assinatura.id)
+                    })
+                  }
                 >
                   Reenviar cobrança
                 </Button>

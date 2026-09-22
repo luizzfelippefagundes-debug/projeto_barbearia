@@ -19,10 +19,15 @@ export function PlanoCard({ plano, cpfAtual }: { plano: PlanoAssinatura; cpfAtua
     setSalvando(true)
     setErro(null)
     try {
-      const { assinaturaId } = await assinarPlano(plano.id, cpf)
-      router.push(`/cliente/assinar/${assinaturaId}/pagar`)
-    } catch (err) {
-      setErro(err instanceof Error ? err.message : 'Não foi possível assinar. Tente de novo.')
+      const resultado = await assinarPlano(plano.id, cpf)
+      if ('error' in resultado) {
+        setErro(resultado.error)
+        setSalvando(false)
+        return
+      }
+      router.push(`/cliente/assinar/${resultado.assinaturaId}/pagar`)
+    } catch {
+      setErro('Não foi possível assinar. Tente de novo.')
       setSalvando(false)
     }
   }

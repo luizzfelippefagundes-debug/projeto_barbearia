@@ -32,10 +32,12 @@ export function ServicoFormModal({ servico }: { servico?: Servico }) {
     setSalvando(true)
     setErro(null)
     try {
-      if (servico) {
-        await atualizarServico(servico.id, nome, duracaoMin, preco)
-      } else {
-        await criarServico(nome, duracaoMin, preco)
+      const resultado = servico
+        ? await atualizarServico(servico.id, nome, duracaoMin, preco)
+        : await criarServico(nome, duracaoMin, preco)
+      if ('error' in resultado) {
+        setErro(resultado.error)
+        return
       }
       fecharTudo()
     } catch {

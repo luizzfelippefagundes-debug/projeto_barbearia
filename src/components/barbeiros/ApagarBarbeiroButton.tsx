@@ -14,9 +14,10 @@ export function ApagarBarbeiroButton({ barbeiroId, nome }: { barbeiroId: string;
     setErro(null)
     startTransition(async () => {
       try {
-        await apagarBarbeiro(barbeiroId)
-      } catch (err) {
-        setErro(err instanceof Error ? err.message : 'Não foi possível apagar.')
+        const resultado = await apagarBarbeiro(barbeiroId)
+        if (resultado.error) setErro(resultado.error)
+      } catch {
+        setErro('Não foi possível apagar.')
       }
     })
   }

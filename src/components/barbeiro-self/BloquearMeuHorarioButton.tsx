@@ -21,13 +21,10 @@ export function BloquearMeuHorarioButton({
     setErro(null)
     startTransition(async () => {
       try {
-        if (bloqueado) {
-          await desbloquearMeuHorario(data, hora)
-        } else {
-          await bloquearMeuHorario(data, hora)
-        }
-      } catch (err) {
-        setErro(err instanceof Error ? err.message : 'Não foi possível atualizar.')
+        const resultado = bloqueado ? await desbloquearMeuHorario(data, hora) : await bloquearMeuHorario(data, hora)
+        if (resultado.error) setErro(resultado.error)
+      } catch {
+        setErro('Não foi possível atualizar.')
       }
     })
   }

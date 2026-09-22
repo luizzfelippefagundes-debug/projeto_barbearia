@@ -24,16 +24,20 @@ export function BloquearDiaButton({
 
   const alvo = barbeiroId === TODOS ? barbeiros.map((b) => b.id) : [barbeiroId]
 
-  async function executar(acao: (data: string, barbeiroId: string) => Promise<void>) {
+  async function executar(acao: (data: string, barbeiroId: string) => Promise<{ error?: string }>) {
     setSalvando(true)
     setErro(null)
     try {
       for (const id of alvo) {
-        await acao(dataISO, id)
+        const resultado = await acao(dataISO, id)
+        if (resultado.error) {
+          setErro(resultado.error)
+          return
+        }
       }
       setOpen(false)
-    } catch (err) {
-      setErro(err instanceof Error ? err.message : 'Não foi possível atualizar.')
+    } catch {
+      setErro('Não foi possível atualizar.')
     } finally {
       setSalvando(false)
     }

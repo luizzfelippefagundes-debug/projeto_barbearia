@@ -22,9 +22,13 @@ export function PagamentoAssinaturaCard({ assinaturaId, valor }: PagamentoAssina
     setErro(null)
     try {
       const dados = await buscarPixDaMinhaAssinatura(assinaturaId)
+      if ('error' in dados) {
+        setErro(dados.error)
+        return
+      }
       setPix({ encodedImage: dados.encodedImage, payload: dados.payload })
-    } catch (err) {
-      setErro(err instanceof Error ? err.message : 'Não foi possível gerar o Pix agora.')
+    } catch {
+      setErro('Não foi possível gerar o Pix agora.')
     } finally {
       setCarregando(null)
     }
@@ -34,10 +38,15 @@ export function PagamentoAssinaturaCard({ assinaturaId, valor }: PagamentoAssina
     setCarregando('cartao')
     setErro(null)
     try {
-      const { invoiceUrl } = await buscarLinkCartaoDaMinhaAssinatura(assinaturaId)
-      window.location.href = invoiceUrl
-    } catch (err) {
-      setErro(err instanceof Error ? err.message : 'Não foi possível preparar o pagamento com cartão agora.')
+      const resultado = await buscarLinkCartaoDaMinhaAssinatura(assinaturaId)
+      if ('error' in resultado) {
+        setErro(resultado.error)
+        setCarregando(null)
+        return
+      }
+      window.location.href = resultado.invoiceUrl
+    } catch {
+      setErro('Não foi possível preparar o pagamento com cartão agora.')
       setCarregando(null)
     }
   }

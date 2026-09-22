@@ -16,6 +16,19 @@ export function SubscriptionCancelFlow({
 }) {
   const [confirmOpen, setConfirmOpen] = useState(false)
   const [pending, startTransition] = useTransition()
+  const [erro, setErro] = useState<string | null>(null)
+
+  function handleCancelar() {
+    setErro(null)
+    startTransition(async () => {
+      try {
+        const resultado = await cancelarMinhaAssinatura(assinatura.id)
+        if (resultado.error) setErro(resultado.error)
+      } catch {
+        setErro('Não foi possível cancelar a assinatura.')
+      }
+    })
+  }
 
   return (
     <Card className="p-4">
@@ -53,10 +66,12 @@ export function SubscriptionCancelFlow({
         </Button>
       )}
 
+      {erro && <p className="mt-2 text-xs text-status-red">{erro}</p>}
+
       <ConfirmDialog
         open={confirmOpen}
         onClose={() => setConfirmOpen(false)}
-        onConfirm={() => startTransition(() => cancelarMinhaAssinatura(assinatura.id))}
+        onConfirm={handleCancelar}
         title="Cancelar assinatura"
         description={`Tem certeza que quer cancelar o ${plano.nome}? Você perde os benefícios a partir da próxima cobrança.`}
         confirmLabel="Sim, cancelar"

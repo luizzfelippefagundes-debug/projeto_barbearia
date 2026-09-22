@@ -27,10 +27,19 @@ function mesmoTelefone(a: string, b: string): boolean {
  * todo agendamento, histórico, assinatura etc. desse avulso passa pro
  * cadastro de login, e o avulso é apagado. Sem isso, quem usou o bot antes
  * de criar conta no site fica com dois cadastros que nunca se encontram. */
-export async function atualizarMeuTelefone(telefoneInput: string) {
+/** Retorna `{ error }` em vez de lançar exceção — em produção, o Next.js
+ * esconde a mensagem de erros lançados numa Server Action (troca por um
+ * texto genérico tipo "Minified React error #441"), então a única forma
+ * confiável do cliente ver a mensagem de verdade é recebendo ela como
+ * dado normal de retorno, não como erro. */
+export async function atualizarMeuTelefone(
+  telefoneInput: string,
+): Promise<{ error: string } | { error?: undefined }> {
   const clienteAtual = await getClienteAtualOuFalhar()
   const telefone = apenasDigitos(telefoneInput)
-  if (telefone.length < 10 || telefone.length > 13) throw new Error('Digite um telefone válido, com DDD.')
+  if (telefone.length < 10 || telefone.length > 13) {
+    return { error: 'Digite um telefone válido, com DDD.' }
+  }
 
   const db = getDb()
 
@@ -43,11 +52,11 @@ export async function atualizarMeuTelefone(telefoneInput: string) {
   if (!duplicado) {
     await db.update(clientes).set({ telefone }).where(eq(clientes.id, clienteAtual.id))
     revalidatePath('/cliente/perfil')
-    return
+    return {}
   }
 
   if (duplicado.clerkUserId) {
-    throw new Error('Esse telefone já está em uso por outra conta com login — fala com a gente pra resolver.')
+    return { error: 'Esse telefone já está em uso por outra conta com login — fala com a gente pra resolver.' }
   }
 
   // Repointa tudo do cadastro avulso pro cadastro de login ANTES de apagar
@@ -79,4 +88,5 @@ export async function atualizarMeuTelefone(telefoneInput: string) {
 
   revalidatePath('/cliente/perfil')
   revalidatePath('/admin/clientes')
+  return {}
 }

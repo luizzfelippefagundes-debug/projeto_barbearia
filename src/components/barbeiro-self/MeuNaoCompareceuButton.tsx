@@ -14,9 +14,10 @@ export function MeuNaoCompareceuButton({ agendamentoId, clienteNome }: { agendam
     setErro(null)
     startTransition(async () => {
       try {
-        await marcarMeuNaoCompareceu(agendamentoId)
-      } catch (err) {
-        setErro(err instanceof Error ? err.message : 'Não foi possível marcar.')
+        const resultado = await marcarMeuNaoCompareceu(agendamentoId)
+        if (resultado.error) setErro(resultado.error)
+      } catch {
+        setErro('Não foi possível marcar.')
       }
     })
   }

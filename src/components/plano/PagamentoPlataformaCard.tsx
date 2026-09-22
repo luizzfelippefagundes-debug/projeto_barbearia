@@ -30,10 +30,14 @@ export function PagamentoPlataformaCard({
     setCarregando('iniciar')
     setErro(null)
     try {
-      await iniciarPagamentoPlataforma(cpf)
+      const resultado = await iniciarPagamentoPlataforma(cpf)
+      if (resultado.error) {
+        setErro(resultado.error)
+        return
+      }
       setEtapa('escolher')
-    } catch (err) {
-      setErro(err instanceof Error ? err.message : 'Não foi possível iniciar a cobrança.')
+    } catch {
+      setErro('Não foi possível iniciar a cobrança.')
     } finally {
       setCarregando(null)
     }
@@ -44,9 +48,13 @@ export function PagamentoPlataformaCard({
     setErro(null)
     try {
       const dados = await buscarPixDaMensalidade()
+      if ('error' in dados) {
+        setErro(dados.error)
+        return
+      }
       setPix({ encodedImage: dados.encodedImage, payload: dados.payload })
-    } catch (err) {
-      setErro(err instanceof Error ? err.message : 'Não foi possível gerar o Pix agora.')
+    } catch {
+      setErro('Não foi possível gerar o Pix agora.')
     } finally {
       setCarregando(null)
     }
@@ -56,10 +64,15 @@ export function PagamentoPlataformaCard({
     setCarregando('cartao')
     setErro(null)
     try {
-      const { invoiceUrl } = await buscarLinkCartaoDaMensalidade()
-      window.location.href = invoiceUrl
-    } catch (err) {
-      setErro(err instanceof Error ? err.message : 'Não foi possível preparar o pagamento com cartão agora.')
+      const resultado = await buscarLinkCartaoDaMensalidade()
+      if ('error' in resultado) {
+        setErro(resultado.error)
+        setCarregando(null)
+        return
+      }
+      window.location.href = resultado.invoiceUrl
+    } catch {
+      setErro('Não foi possível preparar o pagamento com cartão agora.')
       setCarregando(null)
     }
   }

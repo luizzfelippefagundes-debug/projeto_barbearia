@@ -7,14 +7,18 @@ import { produtos, vendas } from '../db/schema'
 import { assertAdmin } from '../lib/adminAuth'
 import { getHojeISO } from '../lib/dateUtils'
 
+/** Ações desse arquivo devolvem `{ error }` em vez de lançar exceção nas
+ * validações — em produção, o Next.js esconde a mensagem de erros
+ * lançados numa Server Action, então a única forma confiável do cliente
+ * ver a mensagem certa é como dado de retorno normal. */
 export async function registrarVenda(
   produtoId: string,
   barbeiroId: string,
   quantidade: number,
   clienteId?: string,
-) {
+): Promise<{ error?: string }> {
   const dono = await assertAdmin()
-  if (quantidade <= 0) throw new Error('Quantidade inválida')
+  if (quantidade <= 0) return { error: 'Quantidade inválida' }
 
   const db = getDb()
 
@@ -25,10 +29,10 @@ export async function registrarVenda(
       .where(and(eq(produtos.id, produtoId), eq(produtos.barbeariaId, dono.barbeariaId)))
       .limit(1)
   )[0]
-  if (!produto) throw new Error('Produto não encontrado')
+  if (!produto) return { error: 'Produto não encontrado' }
 
   const qtd = Math.min(quantidade, produto.estoque)
-  if (qtd <= 0) throw new Error('Sem estoque disponível')
+  if (qtd <= 0) return { error: 'Sem estoque disponível' }
 
   await db
     .update(produtos)
@@ -47,6 +51,7 @@ export async function registrarVenda(
 
   revalidatePath('/admin/produtos')
   revalidatePath('/admin/financeiro')
+  return {}
 }
 
 export async function criarProduto(
@@ -55,9 +60,9 @@ export async function criarProduto(
   estoque: number,
   estoqueMinimo: number,
   categoria: string,
-) {
+): Promise<{ error: string } | (typeof produtos.$inferSelect)> {
   const dono = await assertAdmin()
-  if (!nome.trim()) throw new Error('Nome é obrigatório')
+  if (!nome.trim()) return { error: 'Nome é obrigatório' }
 
   const rows = await getDb()
     .insert(produtos)

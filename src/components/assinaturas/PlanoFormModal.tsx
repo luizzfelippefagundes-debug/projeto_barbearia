@@ -72,10 +72,12 @@ export function PlanoFormModal({ plano, servicos }: { plano?: PlanoAssinatura; s
           servicoId,
           limiteMensal: s.limiteMensal.trim() === '' ? null : Number(s.limiteMensal),
         }))
-      if (plano) {
-        await atualizarPlano(plano.id, nome, valorMensal, servicosInclusos)
-      } else {
-        await criarPlano(nome, valorMensal, servicosInclusos)
+      const resultado = plano
+        ? await atualizarPlano(plano.id, nome, valorMensal, servicosInclusos)
+        : await criarPlano(nome, valorMensal, servicosInclusos)
+      if ('error' in resultado && resultado.error) {
+        setErro(resultado.error)
+        return
       }
       fecharTudo()
     } catch {

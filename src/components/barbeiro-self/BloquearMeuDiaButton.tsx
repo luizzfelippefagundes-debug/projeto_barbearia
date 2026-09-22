@@ -14,9 +14,10 @@ export function BloquearMeuDiaButton({ dataISO, ehHoje }: { dataISO: string; ehH
     setErro(null)
     startTransition(async () => {
       try {
-        await bloquearMeuDiaInteiro(dataISO)
-      } catch (err) {
-        setErro(err instanceof Error ? err.message : 'Não foi possível bloquear o dia.')
+        const resultado = await bloquearMeuDiaInteiro(dataISO)
+        if (resultado.error) setErro(resultado.error)
+      } catch {
+        setErro('Não foi possível bloquear o dia.')
       }
     })
   }
@@ -28,7 +29,11 @@ export function BloquearMeuDiaButton({ dataISO, ehHoje }: { dataISO: string; ehH
           size="sm"
           variant="ghost"
           disabled={pending}
-          onClick={() => startTransition(() => desbloquearMeuDiaInteiro(dataISO))}
+          onClick={() =>
+            startTransition(async () => {
+              await desbloquearMeuDiaInteiro(dataISO)
+            })
+          }
         >
           Desbloquear dia
         </Button>
