@@ -88,24 +88,19 @@ export default async function DashboardPage() {
         <p className="text-sm text-text-secondary">Aqui está o resumo de hoje.</p>
       </div>
 
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-[2fr_1fr]">
-        <Card
-          className="anim-in card-hover-border flex flex-col justify-between border-accent bg-accent p-6"
-          style={{ animationDelay: '0ms' }}
-        >
-          <p className="text-xs text-white/70">Faturado hoje</p>
-          <p className="mono-value mt-2 text-4xl text-white">{formatBRL(fechamentoDoDia.total)}</p>
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+        <Card className="p-4">
+          <p className="text-xs text-text-secondary">Faturado hoje</p>
+          <p className="mono-value mt-1 text-2xl text-accent">{formatBRL(fechamentoDoDia.total)}</p>
         </Card>
-        <div className="flex flex-col gap-4">
-          <Card className="anim-in card-hover-border p-4" style={{ animationDelay: '60ms' }}>
-            <p className="text-xs text-text-secondary">Agendamentos hoje</p>
-            <p className="mono-value mt-1 text-2xl text-text-primary">{confirmadosHoje.length}</p>
-          </Card>
-          <Card className="anim-in card-hover-border p-4" style={{ animationDelay: '100ms' }}>
-            <p className="text-xs text-text-secondary">Assinantes em dia</p>
-            <p className="mono-value mt-1 text-2xl text-text-primary">{assinantesEmDia}</p>
-          </Card>
-        </div>
+        <Card className="p-4">
+          <p className="text-xs text-text-secondary">Agendamentos hoje</p>
+          <p className="mono-value mt-1 text-2xl text-text-primary">{confirmadosHoje.length}</p>
+        </Card>
+        <Card className="p-4">
+          <p className="text-xs text-text-secondary">Assinantes em dia</p>
+          <p className="mono-value mt-1 text-2xl text-text-primary">{assinantesEmDia}</p>
+        </Card>
       </div>
 
       <div className="flex flex-wrap gap-3">
@@ -139,7 +134,7 @@ export default async function DashboardPage() {
               return (
                 <Card
                   key={a.id}
-                  className="anim-in card-hover-border flex items-center justify-between px-4 py-3"
+                  className="flex items-center justify-between px-4 py-3"
                   style={{ animationDelay: `${index * 40}ms` }}
                 >
                   <div>

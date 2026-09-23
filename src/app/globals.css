@@ -108,25 +108,11 @@
 }
 
 @layer components {
-  .card {
-    @apply rounded-2xl border border-border bg-surface shadow-sm;
-  }
-
-  .card-raised {
-    @apply rounded-2xl border border-border bg-surface shadow-xl;
-  }
-
-  .divider-thin {
-    @apply border-t border-border;
-  }
-
-  .mono-value {
-    @apply font-mono tabular-nums;
-  }
-
-  /* Entrada suave de cards/elementos ao montar — 4px de subida, rápida.
-   * Opt-in: precisa da classe .anim-in explicitamente, não afeta .card
-   * sozinho, pra não animar todo card já existente no app de uma vez. */
+  /* Entrada suave de cards ao montar (4px de subida, rápida) + hover que só
+   * clareia a borda, sem deslocar nem sombrear. Faz parte de .card/.card-raised
+   * direto — todo card do app já ganha isso automaticamente, sem precisar
+   * marcar tela por tela. Pra dar um leve escalonamento numa lista, passe
+   * style={{ animationDelay: '...' }} no Card (ex: já feito no dashboard). */
   @keyframes fade-in-up {
     from {
       opacity: 0;
@@ -138,23 +124,39 @@
     }
   }
 
-  .anim-in {
+  .card {
+    @apply rounded-2xl border border-border bg-surface shadow-sm;
     animation: fade-in-up 320ms ease-out backwards;
+    transition: border-color 150ms ease;
+  }
+
+  .card:hover {
+    border-color: var(--color-text-secondary);
+  }
+
+  .card-raised {
+    @apply rounded-2xl border border-border bg-surface shadow-xl;
+    animation: fade-in-up 320ms ease-out backwards;
+    transition: border-color 150ms ease;
+  }
+
+  .card-raised:hover {
+    border-color: var(--color-text-secondary);
   }
 
   @media (prefers-reduced-motion: reduce) {
-    .anim-in {
+    .card,
+    .card-raised {
       animation: none;
     }
   }
 
-  /* Hover sutil de card: só a borda clareia, sem deslocar nem sombrear. */
-  .card-hover-border {
-    transition: border-color 150ms ease;
+  .divider-thin {
+    @apply border-t border-border;
   }
 
-  .card-hover-border:hover {
-    border-color: var(--color-text-secondary);
+  .mono-value {
+    @apply font-mono tabular-nums;
   }
 
   /* Scrollbar fina, discreta, seguindo as cores do tema — usada em listas
