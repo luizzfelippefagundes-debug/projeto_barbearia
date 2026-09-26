@@ -129,15 +129,16 @@ export async function verificarPagamentoPlataforma() {
     return { status: barbearia?.statusPagamento ?? 'em_dia', proximaCobranca: null as string | null }
   }
 
-  // A data da próxima cobrança vem da assinatura, não da fatura — o Asaas
-  // só gera a fatura de um ciclo alguns dias antes do vencimento, então
-  // logo depois de pagar (ou renovar) pode não existir fatura nenhuma
-  // ainda, mas a assinatura já sabe a data certa.
+  // Prioriza a data da fatura em aberto (é a cobrança de verdade que o dono
+  // precisa pagar). Só cai pro campo da assinatura quando não existe
+  // nenhuma fatura pendente ainda — ex: logo depois de pagar, antes da
+  // Asaas gerar a fatura do próximo ciclo (o que só acontece alguns dias
+  // antes do vencimento).
   const [pagamento, assinatura] = await Promise.all([
     buscarPrimeiroPagamentoDaAssinaturaPlataforma(barbearia.asaasSubscriptionId),
     buscarAssinaturaPlataforma(barbearia.asaasSubscriptionId).catch(() => null),
   ])
-  const proximaCobranca = assinatura?.nextDueDate ?? pagamento?.dueDate ?? null
+  const proximaCobranca = pagamento?.dueDate ?? assinatura?.nextDueDate ?? null
 
   if (!pagamento) return { status: barbearia.statusPagamento, proximaCobranca }
 

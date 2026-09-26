@@ -96,17 +96,29 @@ export interface AsaasPlataformaPayment {
   dueDate: string
 }
 
-/** Busca a primeira cobrança gerada pela assinatura — o `invoiceUrl` dela é
- * o link que se manda pro dono da barbearia pagar (Pix ou cartão, o Asaas
- * decide a tela pelo billingType UNDEFINED). Não existe fluxo automático de
- * reenvio ainda — isso é feito manualmente no onboarding. */
+const STATUS_EM_ABERTO = new Set(['PENDING', 'OVERDUE'])
+
+/** Busca a cobrança em aberto mais antiga (pendente ou atrasada) da
+ * assinatura — o `invoiceUrl` dela é o link que se manda pro dono da
+ * barbearia pagar (Pix ou cartão, o Asaas decide a tela pelo billingType
+ * UNDEFINED). Não existe fluxo automático de reenvio ainda — isso é feito
+ * manualmente no onboarding.
+ *
+ * A Asaas não garante a ordem das cobranças nessa lista — depois de alguns
+ * meses de assinatura existem várias (algumas já pagas, outras futuras
+ * ainda não vencidas), então pegar a primeira da resposta sem filtrar/
+ * ordenar pode pegar a cobrança errada. Filtramos só as que ainda importam
+ * (pendente/atrasada) e pegamos a de vencimento mais próximo. */
 export async function buscarPrimeiroPagamentoDaAssinaturaPlataforma(
   subscriptionId: string,
 ): Promise<AsaasPlataformaPayment | null> {
   const result = await asaasPlataformaFetch<{ data: AsaasPlataformaPayment[] }>(
-    `/payments?subscription=${encodeURIComponent(subscriptionId)}`,
+    `/payments?subscription=${encodeURIComponent(subscriptionId)}&limit=100`,
   )
-  return result.data[0] ?? null
+  const emAberto = result.data
+    .filter((pagamento) => STATUS_EM_ABERTO.has(pagamento.status))
+    .sort((a, b) => a.dueDate.localeCompare(b.dueDate))
+  return emAberto[0] ?? null
 }
 
 export async function buscarStatusPagamentoPlataforma(paymentId: string): Promise<AsaasPlataformaPayment> {
