@@ -61,6 +61,8 @@ export function FaturamentoPorCategoriaCard({
                 <div key={c.chave} className="flex items-center gap-1.5 text-xs text-text-secondary">
                   <span className={`h-2 w-2 rounded-sm ${c.corClassName}`} />
                   {c.label}
+                  <span className="mono-value text-text-primary">{formatBRL(c.valor)}</span>
+                  <span>({Math.round((c.valor / total) * 100)}%)</span>
                 </div>
               ))}
             </div>
