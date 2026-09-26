@@ -38,7 +38,7 @@ export function FaturamentoMesCard({
           )}
         </div>
         {temMovimento ? (
-          <SimpleLineChart data={data} formatValue={formatBRL} />
+          <SimpleLineChart data={data} />
         ) : (
           <EmptyState title="Sem movimento este mês" description="Assim que houver cortes ou vendas, o acumulado aparece aqui." />
         )}
