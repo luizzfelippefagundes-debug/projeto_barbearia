@@ -9,6 +9,7 @@ import {
   getCortesNoMesPorBarbeiro,
   getFechamentoCaixa,
   getMRR,
+  getNovosAssinantesPorMes,
   getProgressoClientesPlano,
 } from './derive'
 
@@ -289,5 +290,24 @@ describe('getClientesPlanoSemVisitaNoMes', () => {
     const assinaturas = [assinatura({ id: 's1', clienteId: 'c1', planoId: 'plano129', status: 'atrasado' })]
     const lista = getClientesPlanoSemVisitaNoMes([], [cliente('c1')], [planoCompleto], assinaturas, [barbeiroA], MES)
     expect(lista).toHaveLength(0)
+  })
+})
+
+describe('getNovosAssinantesPorMes — últimos 6 meses, incluindo meses sem nenhuma', () => {
+  it('agrupa por mês de criação e preenche meses vazios com zero', () => {
+    const assinaturas = [
+      assinatura({ id: 's1', clienteId: 'c1', planoId: 'plano129', criadoEm: '2026-07-10' }),
+      assinatura({ id: 's2', clienteId: 'c2', planoId: 'plano129', criadoEm: '2026-07-20' }),
+      assinatura({ id: 's3', clienteId: 'c3', planoId: 'plano129', criadoEm: '2026-09-05' }),
+    ]
+    const resultado = getNovosAssinantesPorMes(assinaturas, '2026-09-15')
+    expect(resultado).toEqual([
+      { mes: '2026-04', quantidade: 0 },
+      { mes: '2026-05', quantidade: 0 },
+      { mes: '2026-06', quantidade: 0 },
+      { mes: '2026-07', quantidade: 2 },
+      { mes: '2026-08', quantidade: 0 },
+      { mes: '2026-09', quantidade: 1 },
+    ])
   })
 })

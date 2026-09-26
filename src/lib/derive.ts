@@ -9,7 +9,7 @@ import type {
   Servico,
   Venda,
 } from '../types'
-import { getHojeISO, getHoraAtualBrasil } from './dateUtils'
+import { addDays, getHojeISO, getHoraAtualBrasil } from './dateUtils'
 
 function mesReferenciaDeData(dataISO: string): string {
   return dataISO.slice(0, 7)
@@ -453,6 +453,31 @@ export function getMRR(assinaturas: Assinatura[], planos: PlanoAssinatura[]): nu
 
 export function getAssinantesEmDia(assinaturas: Assinatura[]): number {
   return assinaturas.filter((a) => a.status === 'em_dia').length
+}
+
+/** Novos assinantes por mês, últimos 6 meses (incluindo o atual). Meses sem
+ * nenhuma assinatura nova entram com quantidade 0, pra não quebrar a escala
+ * do gráfico de linha. Não é "assinantes ativos por mês" — o banco não
+ * guarda quando uma assinatura foi cancelada, só quando foi criada, então
+ * só dá pra mostrar entradas, não o total ativo em cada mês passado. */
+export function getNovosAssinantesPorMes(
+  assinaturas: Assinatura[],
+  hojeISO: string,
+): Array<{ mes: string; quantidade: number }> {
+  let mes = mesReferenciaDeData(hojeISO)
+  const meses: string[] = [mes]
+  for (let i = 0; i < 5; i++) {
+    mes = mesReferenciaDeData(addDays(`${mes}-01`, -1))
+    meses.unshift(mes)
+  }
+
+  const porMes = new Map<string, number>()
+  assinaturas.forEach((a) => {
+    const mesCriacao = mesReferenciaDeData(a.criadoEm)
+    porMes.set(mesCriacao, (porMes.get(mesCriacao) ?? 0) + 1)
+  })
+
+  return meses.map((mesRef) => ({ mes: mesRef, quantidade: porMes.get(mesRef) ?? 0 }))
 }
 
 export function getTicketMedio(
