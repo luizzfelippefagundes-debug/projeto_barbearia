@@ -1,7 +1,6 @@
 import { TrendingDown, TrendingUp } from 'lucide-react'
 import { AnimatedNumber, Card, EmptyState, SectionHeading } from '../../components/ui'
 import { SimpleLineChart } from '../../components/ui/Chart/SimpleLineChart'
-import { formatBRL } from '../../lib/format'
 import { cn } from '../../lib/cn'
 
 export function FaturamentoMesCard({
@@ -28,7 +27,7 @@ export function FaturamentoMesCard({
       <Card className="flex flex-col gap-4 p-5">
         <div className="flex flex-wrap items-end justify-between gap-3">
           <p className="mono-value text-3xl text-text-primary">
-            <AnimatedNumber value={valorAtual} format={formatBRL} />
+            <AnimatedNumber value={valorAtual} />
           </p>
           {variacao !== null && (
             <span

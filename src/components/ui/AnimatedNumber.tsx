@@ -1,19 +1,25 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import { formatBRL } from '../../lib/format'
 
 const DURACAO_MS = 800
 
+function formatValor(value: number, formatType: 'currency' | 'count'): string {
+  return formatType === 'count' ? `${value}` : formatBRL(value)
+}
+
 /** Anima de 0 até o valor real toda vez que `value` muda (inclui o
  * carregamento inicial da página) — usado nos números de destaque do
- * dashboard. `format` formata o valor arredondado em cada frame (ex:
- * formatBRL, ou String pra contagem simples). */
+ * dashboard. `formatType` (string, não função — Server Components não
+ * podem passar funções pra Client Components) escolhe entre R$ ou
+ * contagem simples. */
 export function AnimatedNumber({
   value,
-  format,
+  formatType = 'currency',
 }: {
   value: number
-  format: (v: number) => string
+  formatType?: 'currency' | 'count'
 }) {
   const [display, setDisplay] = useState(0)
 
@@ -32,5 +38,5 @@ export function AnimatedNumber({
     return () => cancelAnimationFrame(frame)
   }, [value])
 
-  return <>{format(display)}</>
+  return <>{formatValor(display, formatType)}</>
 }

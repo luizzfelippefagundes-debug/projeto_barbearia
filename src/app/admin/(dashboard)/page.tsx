@@ -26,7 +26,6 @@ import {
 } from '../../../lib/derive'
 import { getHojeISO, mesReferenciaDeData, addDays } from '../../../lib/dateUtils'
 import { getBaseUrl } from '../../../lib/baseUrl'
-import { formatBRL } from '../../../lib/format'
 
 export default async function DashboardPage() {
   const dono = await requireAdminAccess()
@@ -96,19 +95,19 @@ export default async function DashboardPage() {
         <Card className="p-4">
           <p className="text-xs text-text-secondary">Faturado hoje</p>
           <p className="mono-value mt-1 text-2xl text-accent">
-            <AnimatedNumber value={fechamentoDoDia.total} format={formatBRL} />
+            <AnimatedNumber value={fechamentoDoDia.total} />
           </p>
         </Card>
         <Card className="p-4">
           <p className="text-xs text-text-secondary">Agendamentos hoje</p>
           <p className="mono-value mt-1 text-2xl text-text-primary">
-            <AnimatedNumber value={confirmadosHoje.length} format={(v) => `${v}`} />
+            <AnimatedNumber value={confirmadosHoje.length} formatType="count" />
           </p>
         </Card>
         <Card className="p-4">
           <p className="text-xs text-text-secondary">Assinantes em dia</p>
           <p className="mono-value mt-1 text-2xl text-text-primary">
-            <AnimatedNumber value={assinantesEmDia} format={(v) => `${v}`} />
+            <AnimatedNumber value={assinantesEmDia} formatType="count" />
           </p>
         </Card>
       </div>
