@@ -5,6 +5,8 @@ import { LinkCopyCard } from '../../../components/links/LinkCopyCard'
 import { FaturamentoMesCard } from '../../../components/dashboard/FaturamentoMesCard'
 import { RankingBarbeirosCard } from '../../../components/dashboard/RankingBarbeirosCard'
 import { ServicosMaisVendidosCard } from '../../../components/dashboard/ServicosMaisVendidosCard'
+import { FaturamentoPorCategoriaCard } from '../../../components/dashboard/FaturamentoPorCategoriaCard'
+import { NovosAssinantesCard } from '../../../components/dashboard/NovosAssinantesCard'
 import { requireAdminAccess } from '../../../lib/adminAuth'
 import { getBarbeiros } from '../../../db/queries/barbeiros'
 import { getClientesResumo } from '../../../db/queries/clientes'
@@ -18,6 +20,7 @@ import {
   getFaturamentoAcumuladoPorDia,
   getFechamentoCaixaDoDia,
   getFechamentoCaixa,
+  getNovosAssinantesPorMes,
   getRankingBarbeiros,
   getServicosMaisVendidosNoMes,
 } from '../../../lib/derive'
@@ -80,6 +83,7 @@ export default async function DashboardPage() {
   const pontosAcumulado = getFaturamentoAcumuladoPorDia(agendamentosMes, servicos, vendas, mesReferencia, hojeISO)
   const rankingBarbeiros = getRankingBarbeiros(barbeiros, agendamentosMes, servicos, mesReferencia)
   const servicosMaisVendidos = getServicosMaisVendidosNoMes(agendamentosMes, servicos, mesReferencia)
+  const novosAssinantesPorMes = getNovosAssinantesPorMes(assinaturas, hojeISO)
 
   return (
     <div className="flex flex-col gap-8">
@@ -160,6 +164,14 @@ export default async function DashboardPage() {
       <RankingBarbeirosCard ranking={rankingBarbeiros} />
 
       <ServicosMaisVendidosCard servicos={servicosMaisVendidos} />
+
+      <FaturamentoPorCategoriaCard
+        avulso={fechamentoDoMes.avulso}
+        assinatura={fechamentoDoMes.assinatura}
+        produtos={fechamentoDoMes.produtos}
+      />
+
+      <NovosAssinantesCard pontos={novosAssinantesPorMes} />
 
       <div>
         <SectionHeading>Links de acesso</SectionHeading>

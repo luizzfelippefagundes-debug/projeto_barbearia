@@ -2,7 +2,6 @@ import type { Agendamento, Servico, Venda } from '../../types'
 import { Card, EmptyState, SectionHeading } from '../../components/ui'
 import { SimpleLineChart } from '../../components/ui/Chart/SimpleLineChart'
 import { getFaturamentoAcumuladoPorDia } from '../../lib/derive'
-import { formatBRL } from '../../lib/format'
 import { getHojeISO } from '../../lib/dateUtils'
 
 export function RevenueAccumulatedChart({
@@ -25,7 +24,7 @@ export function RevenueAccumulatedChart({
       <SectionHeading>Faturamento acumulado no mês</SectionHeading>
       <Card className="p-5">
         {temMovimento ? (
-          <SimpleLineChart data={data} formatValue={formatBRL} />
+          <SimpleLineChart data={data} />
         ) : (
           <EmptyState
             title="Sem movimento este mês"

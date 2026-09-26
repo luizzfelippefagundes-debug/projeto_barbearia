@@ -11,6 +11,7 @@ export function RankingBarbeirosCard({
 }: {
   ranking: Array<{ barbeiro: Barbeiro; cortes: number; faturamento: number }>
 }) {
+  const maiorFaturamento = Math.max(...ranking.map((r) => r.faturamento), 1)
   const comMovimento = ranking.filter((r) => r.cortes > 0)
 
   return (
@@ -33,9 +34,15 @@ export function RankingBarbeirosCard({
                 {i < 3 ? <Trophy size={16} aria-hidden="true" /> : i + 1}
               </span>
               <Avatar nome={r.barbeiro.nome} src={r.barbeiro.avatarUrl} size="sm" />
-              <div className="flex-1">
+              <div className="min-w-0 flex-1">
                 <p className="text-sm text-text-primary">{r.barbeiro.nome}</p>
                 <p className="text-xs text-text-secondary">{r.cortes} cortes</p>
+                <div className="mt-1.5 h-1 w-full overflow-hidden rounded-full bg-bg">
+                  <div
+                    className="h-full rounded-full bg-accent"
+                    style={{ width: `${(r.faturamento / maiorFaturamento) * 100}%` }}
+                  />
+                </div>
               </div>
               <span className="mono-value text-sm text-text-primary">{formatBRL(r.faturamento)}</span>
             </div>
