@@ -10,7 +10,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
   if (barbearia?.statusPagamento === 'atrasado') redirect('/pagamento-pendente')
 
   return (
-    <div className="flex h-screen flex-col bg-bg lg:flex-row">
+    <div className="flex h-dvh flex-col bg-bg lg:flex-row">
       <Sidebar
         nome={dono.nome}
         barbeariaNome={barbearia?.nome ?? 'Minha barbearia'}

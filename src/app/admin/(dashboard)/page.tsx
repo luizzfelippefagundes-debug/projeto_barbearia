@@ -124,7 +124,7 @@ export default async function DashboardPage() {
           <EmptyState title="Nada agendado hoje" description="A agenda de hoje está livre." />
         ) : (
           <div className="flex flex-col gap-2">
-            {confirmadosHoje.map((a) => {
+            {confirmadosHoje.map((a, index) => {
               const cliente = clientes.find((c) => c.id === a.clienteId)
               const barbeiro = barbeiros.find((b) => b.id === a.barbeiroId)
               const nomesServicos = a.servicoIds
@@ -132,7 +132,11 @@ export default async function DashboardPage() {
                 .filter(Boolean)
                 .join(' + ')
               return (
-                <Card key={a.id} className="flex items-center justify-between px-4 py-3">
+                <Card
+                  key={a.id}
+                  className="flex items-center justify-between px-4 py-3"
+                  style={{ animationDelay: `${index * 40}ms` }}
+                >
                   <div>
                     <p className="text-sm text-text-primary">{cliente?.nome ?? 'Cliente avulso'}</p>
                     <p className="text-xs text-text-secondary">

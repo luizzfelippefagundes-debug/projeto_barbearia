@@ -8,8 +8,8 @@
 
   --color-border: #e5e7f0;
 
-  --color-accent: #4756e6;
-  --color-accent-hover: #3a46c4;
+  --color-accent: #4650d6;
+  --color-accent-hover: #3a43b8;
   --color-accent-muted: #eef0fd;
 
   --color-brass: #0ea5a0;
@@ -43,8 +43,8 @@
 
   --color-border: #2a3555;
 
-  --color-accent: #6472f5;
-  --color-accent-hover: #7c87f7;
+  --color-accent: #5865f2;
+  --color-accent-hover: #818cf8;
   --color-accent-muted: #232c52;
 
   --color-brass: #2dd4cf;
@@ -69,8 +69,8 @@
   --color-surface: #ffffff;
   --color-surface-raised: #f6f7fb;
   --color-border: #e5e7f0;
-  --color-accent: #4756e6;
-  --color-accent-hover: #3a46c4;
+  --color-accent: #4650d6;
+  --color-accent-hover: #3a43b8;
   --color-accent-muted: #eef0fd;
   --color-brass: #0ea5a0;
   --color-brass-muted: #e3f7f5;
@@ -108,12 +108,47 @@
 }
 
 @layer components {
+  /* Entrada suave de cards ao montar (4px de subida, rápida) + hover que só
+   * clareia a borda, sem deslocar nem sombrear. Faz parte de .card/.card-raised
+   * direto — todo card do app já ganha isso automaticamente, sem precisar
+   * marcar tela por tela. Pra dar um leve escalonamento numa lista, passe
+   * style={{ animationDelay: '...' }} no Card (ex: já feito no dashboard). */
+  @keyframes fade-in-up {
+    from {
+      opacity: 0;
+      transform: translateY(4px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
   .card {
     @apply rounded-2xl border border-border bg-surface shadow-sm;
+    animation: fade-in-up 320ms ease-out backwards;
+    transition: border-color 150ms ease;
+  }
+
+  .card:hover {
+    border-color: var(--color-text-secondary);
   }
 
   .card-raised {
     @apply rounded-2xl border border-border bg-surface shadow-xl;
+    animation: fade-in-up 320ms ease-out backwards;
+    transition: border-color 150ms ease;
+  }
+
+  .card-raised:hover {
+    border-color: var(--color-text-secondary);
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .card,
+    .card-raised {
+      animation: none;
+    }
   }
 
   .divider-thin {

@@ -100,7 +100,7 @@ export function Sidebar({
         </div>
       </MobileNavDrawer>
 
-      <aside className="hidden h-screen w-16 shrink-0 flex-col border-r border-border bg-surface lg:flex lg:w-64">
+      <aside className="hidden h-dvh w-16 shrink-0 flex-col border-r border-border bg-surface lg:flex lg:w-64">
         <div className="flex items-center gap-2.5 px-4 py-5 lg:px-6">
           <LogoMark src={logoSrc} />
           <span className="hidden font-heading text-base font-bold text-text-primary lg:inline">
