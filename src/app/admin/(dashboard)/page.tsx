@@ -1,6 +1,6 @@
 import Link from 'next/link'
 import { CalendarPlus, UserPlus } from 'lucide-react'
-import { Button, Card, EmptyState, SectionHeading } from '../../../components/ui'
+import { AnimatedNumber, Button, Card, EmptyState, SectionHeading } from '../../../components/ui'
 import { LinkCopyCard } from '../../../components/links/LinkCopyCard'
 import { FaturamentoMesCard } from '../../../components/dashboard/FaturamentoMesCard'
 import { RankingBarbeirosCard } from '../../../components/dashboard/RankingBarbeirosCard'
@@ -95,15 +95,21 @@ export default async function DashboardPage() {
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
         <Card className="p-4">
           <p className="text-xs text-text-secondary">Faturado hoje</p>
-          <p className="mono-value mt-1 text-2xl text-accent">{formatBRL(fechamentoDoDia.total)}</p>
+          <p className="mono-value mt-1 text-2xl text-accent">
+            <AnimatedNumber value={fechamentoDoDia.total} format={formatBRL} />
+          </p>
         </Card>
         <Card className="p-4">
           <p className="text-xs text-text-secondary">Agendamentos hoje</p>
-          <p className="mono-value mt-1 text-2xl text-text-primary">{confirmadosHoje.length}</p>
+          <p className="mono-value mt-1 text-2xl text-text-primary">
+            <AnimatedNumber value={confirmadosHoje.length} format={(v) => `${v}`} />
+          </p>
         </Card>
         <Card className="p-4">
           <p className="text-xs text-text-secondary">Assinantes em dia</p>
-          <p className="mono-value mt-1 text-2xl text-text-primary">{assinantesEmDia}</p>
+          <p className="mono-value mt-1 text-2xl text-text-primary">
+            <AnimatedNumber value={assinantesEmDia} format={(v) => `${v}`} />
+          </p>
         </Card>
       </div>
 

@@ -1,3 +1,4 @@
+export * from './AnimatedNumber'
 export * from './Card'
 export * from './LogoMark'
 export * from './StatusPill'
