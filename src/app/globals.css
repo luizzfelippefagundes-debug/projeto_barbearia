@@ -15,6 +15,15 @@
   --color-brass: #0ea5a0;
   --color-brass-muted: #e3f7f5;
 
+  /* Cores categóricas pra gráficos com múltiplas séries (ex: composição de
+   * faturamento por categoria) — validadas com o script de paleta do skill
+   * de dataviz pros dois temas (claro e escuro), por isso um valor único
+   * já funciona nos dois, sem precisar repetir em :root[data-theme="dark"].
+   * --color-accent já é a primeira cor categórica (categoria 1); estas são
+   * a 2ª e 3ª. */
+  --color-chart-2: #0d9488;
+  --color-chart-3: #a855f7;
+
   --color-text-primary: #12131a;
   --color-text-secondary: #6b7280;
 
