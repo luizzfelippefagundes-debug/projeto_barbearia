@@ -30,7 +30,7 @@ export function ClienteVisitHistory({
               <span className="mono-value text-xs text-text-secondary">{formatDataCurta(h.data)}</span>
               {h.avaliacao === 'up' && <ThumbsUp size={14} className="text-status-green" aria-label="Avaliação positiva" />}
               {h.avaliacao === 'down' && <ThumbsDown size={14} className="text-status-red" aria-label="Avaliação negativa" />}
-              {!h.avaliacao && mostrarAvaliar && (
+              {!h.avaliacao && mostrarAvaliar && !h.pendente && (
                 <Link href={`/cliente/avaliar/${h.id}`} className="text-xs text-accent underline">
                   Avaliar
                 </Link>
