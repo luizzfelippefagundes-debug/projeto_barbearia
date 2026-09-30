@@ -1,8 +1,8 @@
 import { eq, inArray } from 'drizzle-orm'
 import { NextResponse } from 'next/server'
-import { getDb } from '../../../../db'
-import { assinaturas } from '../../../../db/schema'
-import { buscarAssinatura } from '../../../../lib/asaas'
+import { getDb } from '../../../db'
+import { assinaturas } from '../../../db/schema'
+import { buscarAssinatura } from '../../../lib/asaas'
 
 /** Endpoint temporário, uso único — corrige `proximaCobranca` travada de
  * assinaturas já existentes (o webhook só atualizava `status`, nunca essa
