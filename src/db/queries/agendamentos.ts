@@ -120,3 +120,21 @@ export async function getGradeAgendaDoDia(
   }
   return grade
 }
+
+/** Agendamentos 'confirmado' (sem contar continuações de slot) de um
+ * cliente — inclui tanto os futuros quanto os já vencidos. Quem decide
+ * quais contam como "provavelmente atendido" é `contaComoAtendimento`,
+ * em lib/derive.ts, chamada por quem consome isso (ex: getClienteComHistorico). */
+export async function getAgendamentosConfirmadosDoCliente(clienteId: string): Promise<Agendamento[]> {
+  const rows = await getDb()
+    .select()
+    .from(agendamentos)
+    .where(
+      and(
+        eq(agendamentos.clienteId, clienteId),
+        eq(agendamentos.status, 'confirmado'),
+        isNull(agendamentos.continuacaoDeId),
+      ),
+    )
+  return mapearComServicos(rows)
+}
