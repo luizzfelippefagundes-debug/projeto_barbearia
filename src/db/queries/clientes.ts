@@ -2,6 +2,8 @@ import { and, desc, eq } from 'drizzle-orm'
 import { getDb } from '../index'
 import { clientes, haircutRecords } from '../schema'
 import { nullToUndefined } from '../../lib/db-map'
+import { contaComoAtendimento } from '../../lib/derive'
+import { getAgendamentosConfirmadosDoCliente } from './agendamentos'
 import type { Cliente, HaircutRecord } from '../../types'
 
 function toAppCliente(row: typeof clientes.$inferSelect, historico: HaircutRecord[] = []): Cliente {
@@ -75,7 +77,24 @@ export async function getClienteComHistorico(id: string, barbeariaId: string): P
     .where(eq(haircutRecords.clienteId, id))
     .orderBy(desc(haircutRecords.data))
 
-  return toAppCliente(clienteRow, historicoRows.map(toAppHaircutRecord))
+  const agendamentosConfirmados = await getAgendamentosConfirmadosDoCliente(id)
+  const pendentes: HaircutRecord[] = agendamentosConfirmados
+    .filter(contaComoAtendimento)
+    .flatMap((a) =>
+      a.servicoIds.map((servicoId) => ({
+        id: `${a.id}-${servicoId}`,
+        data: a.data,
+        barbeiroId: a.barbeiroId,
+        servicoId,
+        pendente: true,
+      })),
+    )
+
+  const historico = [...historicoRows.map(toAppHaircutRecord), ...pendentes].sort((a, b) =>
+    b.data.localeCompare(a.data),
+  )
+
+  return toAppCliente(clienteRow, historico)
 }
 
 /** Todos os clientes com histórico completo — usado pelas métricas do
