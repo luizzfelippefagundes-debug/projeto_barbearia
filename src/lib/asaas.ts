@@ -82,6 +82,13 @@ export async function criarAssinaturaAsaas(params: {
   })
 }
 
+/** Busca a assinatura direto — usada pra manter `proximaCobranca` sempre
+ * atualizada. O `nextDueDate` aqui é o do PRÓXIMO ciclo ainda não faturado,
+ * diferente do `dueDate` de um pagamento específico. */
+export async function buscarAssinatura(subscriptionId: string): Promise<{ nextDueDate: string }> {
+  return asaasFetch<{ nextDueDate: string }>(`/subscriptions/${encodeURIComponent(subscriptionId)}`)
+}
+
 export interface AsaasPayment {
   id: string
   status: string

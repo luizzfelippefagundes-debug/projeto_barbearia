@@ -3,7 +3,7 @@ import { NextResponse } from 'next/server'
 import { revalidatePath } from 'next/cache'
 import { getDb } from '../../../../db'
 import { asaasWebhookEventos, assinaturas } from '../../../../db/schema'
-import { mapStatusPagamentoAsaas } from '../../../../lib/asaas'
+import { buscarAssinatura, mapStatusPagamentoAsaas } from '../../../../lib/asaas'
 
 interface AsaasWebhookPayload {
   id: string
@@ -48,13 +48,23 @@ export async function POST(req: Request) {
   }
 
   const novoStatus = payload.payment?.status ? mapStatusPagamentoAsaas(payload.payment.status) : null
-  if (!novoStatus) {
+
+  // Sempre tenta atualizar a próxima cobrança (vem do ciclo seguinte da
+  // assinatura, não da fatura desse evento) — sem isso, a data fica travada
+  // no primeiro pagamento pra sempre, mesmo com o status virando em_dia/
+  // atrasado certinho a cada mês.
+  const assinaturaAsaas = await buscarAssinatura(subscriptionId).catch(() => null)
+
+  if (!novoStatus && !assinaturaAsaas) {
     return NextResponse.json({ ok: true })
   }
 
   await db
     .update(assinaturas)
-    .set({ status: novoStatus })
+    .set({
+      ...(novoStatus ? { status: novoStatus } : {}),
+      ...(assinaturaAsaas ? { proximaCobranca: assinaturaAsaas.nextDueDate } : {}),
+    })
     .where(eq(assinaturas.asaasSubscriptionId, subscriptionId))
 
   revalidatePath('/cliente/perfil')
