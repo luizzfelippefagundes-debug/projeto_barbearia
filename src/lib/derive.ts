@@ -22,7 +22,7 @@ function mesReferenciaDeData(dataISO: string): string {
  * continuação (agendamento que ocupa mais de um slot por causa da duração)
  * nunca contam — são a mesma visita do agendamento original, não uma
  * segunda. */
-function contaComoAtendimento(a: Pick<Agendamento, 'status' | 'continuacaoDeId' | 'data' | 'hora'>): boolean {
+export function contaComoAtendimento(a: Pick<Agendamento, 'status' | 'continuacaoDeId' | 'data' | 'hora'>): boolean {
   if (a.continuacaoDeId) return false
   if (a.status === 'atendido') return true
   if (a.status !== 'confirmado') return false

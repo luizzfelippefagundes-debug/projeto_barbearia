@@ -8,6 +8,10 @@ export interface HaircutRecord {
   fotoUrl?: string
   notas?: string
   avaliacao?: ThumbUpDown
+  /** true = agendamento vencido ainda não confirmado pelo barbeiro, exibido
+   * como se fosse atendido (mesma regra do faturamento) — não existe
+   * haircut_record de verdade por trás, então não pode ser avaliado. */
+  pendente?: boolean
 }
 
 export interface Cliente {
