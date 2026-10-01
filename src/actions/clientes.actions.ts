@@ -47,10 +47,15 @@ export async function registrarAtendimento(clienteId: string, formData: FormData
 
   let fotoUrl: string | undefined
   if (foto instanceof File && foto.size > 0) {
-    const blob = await put(`atendimentos/${clienteId}-${Date.now()}-${foto.name}`, foto, {
-      access: 'public',
-    })
-    fotoUrl = blob.url
+    try {
+      const blob = await put(`atendimentos/${clienteId}-${Date.now()}-${foto.name}`, foto, {
+        access: 'public',
+      })
+      fotoUrl = blob.url
+    } catch (err) {
+      console.error('[registrarAtendimento] erro ao enviar foto', err)
+      return { error: 'Não foi possível enviar a foto. Tente uma imagem menor ou registre sem foto.' }
+    }
   }
 
   const db = getDb()

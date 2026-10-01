@@ -203,10 +203,15 @@ export async function registrarMeuAtendimento(formData: FormData): Promise<Resul
 
   let fotoUrl: string | undefined
   if (foto instanceof File && foto.size > 0) {
-    const blob = await put(`atendimentos/${clienteId}-${Date.now()}-${foto.name}`, foto, {
-      access: 'public',
-    })
-    fotoUrl = blob.url
+    try {
+      const blob = await put(`atendimentos/${clienteId}-${Date.now()}-${foto.name}`, foto, {
+        access: 'public',
+      })
+      fotoUrl = blob.url
+    } catch (err) {
+      console.error('[registrarAtendimento] erro ao enviar foto', err)
+      return { error: 'Não foi possível enviar a foto. Tente uma imagem menor ou registre sem foto.' }
+    }
   }
 
   const hojeISO = getHojeISO()
@@ -281,8 +286,15 @@ export async function atualizarMinhaFoto(foto: File): Promise<Resultado> {
   const barbeiro = await assertBarbeiroLogado()
   if (!(foto instanceof File) || foto.size === 0) return { error: 'Selecione uma foto' }
 
-  const blob = await put(`barbeiros/${barbeiro.id}-${Date.now()}-${foto.name}`, foto, { access: 'public' })
-  await getDb().update(barbeiros).set({ avatarUrl: blob.url }).where(eq(barbeiros.id, barbeiro.id))
+  let blobUrl: string
+  try {
+    const blob = await put(`barbeiros/${barbeiro.id}-${Date.now()}-${foto.name}`, foto, { access: 'public' })
+    blobUrl = blob.url
+  } catch (err) {
+    console.error('[atualizarMinhaFoto] erro ao enviar foto', err)
+    return { error: 'Não foi possível enviar a foto. Tente uma imagem menor ou tente de novo.' }
+  }
+  await getDb().update(barbeiros).set({ avatarUrl: blobUrl }).where(eq(barbeiros.id, barbeiro.id))
 
   revalidatePath('/barbeiro/perfil')
   revalidatePath('/admin/barbeiros')

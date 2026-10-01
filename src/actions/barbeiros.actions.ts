@@ -19,10 +19,18 @@ export async function atualizarFotoBarbeiro(barbeiroId: string, foto: File): Pro
   const dono = await assertAdmin()
   if (!(foto instanceof File) || foto.size === 0) return { error: 'Selecione uma foto' }
 
-  const blob = await put(`barbeiros/${barbeiroId}-${Date.now()}-${foto.name}`, foto, { access: 'public' })
+  let blobUrl: string
+  try {
+    const blob = await put(`barbeiros/${barbeiroId}-${Date.now()}-${foto.name}`, foto, { access: 'public' })
+    blobUrl = blob.url
+  } catch (err) {
+    console.error('[atualizarFotoBarbeiro] erro ao enviar foto', err)
+    return { error: 'Não foi possível enviar a foto. Tente uma imagem menor ou tente de novo.' }
+  }
+
   await getDb()
     .update(barbeiros)
-    .set({ avatarUrl: blob.url })
+    .set({ avatarUrl: blobUrl })
     .where(and(eq(barbeiros.id, barbeiroId), eq(barbeiros.barbeariaId, dono.barbeariaId)))
 
   revalidatePath('/admin/barbeiros')
@@ -176,8 +184,13 @@ export async function criarBarbeiro(
 
   let avatarUrl: string | undefined
   if (foto && foto.size > 0) {
-    const blob = await put(`barbeiros/${Date.now()}-${foto.name}`, foto, { access: 'public' })
-    avatarUrl = blob.url
+    try {
+      const blob = await put(`barbeiros/${Date.now()}-${foto.name}`, foto, { access: 'public' })
+      avatarUrl = blob.url
+    } catch (err) {
+      console.error('[criarBarbeiro] erro ao enviar foto', err)
+      return { error: 'Não foi possível enviar a foto. Tente uma imagem menor ou cadastre sem foto.' }
+    }
   }
 
   const rows = await getDb()

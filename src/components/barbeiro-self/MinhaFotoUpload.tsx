@@ -9,6 +9,7 @@ export function MinhaFotoUpload({ nome, avatarUrl }: { nome: string; avatarUrl?:
   const inputRef = useRef<HTMLInputElement>(null)
   const [arquivoParaRecortar, setArquivoParaRecortar] = useState<File | null>(null)
   const [previewUrl, setPreviewUrl] = useState<string | undefined>(undefined)
+  const [erro, setErro] = useState<string | null>(null)
   const [pending, startTransition] = useTransition()
 
   function handleEscolher(e: React.ChangeEvent<HTMLInputElement>) {
@@ -23,15 +24,20 @@ export function MinhaFotoUpload({ nome, avatarUrl }: { nome: string; avatarUrl?:
   }
 
   function handleConfirmarRecorte(arquivoRecortado: File) {
+    setErro(null)
     setPreviewUrl(URL.createObjectURL(arquivoRecortado))
     fecharModal()
     startTransition(async () => {
-      await atualizarMinhaFoto(arquivoRecortado)
+      const resultado = await atualizarMinhaFoto(arquivoRecortado)
+      if (resultado.error) {
+        setErro(resultado.error)
+        setPreviewUrl(undefined)
+      }
     })
   }
 
   return (
-    <>
+    <div className="flex shrink-0 flex-col items-center gap-1.5">
       <button
         type="button"
         onClick={() => inputRef.current?.click()}
@@ -45,12 +51,14 @@ export function MinhaFotoUpload({ nome, avatarUrl }: { nome: string; avatarUrl?:
         <input ref={inputRef} type="file" accept="image/*" className="hidden" onChange={handleEscolher} />
       </button>
 
+      {erro && <p className="max-w-[10rem] text-center text-xs text-status-red">{erro}</p>}
+
       <FotoCropModal
         open={arquivoParaRecortar !== null}
         arquivo={arquivoParaRecortar}
         onCancelar={fecharModal}
         onConfirmar={handleConfirmarRecorte}
       />
-    </>
+    </div>
   )
 }
