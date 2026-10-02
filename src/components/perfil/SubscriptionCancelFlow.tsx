@@ -1,5 +1,6 @@
 'use client'
 
+import Link from 'next/link'
 import { useState, useTransition } from 'react'
 import { Repeat } from 'lucide-react'
 import type { Assinatura, PlanoAssinatura } from '../../types'
@@ -60,6 +61,15 @@ export function SubscriptionCancelFlow({
 
       {assinatura.status === 'cancelado' ? (
         <p className="text-xs text-text-secondary">Sua assinatura foi cancelada.</p>
+      ) : assinatura.status === 'atrasado' ? (
+        <div className="flex flex-wrap gap-2">
+          <Link href={`/cliente/assinar/${assinatura.id}/pagar`}>
+            <Button size="sm">Renovar agora</Button>
+          </Link>
+          <Button size="sm" variant="danger" disabled={pending} onClick={() => setConfirmOpen(true)}>
+            Cancelar assinatura
+          </Button>
+        </div>
       ) : (
         <Button size="sm" variant="danger" disabled={pending} onClick={() => setConfirmOpen(true)}>
           Cancelar assinatura

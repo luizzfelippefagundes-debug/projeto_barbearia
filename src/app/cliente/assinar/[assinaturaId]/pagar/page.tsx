@@ -24,7 +24,7 @@ export default async function PagarAssinaturaPage({
 
   const statusAtual = await verificarPagamentoAssinatura(assinaturaId).catch(() => assinatura.status)
 
-  if (statusAtual !== 'aguardando') {
+  if (statusAtual === 'em_dia' || statusAtual === 'cancelado') {
     return (
       <div className="flex flex-col gap-4 lg:mx-auto lg:max-w-3xl">
         <Card className="flex flex-col items-center gap-3 p-6 text-center">
