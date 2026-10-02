@@ -3,7 +3,7 @@ import { NextResponse } from 'next/server'
 import { revalidatePath } from 'next/cache'
 import { getDb } from '../../../../db'
 import { asaasWebhookEventos, assinaturas } from '../../../../db/schema'
-import { buscarAssinatura, mapStatusPagamentoAsaas } from '../../../../lib/asaas'
+import { atualizarAssinaturaParaCartao, buscarAssinatura, mapStatusPagamentoAsaas } from '../../../../lib/asaas'
 
 interface AsaasWebhookPayload {
   id: string
@@ -12,6 +12,7 @@ interface AsaasWebhookPayload {
     id: string
     subscription?: string
     status: string
+    billingType?: string
   }
 }
 
@@ -72,6 +73,16 @@ export async function POST(req: Request) {
       ...(assinaturaAsaas ? { proximaCobranca: assinaturaAsaas.nextDueDate } : {}),
     })
     .where(eq(assinaturas.asaasSubscriptionId, subscriptionId))
+
+  // Pagamento com cartão confirmado → atualiza a assinatura no Asaas pra
+  // billingType CREDIT_CARD, pra que os ciclos seguintes sejam cobrados
+  // automaticamente sem o cliente precisar re-informar o cartão todo mês.
+  const paymentBillingType = payload.payment?.billingType
+  if (paymentBillingType === 'CREDIT_CARD' && (paymentStatus === 'RECEIVED' || paymentStatus === 'CONFIRMED')) {
+    await atualizarAssinaturaParaCartao(subscriptionId).catch((err) => {
+      console.error('[webhook] erro ao atualizar subscription para CREDIT_CARD', subscriptionId, err)
+    })
+  }
 
   revalidatePath('/cliente/perfil')
   revalidatePath('/admin/assinaturas')

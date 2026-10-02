@@ -97,13 +97,32 @@ export interface AsaasPayment {
   dueDate: string
 }
 
+const STATUS_EM_ABERTO = new Set(['PENDING', 'OVERDUE'])
+
+/** Busca o pagamento em aberto mais antigo (pendente ou vencido) da
+ * assinatura — funciona em qualquer ciclo, não só no primeiro mês.
+ * Filtra e ordena pelo vencimento igual à versão da plataforma, senão
+ * `data[0]` retorna a primeira cobrança (já paga) mesmo em renovações. */
 export async function buscarPrimeiroPagamentoDaAssinatura(
   subscriptionId: string,
 ): Promise<AsaasPayment | null> {
   const result = await asaasFetch<{ data: AsaasPayment[] }>(
-    `/payments?subscription=${encodeURIComponent(subscriptionId)}`,
+    `/payments?subscription=${encodeURIComponent(subscriptionId)}&limit=100`,
   )
-  return result.data[0] ?? null
+  const emAberto = result.data
+    .filter((p) => STATUS_EM_ABERTO.has(p.status))
+    .sort((a, b) => a.dueDate.localeCompare(b.dueDate))
+  return emAberto[0] ?? null
+}
+
+/** Atualiza a assinatura no Asaas pra billingType CREDIT_CARD — feito uma
+ * vez após o primeiro pagamento com cartão, pra que o Asaas cobre o cartão
+ * automaticamente nos ciclos seguintes sem o cliente precisar agir. */
+export async function atualizarAssinaturaParaCartao(subscriptionId: string): Promise<void> {
+  await asaasFetch(`/subscriptions/${encodeURIComponent(subscriptionId)}`, {
+    method: 'PUT',
+    body: JSON.stringify({ billingType: 'CREDIT_CARD' }),
+  })
 }
 
 export async function buscarStatusPagamento(paymentId: string): Promise<AsaasPayment> {

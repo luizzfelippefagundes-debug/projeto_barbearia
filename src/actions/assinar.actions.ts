@@ -165,6 +165,15 @@ async function assinaturaComPagamentoDoCliente(assinaturaId: string) {
   if (!assinatura || assinatura.clienteId !== clienteRow.id) {
     throw new Error('Assinatura não encontrada.')
   }
+
+  // Prioriza o pagamento em aberto atual — em renovações mensais, a função
+  // antiga (asaasFirstPaymentId) retornava sempre a primeira fatura já paga
+  // e o cliente era mandado pra um link de cobrança que não servia mais.
+  if (assinatura.asaasSubscriptionId) {
+    const pagamentoAtual = await buscarPrimeiroPagamentoDaAssinatura(assinatura.asaasSubscriptionId)
+    if (pagamentoAtual) return pagamentoAtual.id
+  }
+
   if (!assinatura.asaasFirstPaymentId) {
     throw new Error('A cobrança ainda está sendo gerada — atualize a página em alguns segundos.')
   }
