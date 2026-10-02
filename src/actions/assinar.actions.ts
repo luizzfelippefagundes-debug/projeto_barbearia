@@ -10,6 +10,7 @@ import { cancelarAssinaturaComAsaas } from '../lib/asaasCancelamento'
 import {
   buscarPixQrCode,
   buscarPrimeiroPagamentoDaAssinatura,
+  buscarQualquerPagamentoDaAssinatura,
   buscarStatusPagamento,
   criarAssinaturaAsaas,
   criarClienteAsaas,
@@ -143,11 +144,24 @@ export async function verificarPagamentoAssinatura(assinaturaId: string): Promis
     throw new Error('Assinatura não encontrada.')
   }
 
-  if (assinatura.status !== 'aguardando' || !assinatura.asaasFirstPaymentId) {
+  if (assinatura.status !== 'aguardando') {
     return assinatura.status
   }
 
-  const pagamento = await buscarStatusPagamento(assinatura.asaasFirstPaymentId)
+  // Tenta usar o payment ID salvo; se não tiver (sandbox auto-confirma antes
+  // do loop capturar o ID), busca qualquer pagamento da assinatura no Asaas.
+  let paymentId = assinatura.asaasFirstPaymentId
+  if (!paymentId && assinatura.asaasSubscriptionId) {
+    const qualquer = await buscarQualquerPagamentoDaAssinatura(assinatura.asaasSubscriptionId).catch(() => null)
+    if (qualquer) {
+      paymentId = qualquer.id
+      await getDb().update(assinaturas).set({ asaasFirstPaymentId: paymentId }).where(eq(assinaturas.id, assinaturaId))
+    }
+  }
+
+  if (!paymentId) return assinatura.status
+
+  const pagamento = await buscarStatusPagamento(paymentId)
   const novoStatus = mapStatusPagamentoAsaas(pagamento.status)
   if (!novoStatus) return assinatura.status
 

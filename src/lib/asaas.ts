@@ -129,6 +129,18 @@ export async function buscarStatusPagamento(paymentId: string): Promise<AsaasPay
   return asaasFetch<AsaasPayment>(`/payments/${encodeURIComponent(paymentId)}`)
 }
 
+/** Busca o pagamento mais recente de uma assinatura independente do status —
+ * fallback pra quando o payment ID não foi salvo (sandbox auto-confirma antes
+ * do loop de tentativas conseguir capturar o ID). */
+export async function buscarQualquerPagamentoDaAssinatura(
+  subscriptionId: string,
+): Promise<AsaasPayment | null> {
+  const result = await asaasFetch<{ data: AsaasPayment[] }>(
+    `/payments?subscription=${encodeURIComponent(subscriptionId)}&limit=1`,
+  )
+  return result.data?.[0] ?? null
+}
+
 export interface AsaasPixQrCode {
   encodedImage: string
   payload: string
