@@ -1,9 +1,9 @@
-import { eq } from 'drizzle-orm'
+import { and, eq, inArray, ne } from 'drizzle-orm'
 import { NextResponse } from 'next/server'
 import { revalidatePath } from 'next/cache'
 import { getDb } from '../../../../db'
 import { asaasWebhookEventos, assinaturas } from '../../../../db/schema'
-import { atualizarAssinaturaParaCartao, buscarAssinatura, mapStatusPagamentoAsaas } from '../../../../lib/asaas'
+import { atualizarAssinaturaParaCartao, buscarAssinatura, cancelarAssinaturaAsaas, mapStatusPagamentoAsaas } from '../../../../lib/asaas'
 
 interface AsaasWebhookPayload {
   id: string
@@ -65,6 +65,13 @@ export async function POST(req: Request) {
     return NextResponse.json({ ok: true })
   }
 
+  // Busca a assinatura antes de atualizar pra ter o clienteId disponível
+  const [assinaturaLocal] = await db
+    .select({ id: assinaturas.id, clienteId: assinaturas.clienteId })
+    .from(assinaturas)
+    .where(eq(assinaturas.asaasSubscriptionId, subscriptionId))
+    .limit(1)
+
   await db
     .update(assinaturas)
     .set({
@@ -73,6 +80,29 @@ export async function POST(req: Request) {
       ...(assinaturaAsaas ? { proximaCobranca: assinaturaAsaas.nextDueDate } : {}),
     })
     .where(eq(assinaturas.asaasSubscriptionId, subscriptionId))
+
+  // Pagamento confirmado → cancela assinaturas antigas do mesmo cliente
+  // (troca de plano: nova só é criada, antiga só cancela aqui quando pago).
+  if (statusFinal === 'em_dia' && assinaturaLocal) {
+    const antigas = await db
+      .select({ id: assinaturas.id, asaasSubscriptionId: assinaturas.asaasSubscriptionId })
+      .from(assinaturas)
+      .where(
+        and(
+          eq(assinaturas.clienteId, assinaturaLocal.clienteId),
+          ne(assinaturas.id, assinaturaLocal.id),
+          inArray(assinaturas.status, ['em_dia', 'atrasado', 'aguardando']),
+        ),
+      )
+    for (const antiga of antigas) {
+      if (antiga.asaasSubscriptionId) {
+        await cancelarAssinaturaAsaas(antiga.asaasSubscriptionId).catch((err) => {
+          console.error('[webhook] erro ao cancelar assinatura antiga na troca', antiga.id, err)
+        })
+      }
+      await db.update(assinaturas).set({ status: 'cancelado' }).where(eq(assinaturas.id, antiga.id))
+    }
+  }
 
   // Pagamento com cartão confirmado → atualiza a assinatura no Asaas pra
   // billingType CREDIT_CARD, pra que os ciclos seguintes sejam cobrados

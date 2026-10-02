@@ -29,11 +29,16 @@ function apenasDigitos(valor: string): string {
 export async function assinarPlano(
   planoId: string,
   cpfInput: string,
+  opts: { permitirAtiva?: boolean } = {},
 ): Promise<{ error: string } | { assinaturaId: string }> {
   const clienteRow = await getClienteAtualOuFalhar()
 
   const ativa = await getAssinaturaAtivaDoCliente(clienteRow.id)
-  if (ativa) return { error: 'Você já tem uma assinatura ativa.' }
+  if (opts.permitirAtiva) {
+    if (ativa?.planoId === planoId) return { error: 'Você já assina este plano.' }
+  } else {
+    if (ativa) return { error: 'Você já tem uma assinatura ativa.' }
+  }
 
   const cpf = apenasDigitos(cpfInput)
   if (cpf.length !== 11) return { error: 'Digite um CPF válido (11 dígitos).' }
@@ -208,28 +213,13 @@ export async function buscarLinkCartaoDaMinhaAssinatura(
   }
 }
 
-/** Troca o plano ativo do cliente: cancela o atual no Asaas e cria um novo
- * com o plano escolhido, redirecionando pro pagamento da primeira cobrança. */
+/** Inicia a troca de plano: cria a nova assinatura sem cancelar a atual.
+ * A assinatura antiga é cancelada automaticamente pelo webhook quando o
+ * pagamento do novo plano for confirmado — assim o cliente não perde o
+ * plano atual se abandonar o pagamento no meio do caminho. */
 export async function trocarPlano(
   novoPlanoId: string,
   cpfInput: string,
 ): Promise<{ error: string } | { assinaturaId: string }> {
-  const clienteRow = await getClienteAtualOuFalhar()
-
-  const ativa = await getAssinaturaAtivaDoCliente(clienteRow.id)
-
-  if (ativa?.planoId === novoPlanoId) {
-    return { error: 'Você já assina este plano.' }
-  }
-
-  if (ativa) {
-    try {
-      await cancelarAssinaturaComAsaas(ativa.id)
-    } catch (err) {
-      console.error('[trocarPlano] erro ao cancelar assinatura atual', err)
-      return { error: 'Não foi possível cancelar o plano atual. Tente de novo.' }
-    }
-  }
-
-  return assinarPlano(novoPlanoId, cpfInput)
+  return assinarPlano(novoPlanoId, cpfInput, { permitirAtiva: true })
 }
