@@ -1,6 +1,16 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
+  async redirects() {
+    return [
+      {
+        source: '/:path*',
+        has: [{ type: 'host', value: 'jp-barbeiro.vercel.app' }],
+        destination: 'https://nexobarber.nexosystem.online/:path*',
+        permanent: true,
+      },
+    ]
+  },
   experimental: {
     serverActions: {
       // Padrão do Next.js é 1MB — baixo demais pra foto de celular (atendimento,
