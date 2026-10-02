@@ -29,8 +29,10 @@ export default async function PerfilPage() {
     getBaseUrl(),
   ])
 
-  const assinatura = escolherAssinaturaPrincipal(assinaturas.filter((a) => a.clienteId === cliente.id))
+  const minhasAssinaturas = assinaturas.filter((a) => a.clienteId === cliente.id)
+  const assinatura = escolherAssinaturaPrincipal(minhasAssinaturas)
   const plano = assinatura ? planos.find((p) => p.id === assinatura.planoId) : undefined
+  const aguardando = !assinatura ? minhasAssinaturas.find((a) => a.status === 'aguardando') : undefined
 
   const totalIndicados = clientes.filter((c) => c.indicadoPor === cliente.id).length
 
@@ -62,6 +64,16 @@ export default async function PerfilPage() {
 
       {assinatura && plano ? (
         <SubscriptionCancelFlow assinatura={assinatura} plano={plano} />
+      ) : aguardando ? (
+        <Card className="flex items-center justify-between gap-3 p-4">
+          <div>
+            <p className="text-sm text-text-primary">Pagamento pendente</p>
+            <p className="text-xs text-text-secondary">Conclua o pagamento pra ativar seu plano.</p>
+          </div>
+          <Link href={`/cliente/assinar/${aguardando.id}/pagar`}>
+            <Button size="sm">Pagar agora</Button>
+          </Link>
+        </Card>
       ) : (
         <Card className="flex items-center justify-between gap-3 p-4">
           <div>
