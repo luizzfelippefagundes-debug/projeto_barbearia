@@ -2,24 +2,38 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { Sparkles } from 'lucide-react'
+import { CheckCircle2, Sparkles } from 'lucide-react'
 import type { PlanoAssinatura } from '../../types'
 import { Button, Card, Input, Modal } from '../../components/ui'
-import { assinarPlano } from '../../actions/assinar.actions'
+import { assinarPlano, trocarPlano } from '../../actions/assinar.actions'
 import { formatBRL } from '../../lib/format'
 
-export function PlanoCard({ plano, cpfAtual }: { plano: PlanoAssinatura; cpfAtual?: string }) {
+export function PlanoCard({
+  plano,
+  cpfAtual,
+  isAtual = false,
+  temAssinaturaAtiva = false,
+}: {
+  plano: PlanoAssinatura
+  cpfAtual?: string
+  isAtual?: boolean
+  temAssinaturaAtiva?: boolean
+}) {
   const router = useRouter()
   const [open, setOpen] = useState(false)
   const [cpf, setCpf] = useState(cpfAtual ?? '')
   const [salvando, setSalvando] = useState(false)
   const [erro, setErro] = useState<string | null>(null)
 
+  const modoTroca = temAssinaturaAtiva && !isAtual
+
   async function handleConfirmar() {
     setSalvando(true)
     setErro(null)
     try {
-      const resultado = await assinarPlano(plano.id, cpf)
+      const resultado = modoTroca
+        ? await trocarPlano(plano.id, cpf)
+        : await assinarPlano(plano.id, cpf)
       if ('error' in resultado) {
         setErro(resultado.error)
         setSalvando(false)
@@ -32,30 +46,47 @@ export function PlanoCard({ plano, cpfAtual }: { plano: PlanoAssinatura; cpfAtua
     }
   }
 
+  const descricaoServicos =
+    plano.servicosInclusos.length === 0
+      ? 'Consulte os benefícios'
+      : plano.servicosInclusos
+          .map((s) => (s.limiteMensal != null ? `${s.nome} (${s.limiteMensal}x/mês)` : s.nome))
+          .join(', ')
+
   return (
     <>
-      <Card className="flex items-center justify-between gap-3 p-4">
+      <Card className={`flex items-center justify-between gap-3 p-4 ${isAtual ? 'border-accent/40' : ''}`}>
         <div>
-          <p className="text-sm font-semibold text-text-primary">{plano.nome}</p>
-          <p className="text-xs text-text-secondary">
-            {plano.servicosInclusos.length === 0
-              ? 'Consulte os benefícios'
-              : plano.servicosInclusos
-                  .map((s) => (s.limiteMensal != null ? `${s.nome} (${s.limiteMensal}x/mês)` : s.nome))
-                  .join(', ')}
-          </p>
+          <div className="flex items-center gap-2">
+            <p className="text-sm font-semibold text-text-primary">{plano.nome}</p>
+            {isAtual && (
+              <span className="flex items-center gap-1 text-xs text-accent">
+                <CheckCircle2 size={12} aria-hidden="true" />
+                Plano atual
+              </span>
+            )}
+          </div>
+          <p className="text-xs text-text-secondary">{descricaoServicos}</p>
           <p className="mono-value mt-1 text-lg text-accent">{formatBRL(plano.valorMensal)}/mês</p>
         </div>
-        <Button size="sm" onClick={() => setOpen(true)}>
-          Assinar
-        </Button>
+        {!isAtual && (
+          <Button size="sm" variant={modoTroca ? 'secondary' : 'primary'} onClick={() => setOpen(true)}>
+            {modoTroca ? 'Trocar' : 'Assinar'}
+          </Button>
+        )}
       </Card>
 
-      <Modal open={open} onClose={() => setOpen(false)} title={`Assinar ${plano.nome}`}>
+      <Modal
+        open={open}
+        onClose={() => setOpen(false)}
+        title={modoTroca ? `Trocar para ${plano.nome}` : `Assinar ${plano.nome}`}
+      >
         <div className="flex flex-col gap-4">
           <div className="flex items-center gap-2 rounded-xl bg-accent-muted p-3 text-xs text-accent">
             <Sparkles size={14} aria-hidden="true" />
-            Primeira cobrança de {formatBRL(plano.valorMensal)} via Pix ou cartão de crédito.
+            {modoTroca
+              ? `Seu plano atual será cancelado e você pagará ${formatBRL(plano.valorMensal)} para ativar o novo.`
+              : `Primeira cobrança de ${formatBRL(plano.valorMensal)} via Pix ou cartão de crédito.`}
           </div>
           <Input
             label="Seu CPF"
@@ -70,7 +101,7 @@ export function PlanoCard({ plano, cpfAtual }: { plano: PlanoAssinatura; cpfAtua
               Cancelar
             </Button>
             <Button onClick={handleConfirmar} disabled={salvando}>
-              {salvando ? 'Gerando cobrança...' : 'Confirmar e pagar'}
+              {salvando ? 'Aguarde...' : modoTroca ? 'Confirmar troca' : 'Confirmar e pagar'}
             </Button>
           </div>
         </div>

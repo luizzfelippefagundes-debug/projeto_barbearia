@@ -207,3 +207,29 @@ export async function buscarLinkCartaoDaMinhaAssinatura(
     return { error: err instanceof Error ? err.message : 'Não foi possível preparar o pagamento com cartão agora.' }
   }
 }
+
+/** Troca o plano ativo do cliente: cancela o atual no Asaas e cria um novo
+ * com o plano escolhido, redirecionando pro pagamento da primeira cobrança. */
+export async function trocarPlano(
+  novoPlanoId: string,
+  cpfInput: string,
+): Promise<{ error: string } | { assinaturaId: string }> {
+  const clienteRow = await getClienteAtualOuFalhar()
+
+  const ativa = await getAssinaturaAtivaDoCliente(clienteRow.id)
+
+  if (ativa?.planoId === novoPlanoId) {
+    return { error: 'Você já assina este plano.' }
+  }
+
+  if (ativa) {
+    try {
+      await cancelarAssinaturaComAsaas(ativa.id)
+    } catch (err) {
+      console.error('[trocarPlano] erro ao cancelar assinatura atual', err)
+      return { error: 'Não foi possível cancelar o plano atual. Tente de novo.' }
+    }
+  }
+
+  return assinarPlano(novoPlanoId, cpfInput)
+}

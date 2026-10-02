@@ -66,14 +66,22 @@ export function SubscriptionCancelFlow({
           <Link href={`/cliente/assinar/${assinatura.id}/pagar`}>
             <Button size="sm">Renovar agora</Button>
           </Link>
+          <Link href="/cliente/assinar">
+            <Button size="sm" variant="ghost">Ver planos</Button>
+          </Link>
           <Button size="sm" variant="danger" disabled={pending} onClick={() => setConfirmOpen(true)}>
             Cancelar assinatura
           </Button>
         </div>
       ) : (
-        <Button size="sm" variant="danger" disabled={pending} onClick={() => setConfirmOpen(true)}>
-          Cancelar assinatura
-        </Button>
+        <div className="flex flex-wrap gap-2">
+          <Link href="/cliente/assinar">
+            <Button size="sm" variant="ghost">Ver/trocar plano</Button>
+          </Link>
+          <Button size="sm" variant="danger" disabled={pending} onClick={() => setConfirmOpen(true)}>
+            Cancelar assinatura
+          </Button>
+        </div>
       )}
 
       {erro && <p className="mt-2 text-xs text-status-red">{erro}</p>}
