@@ -38,7 +38,7 @@ export async function reenviarCobranca(assinaturaId: string): Promise<Resultado>
   const dono = await assertAdmin()
   await getDb()
     .update(assinaturas)
-    .set({ ultimoReenvioEm: new Date() })
+    .set({ ultimoReenvioEm: new Date(), cartaoRecusado: false })
     .where(and(eq(assinaturas.id, assinaturaId), eq(assinaturas.barbeariaId, dono.barbeariaId)))
   revalidatePath('/admin/assinaturas')
   return {}

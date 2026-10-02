@@ -47,7 +47,9 @@ export async function POST(req: Request) {
     return NextResponse.json({ ok: true })
   }
 
-  const novoStatus = payload.payment?.status ? mapStatusPagamentoAsaas(payload.payment.status) : null
+  const paymentStatus = payload.payment?.status
+  const novoStatus = paymentStatus ? mapStatusPagamentoAsaas(paymentStatus) : null
+  const cartaoRecusado = paymentStatus === 'REPROVED' ? true : paymentStatus && ['RECEIVED', 'CONFIRMED'].includes(paymentStatus) ? false : undefined
 
   // Sempre tenta atualizar a próxima cobrança (vem do ciclo seguinte da
   // assinatura, não da fatura desse evento) — sem isso, a data fica travada
@@ -55,14 +57,18 @@ export async function POST(req: Request) {
   // atrasado certinho a cada mês.
   const assinaturaAsaas = await buscarAssinatura(subscriptionId).catch(() => null)
 
-  if (!novoStatus && !assinaturaAsaas) {
+  // REPROVED = cartão recusado: força atrasado mesmo sem status mapeado
+  const statusFinal = novoStatus ?? (paymentStatus === 'REPROVED' ? 'atrasado' as const : null)
+
+  if (!statusFinal && cartaoRecusado === undefined && !assinaturaAsaas) {
     return NextResponse.json({ ok: true })
   }
 
   await db
     .update(assinaturas)
     .set({
-      ...(novoStatus ? { status: novoStatus } : {}),
+      ...(statusFinal ? { status: statusFinal } : {}),
+      ...(cartaoRecusado !== undefined ? { cartaoRecusado } : {}),
       ...(assinaturaAsaas ? { proximaCobranca: assinaturaAsaas.nextDueDate } : {}),
     })
     .where(eq(assinaturas.asaasSubscriptionId, subscriptionId))
