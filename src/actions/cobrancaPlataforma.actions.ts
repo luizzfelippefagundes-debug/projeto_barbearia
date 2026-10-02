@@ -143,12 +143,15 @@ export async function verificarPagamentoPlataforma() {
   if (!pagamento) return { status: barbearia.statusPagamento, proximaCobranca }
 
   const novoStatus = mapStatusPagamentoAsaas(pagamento.status)
-  if (!novoStatus || novoStatus === barbearia.statusPagamento) {
+  // PENDING não está em STATUS_PAGO nem em STATUS_VENCIDO, então mapStatusPagamentoAsaas
+  // retorna null — mas existe cobrança em aberto, o dono precisa pagar.
+  const statusResolvido = novoStatus ?? 'aguardando'
+  if (statusResolvido === barbearia.statusPagamento) {
     return { status: barbearia.statusPagamento, proximaCobranca }
   }
 
-  await getDb().update(barbearias).set({ statusPagamento: novoStatus }).where(eq(barbearias.id, barbearia.id))
+  await getDb().update(barbearias).set({ statusPagamento: statusResolvido }).where(eq(barbearias.id, barbearia.id))
   revalidatePath('/admin/plano')
   revalidatePath('/pagamento-pendente')
-  return { status: novoStatus, proximaCobranca }
+  return { status: statusResolvido, proximaCobranca }
 }
