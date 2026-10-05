@@ -1,6 +1,7 @@
 import { Card, EmptyState, SectionHeading } from '../../../../components/ui'
 import { MetricCardsRow } from '../../../../components/assinaturas/MetricCardsRow'
 import { DeclinedCardAlert } from '../../../../components/assinaturas/DeclinedCardAlert'
+import { RecorrenciaCartaoSection } from '../../../../components/assinaturas/RecorrenciaCartaoSection'
 import { SubscriberList } from '../../../../components/assinaturas/SubscriberList'
 import { PlanoFormModal } from '../../../../components/assinaturas/PlanoFormModal'
 import { PlanoRowActions } from '../../../../components/assinaturas/PlanoRowActions'
@@ -46,6 +47,9 @@ export default async function AssinaturasPage() {
       <div>
         <SectionHeading>Clientes</SectionHeading>
         <DeclinedCardAlert assinaturas={assinaturas} clientes={clientes} />
+        <div className="mt-3">
+          <RecorrenciaCartaoSection clientes={clientes} />
+        </div>
         {/* "Aguardando" = cadastro feito mas pagamento nunca confirmado —
          * misturado com assinantes de verdade só confundia quem tá vendo. */}
         <SubscriberList

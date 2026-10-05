@@ -85,8 +85,26 @@ export async function criarAssinaturaAsaas(params: {
 /** Busca a assinatura direto — usada pra manter `proximaCobranca` sempre
  * atualizada. O `nextDueDate` aqui é o do PRÓXIMO ciclo ainda não faturado,
  * diferente do `dueDate` de um pagamento específico. */
-export async function buscarAssinatura(subscriptionId: string): Promise<{ nextDueDate: string }> {
-  return asaasFetch<{ nextDueDate: string }>(`/subscriptions/${encodeURIComponent(subscriptionId)}`)
+export async function buscarAssinatura(subscriptionId: string): Promise<{ nextDueDate: string; billingType: string }> {
+  return asaasFetch<{ nextDueDate: string; billingType: string }>(`/subscriptions/${encodeURIComponent(subscriptionId)}`)
+}
+
+/** Busca o token do cartão mais recente que foi pago com sucesso nessa
+ * assinatura — usado pra corrigir assinaturas onde o billingType ficou
+ * como UNDEFINED (bug histórico: o token não era passado ao atualizar). */
+export async function buscarTokenCartaoDaAssinatura(subscriptionId: string): Promise<string | null> {
+  const result = await asaasFetch<{ data: AsaasPayment[] }>(
+    `/payments?subscription=${encodeURIComponent(subscriptionId)}&limit=100`,
+  )
+  const pagos = result.data
+    .filter(
+      (p) =>
+        ['RECEIVED', 'CONFIRMED'].includes(p.status) &&
+        p.billingType === 'CREDIT_CARD' &&
+        p.creditCard?.creditCardToken,
+    )
+    .sort((a, b) => b.dueDate.localeCompare(a.dueDate))
+  return pagos[0]?.creditCard?.creditCardToken ?? null
 }
 
 export interface AsaasPayment {
@@ -95,6 +113,10 @@ export interface AsaasPayment {
   invoiceUrl: string
   value: number
   dueDate: string
+  billingType?: string
+  creditCard?: {
+    creditCardToken?: string
+  }
 }
 
 const STATUS_EM_ABERTO = new Set(['PENDING', 'OVERDUE'])
@@ -117,11 +139,16 @@ export async function buscarPrimeiroPagamentoDaAssinatura(
 
 /** Atualiza a assinatura no Asaas pra billingType CREDIT_CARD — feito uma
  * vez após o primeiro pagamento com cartão, pra que o Asaas cobre o cartão
- * automaticamente nos ciclos seguintes sem o cliente precisar agir. */
-export async function atualizarAssinaturaParaCartao(subscriptionId: string): Promise<void> {
+ * automaticamente nos ciclos seguintes sem o cliente precisar agir.
+ * O creditCardToken vem do webhook do pagamento confirmado e é obrigatório
+ * pro Asaas saber qual cartão tokenizado cobrar nos meses seguintes. */
+export async function atualizarAssinaturaParaCartao(subscriptionId: string, creditCardToken?: string): Promise<void> {
   await asaasFetch(`/subscriptions/${encodeURIComponent(subscriptionId)}`, {
     method: 'PUT',
-    body: JSON.stringify({ billingType: 'CREDIT_CARD' }),
+    body: JSON.stringify({
+      billingType: 'CREDIT_CARD',
+      ...(creditCardToken ? { creditCardToken } : {}),
+    }),
   })
 }
 

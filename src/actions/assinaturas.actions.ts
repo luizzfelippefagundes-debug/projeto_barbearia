@@ -1,11 +1,16 @@
 'use server'
 
-import { and, eq, sql } from 'drizzle-orm'
+import { and, eq, inArray, sql } from 'drizzle-orm'
 import { revalidatePath } from 'next/cache'
 import { getDb } from '../db'
 import { assinaturas, planosAssinatura, planoServicosInclusos } from '../db/schema'
 import { assertAdmin } from '../lib/adminAuth'
 import { cancelarAssinaturaComAsaas } from '../lib/asaasCancelamento'
+import {
+  atualizarAssinaturaParaCartao,
+  buscarAssinatura,
+  buscarTokenCartaoDaAssinatura,
+} from '../lib/asaas'
 
 /** Ações desse arquivo devolvem `{ error }` em vez de lançar exceção — em
  * produção, o Next.js esconde a mensagem de erros lançados numa Server
@@ -120,6 +125,59 @@ export async function toggleAtivoPlano(id: string, ativo: boolean): Promise<Resu
     .where(and(eq(planosAssinatura.id, id), eq(planosAssinatura.barbeariaId, dono.barbeariaId)))
   revalidarTelasDePlano()
   return {}
+}
+
+export type ResultadoVerificacaoRecorrencia = {
+  verificadas: number
+  corrigidas: Array<{ assinaturaId: string; clienteId: string }>
+  semToken: Array<{ assinaturaId: string; clienteId: string }>
+  erros: number
+}
+
+/** Verifica todas as assinaturas ativas da barbearia no Asaas e corrige as
+ * que estão com billingType UNDEFINED (cliente não será cobrado automaticamente
+ * no próximo ciclo). Tenta recuperar o creditCardToken do histórico de
+ * pagamentos e associar à assinatura. */
+export async function verificarECorrigirRecorrenciaCartao(): Promise<ResultadoVerificacaoRecorrencia> {
+  const dono = await assertAdmin()
+
+  const ativas = await getDb()
+    .select({ id: assinaturas.id, clienteId: assinaturas.clienteId, asaasSubscriptionId: assinaturas.asaasSubscriptionId })
+    .from(assinaturas)
+    .where(
+      and(
+        eq(assinaturas.barbeariaId, dono.barbeariaId),
+        inArray(assinaturas.status, ['em_dia', 'atrasado']),
+      ),
+    )
+
+  const comId = ativas.filter((a) => a.asaasSubscriptionId)
+  const corrigidas: Array<{ assinaturaId: string; clienteId: string }> = []
+  const semToken: Array<{ assinaturaId: string; clienteId: string }> = []
+  let erros = 0
+
+  for (const assinatura of comId) {
+    const subscriptionId = assinatura.asaasSubscriptionId!
+    try {
+      const sub = await buscarAssinatura(subscriptionId)
+      if (sub.billingType !== 'UNDEFINED') continue
+
+      const token = await buscarTokenCartaoDaAssinatura(subscriptionId)
+      if (!token) {
+        semToken.push({ assinaturaId: assinatura.id, clienteId: assinatura.clienteId })
+        continue
+      }
+
+      await atualizarAssinaturaParaCartao(subscriptionId, token)
+      corrigidas.push({ assinaturaId: assinatura.id, clienteId: assinatura.clienteId })
+    } catch (err) {
+      console.error('[verificarRecorrencia] erro', assinatura.id, err)
+      erros++
+    }
+  }
+
+  revalidatePath('/admin/assinaturas')
+  return { verificadas: comId.length, corrigidas, semToken, erros }
 }
 
 export async function apagarPlano(id: string): Promise<Resultado> {

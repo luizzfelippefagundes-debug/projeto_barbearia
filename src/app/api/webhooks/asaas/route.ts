@@ -13,6 +13,9 @@ interface AsaasWebhookPayload {
     subscription?: string
     status: string
     billingType?: string
+    creditCard?: {
+      creditCardToken?: string
+    }
   }
 }
 
@@ -108,8 +111,12 @@ export async function POST(req: Request) {
   // billingType CREDIT_CARD, pra que os ciclos seguintes sejam cobrados
   // automaticamente sem o cliente precisar re-informar o cartão todo mês.
   const paymentBillingType = payload.payment?.billingType
+  const creditCardToken = payload.payment?.creditCard?.creditCardToken
   if (paymentBillingType === 'CREDIT_CARD' && (paymentStatus === 'RECEIVED' || paymentStatus === 'CONFIRMED')) {
-    await atualizarAssinaturaParaCartao(subscriptionId).catch((err) => {
+    if (!creditCardToken) {
+      console.error('[webhook] pagamento com cartão sem creditCardToken — cobrança recorrente não será configurada', subscriptionId)
+    }
+    await atualizarAssinaturaParaCartao(subscriptionId, creditCardToken).catch((err) => {
       console.error('[webhook] erro ao atualizar subscription para CREDIT_CARD', subscriptionId, err)
     })
   }
