@@ -7,7 +7,7 @@ import { getLogoBarbearia } from '../../../lib/logoBarbearia'
 export default async function DashboardLayout({ children }: { children: React.ReactNode }) {
   const dono = await requireAdminAccess()
   const barbearia = await getBarbeariaPorId(dono.barbeariaId)
-  if (barbearia?.statusPagamento === 'atrasado') redirect('/pagamento-pendente')
+  // if (barbearia?.statusPagamento === 'atrasado') redirect('/pagamento-pendente')
 
   return (
     <div className="flex h-dvh flex-col bg-bg lg:flex-row">
