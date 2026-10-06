@@ -49,43 +49,45 @@ export async function criarAgendamentoComServicos(params: {
   const duracaoTotal = servicosEscolhidos.reduce((sum, s) => sum + s.duracaoMin, 0)
   const slots = slotsOcupadosPorDuracao(hora, duracaoTotal, TIME_SLOTS)
 
-  const existentes = await db
-    .select()
-    .from(agendamentos)
-    .where(
-      and(eq(agendamentos.data, data), eq(agendamentos.barbeiroId, barbeiroId), inArray(agendamentos.hora, slots)),
-    )
-  for (const slot of slots) {
-    const existente = existentes.find((e) => e.hora.slice(0, 5) === slot)
-    if (existente && existente.status !== 'livre') {
-      throw new Error(
-        slot === hora
-          ? 'Esse horário não está mais disponível — escolha outro.'
-          : 'Esses serviços não cabem nesse horário porque o próximo já está ocupado — escolha outro horário ou menos serviços.',
+  return db.transaction(async (tx) => {
+    const existentes = await tx
+      .select()
+      .from(agendamentos)
+      .where(
+        and(eq(agendamentos.data, data), eq(agendamentos.barbeiroId, barbeiroId), inArray(agendamentos.hora, slots)),
       )
+    for (const slot of slots) {
+      const existente = existentes.find((e) => e.hora.slice(0, 5) === slot)
+      if (existente && existente.status !== 'livre') {
+        throw new Error(
+          slot === hora
+            ? 'Esse horário não está mais disponível — escolha outro.'
+            : 'Esses serviços não cabem nesse horário porque o próximo já está ocupado — escolha outro horário ou menos serviços.',
+        )
+      }
     }
-  }
 
-  const [anchor] = await db
-    .insert(agendamentos)
-    .values({ data, hora: slots[0], barbeiroId, clienteId, status, formaPagamento, caixaDestinoBarbeiroId, barbeariaId })
-    .onConflictDoUpdate({
-      target: [agendamentos.data, agendamentos.hora, agendamentos.barbeiroId],
-      set: { status, clienteId, continuacaoDeId: null, formaPagamento, caixaDestinoBarbeiroId },
-    })
-    .returning()
-
-  await db.insert(agendamentoServicos).values(servicoIds.map((servicoId) => ({ agendamentoId: anchor.id, servicoId })))
-
-  for (const slot of slots.slice(1)) {
-    await db
+    const [anchor] = await tx
       .insert(agendamentos)
-      .values({ data, hora: slot, barbeiroId, clienteId, status, continuacaoDeId: anchor.id, barbeariaId })
+      .values({ data, hora: slots[0], barbeiroId, clienteId, status, formaPagamento, caixaDestinoBarbeiroId, barbeariaId })
       .onConflictDoUpdate({
         target: [agendamentos.data, agendamentos.hora, agendamentos.barbeiroId],
-        set: { status, clienteId, continuacaoDeId: anchor.id },
+        set: { status, clienteId, continuacaoDeId: null, formaPagamento, caixaDestinoBarbeiroId },
       })
-  }
+      .returning()
 
-  return anchor
+    await tx.insert(agendamentoServicos).values(servicoIds.map((servicoId) => ({ agendamentoId: anchor.id, servicoId })))
+
+    for (const slot of slots.slice(1)) {
+      await tx
+        .insert(agendamentos)
+        .values({ data, hora: slot, barbeiroId, clienteId, status, continuacaoDeId: anchor.id, barbeariaId })
+        .onConflictDoUpdate({
+          target: [agendamentos.data, agendamentos.hora, agendamentos.barbeiroId],
+          set: { status, clienteId, continuacaoDeId: anchor.id },
+        })
+    }
+
+    return anchor
+  })
 }
