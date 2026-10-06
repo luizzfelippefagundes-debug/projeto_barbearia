@@ -6,7 +6,7 @@ import { Repeat } from 'lucide-react'
 import type { Assinatura, PlanoAssinatura } from '../../types'
 import { Button, Card, ConfirmDialog, StatusPill } from '../../components/ui'
 import { cancelarMinhaAssinatura } from '../../actions/booking.actions'
-import { formatBRL, formatDataCurta } from '../../lib/format'
+import { formatBRL, formatDataCurta, proximaBillingDate } from '../../lib/format'
 
 export function SubscriptionCancelFlow({
   assinatura,
@@ -53,7 +53,12 @@ export function SubscriptionCancelFlow({
             )}
           </p>
           <p className="text-xs text-text-secondary">
-            próxima cobrança {formatDataCurta(assinatura.proximaCobranca)}
+            próxima cobrança{' '}
+            {formatDataCurta(
+              assinatura.status === 'em_dia'
+                ? proximaBillingDate(assinatura.proximaCobranca)
+                : assinatura.proximaCobranca,
+            )}
           </p>
         </div>
         <StatusPill status={assinatura.status} />

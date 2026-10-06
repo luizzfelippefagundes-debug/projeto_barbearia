@@ -1,6 +1,6 @@
 import type { Assinatura, Cliente, PlanoAssinatura } from '../../types'
 import { StatusPill } from '../../components/ui'
-import { formatBRL, formatDataCurta } from '../../lib/format'
+import { formatBRL, formatDataCurta, proximaBillingDate } from '../../lib/format'
 
 export function SubscriberRow({
   assinatura,
@@ -20,7 +20,12 @@ export function SubscriberRow({
       <div className="flex items-center gap-6">
         <span className="mono-value text-sm text-text-primary">{formatBRL(plano?.valorMensal ?? 0)}</span>
         <span className="text-xs text-text-secondary">
-          Próxima: {formatDataCurta(assinatura.proximaCobranca)}
+          Próxima:{' '}
+          {formatDataCurta(
+            assinatura.status === 'em_dia'
+              ? proximaBillingDate(assinatura.proximaCobranca)
+              : assinatura.proximaCobranca,
+          )}
         </span>
         <StatusPill status={assinatura.status} />
       </div>
