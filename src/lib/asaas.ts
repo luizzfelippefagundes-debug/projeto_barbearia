@@ -89,14 +89,8 @@ export async function buscarAssinatura(subscriptionId: string): Promise<{ nextDu
   return asaasFetch<{ nextDueDate: string; billingType: string }>(`/subscriptions/${encodeURIComponent(subscriptionId)}`)
 }
 
-/** Busca o token do cartão mais recente que foi pago com sucesso nessa
- * assinatura — usado pra corrigir assinaturas onde o billingType ficou
- * como UNDEFINED (bug histórico: o token não era passado ao atualizar). */
-export async function buscarTokenCartaoDaAssinatura(subscriptionId: string): Promise<string | null> {
-  const result = await asaasFetch<{ data: AsaasPayment[] }>(
-    `/payments?subscription=${encodeURIComponent(subscriptionId)}&limit=100`,
-  )
-  const pagos = result.data
+export function tokenCartaoMaisRecente(pagamentos: AsaasPayment[]): string | null {
+  const pagos = pagamentos
     .filter(
       (p) =>
         ['RECEIVED', 'CONFIRMED'].includes(p.status) &&
@@ -125,6 +119,13 @@ const STATUS_EM_ABERTO = new Set(['PENDING', 'OVERDUE'])
  * assinatura — funciona em qualquer ciclo, não só no primeiro mês.
  * Filtra e ordena pelo vencimento igual à versão da plataforma, senão
  * `data[0]` retorna a primeira cobrança (já paga) mesmo em renovações. */
+export async function buscarTodosPagamentosDaAssinatura(subscriptionId: string): Promise<AsaasPayment[]> {
+  const result = await asaasFetch<{ data: AsaasPayment[] }>(
+    `/payments?subscription=${encodeURIComponent(subscriptionId)}&limit=100`,
+  )
+  return result.data ?? []
+}
+
 export async function buscarPrimeiroPagamentoDaAssinatura(
   subscriptionId: string,
 ): Promise<AsaasPayment | null> {
@@ -137,18 +138,23 @@ export async function buscarPrimeiroPagamentoDaAssinatura(
   return emAberto[0] ?? null
 }
 
-/** Atualiza a assinatura no Asaas pra billingType CREDIT_CARD — feito uma
- * vez após o primeiro pagamento com cartão, pra que o Asaas cobre o cartão
- * automaticamente nos ciclos seguintes sem o cliente precisar agir.
- * O creditCardToken vem do webhook do pagamento confirmado e é obrigatório
- * pro Asaas saber qual cartão tokenizado cobrar nos meses seguintes. */
-export async function atualizarAssinaturaParaCartao(subscriptionId: string, creditCardToken?: string): Promise<void> {
-  await asaasFetch(`/subscriptions/${encodeURIComponent(subscriptionId)}`, {
+/** Liga a cobrança automática no cartão. O PUT /subscriptions ignora
+ * creditCardToken — o cartão só fica vinculado via /updateCreditCard, que
+ * exige o IP do cliente. updatePendingPayments leva a mudança pra fatura
+ * do mês seguinte, que o Asaas já gera logo após o pagamento atual. */
+export async function vincularCartaoNaAssinatura(
+  subscriptionId: string,
+  creditCardToken: string,
+  remoteIp: string,
+): Promise<void> {
+  const id = encodeURIComponent(subscriptionId)
+  await asaasFetch(`/subscriptions/${id}/updateCreditCard`, {
+    method: 'POST',
+    body: JSON.stringify({ creditCardToken, remoteIp }),
+  })
+  await asaasFetch(`/subscriptions/${id}`, {
     method: 'PUT',
-    body: JSON.stringify({
-      billingType: 'CREDIT_CARD',
-      ...(creditCardToken ? { creditCardToken } : {}),
-    }),
+    body: JSON.stringify({ billingType: 'CREDIT_CARD', updatePendingPayments: true }),
   })
 }
 
@@ -178,6 +184,19 @@ export interface AsaasPixQrCode {
  * funciona em qualquer cobrança, independente do billingType dela. */
 export async function buscarPixQrCode(paymentId: string): Promise<AsaasPixQrCode> {
   return asaasFetch<AsaasPixQrCode>(`/payments/${encodeURIComponent(paymentId)}/pixQrCode`)
+}
+
+/** Cobra um pagamento pendente usando o token do cartão salvo pelo cliente
+ * em pagamento anterior — permite cobrar faturas abertas sem o cliente
+ * precisar entrar no app e re-informar o cartão. */
+export async function cobrarPagamentoComTokenCartao(
+  paymentId: string,
+  creditCardToken: string,
+): Promise<AsaasPayment> {
+  return asaasFetch<AsaasPayment>(`/payments/${encodeURIComponent(paymentId)}/payWithCreditCard`, {
+    method: 'POST',
+    body: JSON.stringify({ creditCardToken }),
+  })
 }
 
 /** Trava uma cobrança específica em cartão de crédito — usado quando o

@@ -220,6 +220,9 @@ export const assinaturas = pgTable('assinaturas', {
   /** Id da primeira cobrança gerada pela assinatura no Asaas — permite
    * reabrir o QR Code PIX sem precisar re-listar cobranças. */
   asaasFirstPaymentId: text('asaas_first_payment_id'),
+  /** IP do cliente ao abrir o pagamento com cartão — o Asaas exige o IP
+   * do titular pra vincular o cartão à assinatura (cobrança recorrente). */
+  cartaoRemoteIp: text('cartao_remote_ip'),
   criadoEm: timestamp('criado_em').notNull().defaultNow(),
 })
 

@@ -2,6 +2,7 @@
 
 import { and, eq } from 'drizzle-orm'
 import { revalidatePath } from 'next/cache'
+import { headers } from 'next/headers'
 import { getDb } from '../db'
 import { assinaturas, clientes, planosAssinatura } from '../db/schema'
 import { getClienteAtualOuFalhar } from '../lib/clienteAuth'
@@ -219,6 +220,10 @@ export async function buscarLinkCartaoDaMinhaAssinatura(
 ): Promise<{ error: string } | { invoiceUrl: string }> {
   try {
     const paymentId = await assinaturaComPagamentoDoCliente(assinaturaId)
+    const ip = (await headers()).get('x-forwarded-for')?.split(',')[0].trim()
+    if (ip) {
+      await getDb().update(assinaturas).set({ cartaoRemoteIp: ip }).where(eq(assinaturas.id, assinaturaId))
+    }
     const atual = await buscarStatusPagamento(paymentId)
     const atualizado = await definirCobrancaComoCartao(paymentId, atual.value, atual.dueDate)
     return { invoiceUrl: atualizado.invoiceUrl }

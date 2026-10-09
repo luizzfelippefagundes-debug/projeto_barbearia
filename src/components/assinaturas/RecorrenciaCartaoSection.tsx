@@ -6,12 +6,33 @@ import type { Cliente } from '../../types'
 import { Button, Card } from '../../components/ui'
 import {
   verificarECorrigirRecorrenciaCartao,
+  detalharAssinaturasSemToken,
   type ResultadoVerificacaoRecorrencia,
+  type DetalheAssinaturaSemToken,
 } from '../../actions/assinaturas.actions'
+
+function labelBillingType(b: string) {
+  if (b === 'PIX') return 'Pix'
+  if (b === 'CREDIT_CARD') return 'Cartão de crédito'
+  if (b === 'BOLETO') return 'Boleto'
+  if (b === 'UNDEFINED') return 'Não definido'
+  return b
+}
+
+function labelStatus(s: string) {
+  if (s === 'RECEIVED' || s === 'CONFIRMED') return 'Pago'
+  if (s === 'PENDING') return 'Pendente'
+  if (s === 'OVERDUE') return 'Vencido'
+  if (s === 'REFUNDED') return 'Estornado'
+  if (s === 'CANCELLED') return 'Cancelado'
+  return s
+}
 
 export function RecorrenciaCartaoSection({ clientes }: { clientes: Cliente[] }) {
   const [pending, startTransition] = useTransition()
   const [resultado, setResultado] = useState<ResultadoVerificacaoRecorrencia | null>(null)
+  const [detalhes, setDetalhes] = useState<DetalheAssinaturaSemToken[] | null>(null)
+  const [carregandoDetalhes, setCarregandoDetalhes] = useState(false)
 
   function nomeCliente(clienteId: string) {
     return clientes.find((c) => c.id === clienteId)?.nome ?? clienteId
@@ -24,7 +45,12 @@ export function RecorrenciaCartaoSection({ clientes }: { clientes: Cliente[] }) 
     })
   }
 
-  const semProblema = resultado && resultado.corrigidas.length === 0 && resultado.semToken.length === 0 && resultado.erros === 0
+  const semProblema =
+    resultado &&
+    resultado.semIp.length === 0 &&
+    resultado.semToken.length === 0 &&
+    resultado.cobradas.length === 0 &&
+    resultado.erros === 0
 
   return (
     <Card className="p-4">
@@ -64,18 +90,58 @@ export function RecorrenciaCartaoSection({ clientes }: { clientes: Cliente[] }) 
             </div>
           )}
 
-          {resultado.corrigidas.length > 0 && (
+          {resultado.vinculadas.length > 0 && (
             <div>
               <div className="mb-1.5 flex items-center gap-1.5 text-status-green">
                 <CheckCircle size={14} aria-hidden="true" />
                 <p className="text-xs font-semibold">
-                  {resultado.corrigidas.length} corrigida{resultado.corrigidas.length !== 1 ? 's' : ''} automaticamente
+                  {resultado.vinculadas.length} com cobrança automática no cartão ativada
                 </p>
               </div>
               <div className="flex flex-col gap-1">
-                {resultado.corrigidas.map(({ assinaturaId, clienteId }) => (
+                {resultado.vinculadas.map(({ assinaturaId, clienteId }) => (
                   <p key={assinaturaId} className="text-xs text-text-secondary">
-                    • {nomeCliente(clienteId)} — cartão associado, cobrança automática ativada
+                    • {nomeCliente(clienteId)}
+                  </p>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {resultado.cobradas.length > 0 && (
+            <div>
+              <div className="mb-1.5 flex items-center gap-1.5 text-status-green">
+                <CreditCard size={14} aria-hidden="true" />
+                <p className="text-xs font-semibold">
+                  {resultado.cobradas.length} fatura{resultado.cobradas.length !== 1 ? 's' : ''} vencida{resultado.cobradas.length !== 1 ? 's' : ''} cobrada{resultado.cobradas.length !== 1 ? 's' : ''} no cartão agora
+                </p>
+              </div>
+              <div className="flex flex-col gap-1">
+                {resultado.cobradas.map(({ assinaturaId, clienteId }) => (
+                  <p key={assinaturaId} className="text-xs text-text-secondary">
+                    • {nomeCliente(clienteId)}
+                  </p>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {resultado.semIp.length > 0 && (
+            <div className="rounded-lg border border-status-yellow/30 bg-status-yellow-muted p-3">
+              <div className="mb-1.5 flex items-center gap-1.5 text-status-yellow">
+                <AlertTriangle size={14} aria-hidden="true" />
+                <p className="text-xs font-semibold">
+                  {resultado.semIp.length} pagaram com cartão, mas a cobrança automática não pôde ser ativada
+                </p>
+              </div>
+              <p className="mb-2 text-xs text-text-secondary">
+                O Asaas exige um dado que só é capturado quando o cliente paga com cartão pelo app.
+                Na próxima vez que ele pagar com cartão pelo app, a cobrança automática é ativada sozinha.
+              </p>
+              <div className="flex flex-col gap-1">
+                {resultado.semIp.map(({ assinaturaId, clienteId }) => (
+                  <p key={assinaturaId} className="text-xs font-medium text-text-primary">
+                    • {nomeCliente(clienteId)}
                   </p>
                 ))}
               </div>
@@ -91,18 +157,41 @@ export function RecorrenciaCartaoSection({ clientes }: { clientes: Cliente[] }) 
                 </p>
               </div>
               <p className="mb-2 text-xs text-text-secondary">
-                Esses clientes têm assinatura sem cartão associado no Asaas. Se pagam por{' '}
-                <strong>Pix</strong>, isso é normal — precisam pagar manualmente todo mês. Se
-                pagaram com <strong>cartão</strong> antes do problema ser corrigido, peça que
-                entrem no app e paguem novamente para associar o cartão automaticamente.
+                Clique em &quot;Ver detalhes&quot; para ver o método de pagamento de cada um.
               </p>
-              <div className="flex flex-col gap-1">
-                {resultado.semToken.map(({ assinaturaId, clienteId }) => (
-                  <p key={assinaturaId} className="text-xs font-medium text-text-primary">
-                    • {nomeCliente(clienteId)}
-                  </p>
-                ))}
-              </div>
+              {!detalhes && (
+                <Button
+                  size="sm"
+                  variant="secondary"
+                  disabled={carregandoDetalhes}
+                  onClick={() => {
+                    setCarregandoDetalhes(true)
+                    detalharAssinaturasSemToken().then((d) => { setDetalhes(d); setCarregandoDetalhes(false) })
+                  }}
+                >
+                  {carregandoDetalhes ? <Loader2 size={12} className="animate-spin" /> : 'Ver detalhes'}
+                </Button>
+              )}
+              {detalhes && (
+                <div className="mt-2 flex flex-col gap-2">
+                  {detalhes.map((d) => {
+                    const p = d.ultimoPagamento
+                    const vencido = p?.status === 'OVERDUE'
+                    return (
+                      <div key={d.assinaturaId} className={`rounded p-2 text-xs ${vencido ? 'bg-status-red/10 border border-status-red/30' : 'bg-bg-secondary'}`}>
+                        <p className="font-medium text-text-primary">{d.nomeCliente}</p>
+                        {p ? (
+                          <p className="text-text-secondary">
+                            Último pag.: <strong>{labelBillingType(p.billingType)}</strong> — <strong className={vencido ? 'text-status-red' : ''}>{labelStatus(p.status)}</strong> — venc. {p.dueDate} — R$ {p.value.toFixed(2).replace('.', ',')}
+                          </p>
+                        ) : (
+                          <p className="text-text-secondary">Sem pagamentos no histórico</p>
+                        )}
+                      </div>
+                    )
+                  })}
+                </div>
+              )}
             </div>
           )}
 

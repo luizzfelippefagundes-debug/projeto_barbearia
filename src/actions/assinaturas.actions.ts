@@ -3,13 +3,15 @@
 import { and, eq, inArray, sql } from 'drizzle-orm'
 import { revalidatePath } from 'next/cache'
 import { getDb } from '../db'
-import { assinaturas, planosAssinatura, planoServicosInclusos } from '../db/schema'
+import { assinaturas, clientes, planosAssinatura, planoServicosInclusos } from '../db/schema'
 import { assertAdmin } from '../lib/adminAuth'
 import { cancelarAssinaturaComAsaas } from '../lib/asaasCancelamento'
 import {
-  atualizarAssinaturaParaCartao,
   buscarAssinatura,
-  buscarTokenCartaoDaAssinatura,
+  buscarTodosPagamentosDaAssinatura,
+  cobrarPagamentoComTokenCartao,
+  tokenCartaoMaisRecente,
+  vincularCartaoNaAssinatura,
 } from '../lib/asaas'
 
 /** Ações desse arquivo devolvem `{ error }` em vez de lançar exceção — em
@@ -127,22 +129,30 @@ export async function toggleAtivoPlano(id: string, ativo: boolean): Promise<Resu
   return {}
 }
 
+type ItemRecorrencia = { assinaturaId: string; clienteId: string }
+
 export type ResultadoVerificacaoRecorrencia = {
   verificadas: number
-  corrigidas: Array<{ assinaturaId: string; clienteId: string }>
-  semToken: Array<{ assinaturaId: string; clienteId: string }>
+  vinculadas: ItemRecorrencia[]
+  cobradas: ItemRecorrencia[]
+  semIp: ItemRecorrencia[]
+  semToken: ItemRecorrencia[]
   erros: number
 }
 
-/** Verifica todas as assinaturas ativas da barbearia no Asaas e corrige as
- * que estão com billingType UNDEFINED (cliente não será cobrado automaticamente
- * no próximo ciclo). Tenta recuperar o creditCardToken do histórico de
- * pagamentos e associar à assinatura. */
+/** Para cada assinatura ativa que já foi paga com cartão alguma vez:
+ * vincula o cartão (cobrança automática dos próximos meses) e cobra na hora
+ * só as faturas já vencidas — as pendentes o Asaas cobra no vencimento. */
 export async function verificarECorrigirRecorrenciaCartao(): Promise<ResultadoVerificacaoRecorrencia> {
   const dono = await assertAdmin()
 
   const ativas = await getDb()
-    .select({ id: assinaturas.id, clienteId: assinaturas.clienteId, asaasSubscriptionId: assinaturas.asaasSubscriptionId })
+    .select({
+      id: assinaturas.id,
+      clienteId: assinaturas.clienteId,
+      asaasSubscriptionId: assinaturas.asaasSubscriptionId,
+      cartaoRemoteIp: assinaturas.cartaoRemoteIp,
+    })
     .from(assinaturas)
     .where(
       and(
@@ -152,24 +162,38 @@ export async function verificarECorrigirRecorrenciaCartao(): Promise<ResultadoVe
     )
 
   const comId = ativas.filter((a) => a.asaasSubscriptionId)
-  const corrigidas: Array<{ assinaturaId: string; clienteId: string }> = []
-  const semToken: Array<{ assinaturaId: string; clienteId: string }> = []
+  const vinculadas: ItemRecorrencia[] = []
+  const cobradas: ItemRecorrencia[] = []
+  const semIp: ItemRecorrencia[] = []
+  const semToken: ItemRecorrencia[] = []
   let erros = 0
 
   for (const assinatura of comId) {
     const subscriptionId = assinatura.asaasSubscriptionId!
+    const item = { assinaturaId: assinatura.id, clienteId: assinatura.clienteId }
     try {
-      const sub = await buscarAssinatura(subscriptionId)
-      if (sub.billingType !== 'UNDEFINED') continue
-
-      const token = await buscarTokenCartaoDaAssinatura(subscriptionId)
+      const pagamentos = await buscarTodosPagamentosDaAssinatura(subscriptionId)
+      const token = tokenCartaoMaisRecente(pagamentos)
       if (!token) {
-        semToken.push({ assinaturaId: assinatura.id, clienteId: assinatura.clienteId })
+        const sub = await buscarAssinatura(subscriptionId)
+        if (sub.billingType === 'UNDEFINED') semToken.push(item)
         continue
       }
 
-      await atualizarAssinaturaParaCartao(subscriptionId, token)
-      corrigidas.push({ assinaturaId: assinatura.id, clienteId: assinatura.clienteId })
+      if (assinatura.cartaoRemoteIp) {
+        await vincularCartaoNaAssinatura(subscriptionId, token, assinatura.cartaoRemoteIp)
+        vinculadas.push(item)
+      } else {
+        semIp.push(item)
+      }
+
+      const vencida = pagamentos
+        .filter((p) => p.status === 'OVERDUE')
+        .sort((a, b) => a.dueDate.localeCompare(b.dueDate))[0]
+      if (vencida) {
+        await cobrarPagamentoComTokenCartao(vencida.id, token)
+        cobradas.push(item)
+      }
     } catch (err) {
       console.error('[verificarRecorrencia] erro', assinatura.id, err)
       erros++
@@ -177,7 +201,69 @@ export async function verificarECorrigirRecorrenciaCartao(): Promise<ResultadoVe
   }
 
   revalidatePath('/admin/assinaturas')
-  return { verificadas: comId.length, corrigidas, semToken, erros }
+  return { verificadas: comId.length, vinculadas, cobradas, semIp, semToken, erros }
+}
+
+export type DetalheAssinaturaSemToken = {
+  assinaturaId: string
+  clienteId: string
+  nomeCliente: string
+  subscriptionId: string
+  ultimoPagamento: {
+    status: string
+    billingType: string
+    dueDate: string
+    value: number
+  } | null
+}
+
+export async function detalharAssinaturasSemToken(): Promise<DetalheAssinaturaSemToken[]> {
+  const dono = await assertAdmin()
+
+  const ativas = await getDb()
+    .select({
+      id: assinaturas.id,
+      clienteId: assinaturas.clienteId,
+      nomeCliente: clientes.nome,
+      asaasSubscriptionId: assinaturas.asaasSubscriptionId,
+    })
+    .from(assinaturas)
+    .innerJoin(clientes, eq(clientes.id, assinaturas.clienteId))
+    .where(
+      and(
+        eq(assinaturas.barbeariaId, dono.barbeariaId),
+        inArray(assinaturas.status, ['em_dia', 'atrasado']),
+      ),
+    )
+
+  const resultado: DetalheAssinaturaSemToken[] = []
+
+  for (const assinatura of ativas.filter((a) => a.asaasSubscriptionId)) {
+    const subscriptionId = assinatura.asaasSubscriptionId!
+    try {
+      const sub = await buscarAssinatura(subscriptionId)
+      if (sub.billingType !== 'UNDEFINED') continue
+
+      const pagamentos = await buscarTodosPagamentosDaAssinatura(subscriptionId)
+      if (tokenCartaoMaisRecente(pagamentos)) continue
+
+      const ultimo = pagamentos.sort((a, b) => b.dueDate.localeCompare(a.dueDate))[0] ?? null
+
+      resultado.push({
+        assinaturaId: assinatura.id,
+        clienteId: assinatura.clienteId,
+        nomeCliente: assinatura.nomeCliente,
+        subscriptionId,
+        ultimoPagamento: ultimo
+          ? { status: ultimo.status, billingType: ultimo.billingType ?? 'UNDEFINED', dueDate: ultimo.dueDate, value: ultimo.value }
+          : null,
+      })
+    } catch {
+      // ignora erros individuais
+    }
+  }
+
+  return resultado
 }
 
 export async function apagarPlano(id: string): Promise<Resultado> {

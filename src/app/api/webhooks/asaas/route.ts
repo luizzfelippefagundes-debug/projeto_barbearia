@@ -3,7 +3,13 @@ import { NextResponse } from 'next/server'
 import { revalidatePath } from 'next/cache'
 import { getDb } from '../../../../db'
 import { asaasWebhookEventos, assinaturas } from '../../../../db/schema'
-import { atualizarAssinaturaParaCartao, buscarAssinatura, cancelarAssinaturaAsaas, mapStatusPagamentoAsaas } from '../../../../lib/asaas'
+import {
+  buscarAssinatura,
+  buscarStatusPagamento,
+  cancelarAssinaturaAsaas,
+  mapStatusPagamentoAsaas,
+  vincularCartaoNaAssinatura,
+} from '../../../../lib/asaas'
 
 interface AsaasWebhookPayload {
   id: string
@@ -70,7 +76,7 @@ export async function POST(req: Request) {
 
   // Busca a assinatura antes de atualizar pra ter o clienteId disponível
   const [assinaturaLocal] = await db
-    .select({ id: assinaturas.id, clienteId: assinaturas.clienteId })
+    .select({ id: assinaturas.id, clienteId: assinaturas.clienteId, cartaoRemoteIp: assinaturas.cartaoRemoteIp })
     .from(assinaturas)
     .where(eq(assinaturas.asaasSubscriptionId, subscriptionId))
     .limit(1)
@@ -107,18 +113,21 @@ export async function POST(req: Request) {
     }
   }
 
-  // Pagamento com cartão confirmado → atualiza a assinatura no Asaas pra
-  // billingType CREDIT_CARD, pra que os ciclos seguintes sejam cobrados
-  // automaticamente sem o cliente precisar re-informar o cartão todo mês.
-  const paymentBillingType = payload.payment?.billingType
-  const creditCardToken = payload.payment?.creditCard?.creditCardToken
-  if (paymentBillingType === 'CREDIT_CARD' && (paymentStatus === 'RECEIVED' || paymentStatus === 'CONFIRMED')) {
-    if (!creditCardToken) {
-      console.error('[webhook] pagamento com cartão sem creditCardToken — cobrança recorrente não será configurada', subscriptionId)
+  // Pagamento com cartão confirmado → vincula o cartão à assinatura, pra que
+  // os ciclos seguintes sejam cobrados automaticamente sem o cliente agir.
+  const payment = payload.payment!
+  if (payment.billingType === 'CREDIT_CARD' && (paymentStatus === 'RECEIVED' || paymentStatus === 'CONFIRMED')) {
+    const creditCardToken =
+      payment.creditCard?.creditCardToken ??
+      (await buscarStatusPagamento(payment.id).catch(() => null))?.creditCard?.creditCardToken
+    const remoteIp = assinaturaLocal?.cartaoRemoteIp
+    if (!creditCardToken || !remoteIp) {
+      console.error('[webhook] cartão não vinculado à assinatura — faltando', !creditCardToken ? 'creditCardToken' : 'IP do cliente', subscriptionId)
+    } else {
+      await vincularCartaoNaAssinatura(subscriptionId, creditCardToken, remoteIp).catch((err) => {
+        console.error('[webhook] erro ao vincular cartão na assinatura', subscriptionId, err)
+      })
     }
-    await atualizarAssinaturaParaCartao(subscriptionId, creditCardToken).catch((err) => {
-      console.error('[webhook] erro ao atualizar subscription para CREDIT_CARD', subscriptionId, err)
-    })
   }
 
   revalidatePath('/cliente/perfil')
