@@ -1,24 +1,28 @@
 'use client'
 
 import { useState } from 'react'
-import { CreditCard, ExternalLink, QrCode } from 'lucide-react'
+import { CreditCard, QrCode } from 'lucide-react'
 import { Button, Card } from '../../components/ui'
-import { buscarLinkCartaoDaMinhaAssinatura, buscarPixDaMinhaAssinatura } from '../../actions/assinar.actions'
+import { buscarPixDaMinhaAssinatura } from '../../actions/assinar.actions'
 import { formatBRL } from '../../lib/format'
+import { CartaoForm } from './CartaoForm'
 import { PixPaymentCard } from './PixPaymentCard'
 
 interface PagamentoAssinaturaCardProps {
   assinaturaId: string
   valor: number
+  cpf?: string
+  telefone?: string
 }
 
-export function PagamentoAssinaturaCard({ assinaturaId, valor }: PagamentoAssinaturaCardProps) {
-  const [carregando, setCarregando] = useState<'pix' | 'cartao' | null>(null)
+export function PagamentoAssinaturaCard({ assinaturaId, valor, cpf, telefone }: PagamentoAssinaturaCardProps) {
+  const [carregandoPix, setCarregandoPix] = useState(false)
   const [pix, setPix] = useState<{ encodedImage: string; payload: string } | null>(null)
+  const [mostrarCartao, setMostrarCartao] = useState(false)
   const [erro, setErro] = useState<string | null>(null)
 
   async function pagarComPix() {
-    setCarregando('pix')
+    setCarregandoPix(true)
     setErro(null)
     try {
       const dados = await buscarPixDaMinhaAssinatura(assinaturaId)
@@ -30,24 +34,7 @@ export function PagamentoAssinaturaCard({ assinaturaId, valor }: PagamentoAssina
     } catch {
       setErro('Não foi possível gerar o Pix agora.')
     } finally {
-      setCarregando(null)
-    }
-  }
-
-  async function pagarComCartao() {
-    setCarregando('cartao')
-    setErro(null)
-    try {
-      const resultado = await buscarLinkCartaoDaMinhaAssinatura(assinaturaId)
-      if ('error' in resultado) {
-        setErro(resultado.error)
-        setCarregando(null)
-        return
-      }
-      window.location.href = resultado.invoiceUrl
-    } catch {
-      setErro('Não foi possível preparar o pagamento com cartão agora.')
-      setCarregando(null)
+      setCarregandoPix(false)
     }
   }
 
@@ -60,25 +47,36 @@ export function PagamentoAssinaturaCard({ assinaturaId, valor }: PagamentoAssina
         <p className="mono-value text-2xl text-accent">{formatBRL(valor)}</p>
       </div>
 
-      <p className="text-sm text-text-secondary">Como você quer pagar?</p>
+      {mostrarCartao ? (
+        <CartaoForm
+          assinaturaId={assinaturaId}
+          valor={valor}
+          cpfInicial={cpf}
+          telefoneInicial={telefone}
+          onVoltar={() => setMostrarCartao(false)}
+        />
+      ) : (
+        <>
+          <p className="text-sm text-text-secondary">Como você quer pagar?</p>
 
-      <div className="flex w-full max-w-xs flex-col gap-2">
-        <Button onClick={pagarComPix} disabled={carregando !== null}>
-          <QrCode size={16} aria-hidden="true" />
-          {carregando === 'pix' ? 'Gerando Pix...' : 'Pagar com Pix'}
-        </Button>
-        <Button variant="secondary" onClick={pagarComCartao} disabled={carregando !== null}>
-          <CreditCard size={16} aria-hidden="true" />
-          {carregando === 'cartao' ? 'Preparando...' : 'Pagar com cartão'}
-          <ExternalLink size={14} aria-hidden="true" />
-        </Button>
-      </div>
+          <div className="flex w-full max-w-xs flex-col gap-2">
+            <Button onClick={pagarComPix} disabled={carregandoPix}>
+              <QrCode size={16} aria-hidden="true" />
+              {carregandoPix ? 'Gerando Pix...' : 'Pagar com Pix'}
+            </Button>
+            <Button variant="secondary" onClick={() => setMostrarCartao(true)} disabled={carregandoPix}>
+              <CreditCard size={16} aria-hidden="true" />
+              Pagar com cartão
+            </Button>
+          </div>
 
-      {erro && <p className="text-xs text-status-red">{erro}</p>}
+          {erro && <p className="text-xs text-status-red">{erro}</p>}
 
-      <p className="text-xs text-text-secondary">
-        Assim que o pagamento for confirmado, sua assinatura fica ativa automaticamente.
-      </p>
+          <p className="text-xs text-text-secondary">
+            No cartão, os próximos meses são cobrados automaticamente. No Pix, você paga todo mês por aqui.
+          </p>
+        </>
+      )}
     </Card>
   )
 }

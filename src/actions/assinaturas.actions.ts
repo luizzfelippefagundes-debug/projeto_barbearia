@@ -181,7 +181,7 @@ export async function verificarECorrigirRecorrenciaCartao(): Promise<ResultadoVe
       }
 
       if (assinatura.cartaoRemoteIp) {
-        await vincularCartaoNaAssinatura(subscriptionId, token, assinatura.cartaoRemoteIp)
+        await vincularCartaoNaAssinatura(subscriptionId, { creditCardToken: token }, assinatura.cartaoRemoteIp)
         vinculadas.push(item)
       } else {
         semIp.push(item)

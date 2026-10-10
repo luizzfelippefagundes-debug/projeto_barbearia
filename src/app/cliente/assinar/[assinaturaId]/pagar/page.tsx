@@ -54,7 +54,12 @@ export default async function PagarAssinaturaPage({
         </p>
       </div>
 
-      <PagamentoAssinaturaCard assinaturaId={assinaturaId} valor={plano?.valorMensal ?? 0} />
+      <PagamentoAssinaturaCard
+        assinaturaId={assinaturaId}
+        valor={plano?.valorMensal ?? 0}
+        cpf={cliente.cpfCnpj}
+        telefone={cliente.telefone}
+      />
     </div>
   )
 }

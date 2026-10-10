@@ -138,19 +138,40 @@ export async function buscarPrimeiroPagamentoDaAssinatura(
   return emAberto[0] ?? null
 }
 
+export interface DadosCartao {
+  holderName: string
+  number: string
+  expiryMonth: string
+  expiryYear: string
+  ccv: string
+}
+
+export interface TitularCartao {
+  name: string
+  email: string
+  cpfCnpj: string
+  postalCode: string
+  addressNumber: string
+  phone: string
+}
+
+export type CartaoParaVincular =
+  | { creditCardToken: string }
+  | { creditCard: DadosCartao; creditCardHolderInfo: TitularCartao }
+
 /** Liga a cobrança automática no cartão. O PUT /subscriptions ignora
  * creditCardToken — o cartão só fica vinculado via /updateCreditCard, que
  * exige o IP do cliente. updatePendingPayments leva a mudança pra fatura
  * do mês seguinte, que o Asaas já gera logo após o pagamento atual. */
 export async function vincularCartaoNaAssinatura(
   subscriptionId: string,
-  creditCardToken: string,
+  cartao: CartaoParaVincular,
   remoteIp: string,
 ): Promise<void> {
   const id = encodeURIComponent(subscriptionId)
   await asaasFetch(`/subscriptions/${id}/updateCreditCard`, {
     method: 'POST',
-    body: JSON.stringify({ creditCardToken, remoteIp }),
+    body: JSON.stringify({ ...cartao, remoteIp }),
   })
   await asaasFetch(`/subscriptions/${id}`, {
     method: 'PUT',
@@ -199,19 +220,23 @@ export async function cobrarPagamentoComTokenCartao(
   })
 }
 
-/** Trava uma cobrança específica em cartão de crédito — usado quando o
- * cliente escolhe pagar com cartão na nossa tela, pra a página hospedada
- * do Asaas mostrar só o formulário de cartão (sem Pix nem boleto juntos).
- * value/dueDate são obrigatórios nesse endpoint mesmo sem mudar de valor. */
-export async function definirCobrancaComoCartao(
+/** Dados do cartão só transitam em memória até o Asaas — nunca gravar
+ * nem logar `creditCard`. */
+export async function pagarCobrancaComCartao(
   paymentId: string,
-  value: number,
-  dueDate: string,
+  creditCard: DadosCartao,
+  creditCardHolderInfo: TitularCartao,
 ): Promise<AsaasPayment> {
-  return asaasFetch<AsaasPayment>(`/payments/${encodeURIComponent(paymentId)}`, {
-    method: 'PUT',
-    body: JSON.stringify({ billingType: 'CREDIT_CARD', value, dueDate }),
+  return asaasFetch<AsaasPayment>(`/payments/${encodeURIComponent(paymentId)}/payWithCreditCard`, {
+    method: 'POST',
+    body: JSON.stringify({ creditCard, creditCardHolderInfo }),
   })
+}
+
+export function mensagemErroAsaas(err: unknown): string | null {
+  if (!(err instanceof AsaasError)) return null
+  const errors = (err.body as { errors?: Array<{ description?: string }> } | null)?.errors
+  return errors?.[0]?.description ?? null
 }
 
 const STATUS_PAGO = new Set(['RECEIVED', 'CONFIRMED'])

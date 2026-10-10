@@ -15,9 +15,14 @@ import {
   buscarStatusPagamento,
   criarAssinaturaAsaas,
   criarClienteAsaas,
-  definirCobrancaComoCartao,
   mapStatusPagamentoAsaas,
+  mensagemErroAsaas,
+  pagarCobrancaComCartao,
+  vincularCartaoNaAssinatura,
+  type DadosCartao,
+  type TitularCartao,
 } from '../lib/asaas'
+import { currentUser } from '@clerk/nextjs/server'
 import { getHojeISO } from '../lib/dateUtils'
 
 function apenasDigitos(valor: string): string {
@@ -76,12 +81,17 @@ export async function assinarPlano(
 
   let asaasCustomerId = clienteRow.asaasCustomerId
   if (!asaasCustomerId) {
-    const asaasCustomer = await criarClienteAsaas({
-      name: clienteRow.nome,
-      cpfCnpj: cpf,
-      mobilePhone: clienteRow.telefone ? apenasDigitos(clienteRow.telefone) : undefined,
-      externalReference: clienteRow.id,
-    })
+    let asaasCustomer
+    try {
+      asaasCustomer = await criarClienteAsaas({
+        name: clienteRow.nome,
+        cpfCnpj: cpf,
+        mobilePhone: clienteRow.telefone ? apenasDigitos(clienteRow.telefone) : undefined,
+        externalReference: clienteRow.id,
+      })
+    } catch (err) {
+      return { error: mensagemErroAsaas(err) ?? 'Não foi possível criar seu cadastro de pagamento agora.' }
+    }
     asaasCustomerId = asaasCustomer.id
     await db.update(clientes).set({ asaasCustomerId }).where(eq(clientes.id, clienteRow.id))
   }
@@ -191,13 +201,13 @@ async function assinaturaComPagamentoDoCliente(assinaturaId: string) {
   // e o cliente era mandado pra um link de cobrança que não servia mais.
   if (assinatura.asaasSubscriptionId) {
     const pagamentoAtual = await buscarPrimeiroPagamentoDaAssinatura(assinatura.asaasSubscriptionId)
-    if (pagamentoAtual) return pagamentoAtual.id
+    if (pagamentoAtual) return { assinatura, paymentId: pagamentoAtual.id }
   }
 
   if (!assinatura.asaasFirstPaymentId) {
     throw new Error('A cobrança ainda está sendo gerada — atualize a página em alguns segundos.')
   }
-  return assinatura.asaasFirstPaymentId
+  return { assinatura, paymentId: assinatura.asaasFirstPaymentId }
 }
 
 /** QR code + copia-e-cola do Pix pra pagar a primeira cobrança da minha
@@ -206,30 +216,121 @@ export async function buscarPixDaMinhaAssinatura(
   assinaturaId: string,
 ): Promise<{ error: string } | { encodedImage: string; payload: string }> {
   try {
-    const paymentId = await assinaturaComPagamentoDoCliente(assinaturaId)
+    const { paymentId } = await assinaturaComPagamentoDoCliente(assinaturaId)
     return await buscarPixQrCode(paymentId)
   } catch (err) {
     return { error: err instanceof Error ? err.message : 'Não foi possível gerar o Pix agora.' }
   }
 }
 
-/** Trava a cobrança em cartão de crédito e devolve o link seguro hospedado
- * pelo próprio Asaas — a gente nunca vê o número do cartão. */
-export async function buscarLinkCartaoDaMinhaAssinatura(
-  assinaturaId: string,
-): Promise<{ error: string } | { invoiceUrl: string }> {
-  try {
-    const paymentId = await assinaturaComPagamentoDoCliente(assinaturaId)
-    const ip = (await headers()).get('x-forwarded-for')?.split(',')[0].trim()
-    if (ip) {
-      await getDb().update(assinaturas).set({ cartaoRemoteIp: ip }).where(eq(assinaturas.id, assinaturaId))
-    }
-    const atual = await buscarStatusPagamento(paymentId)
-    const atualizado = await definirCobrancaComoCartao(paymentId, atual.value, atual.dueDate)
-    return { invoiceUrl: atualizado.invoiceUrl }
-  } catch (err) {
-    return { error: err instanceof Error ? err.message : 'Não foi possível preparar o pagamento com cartão agora.' }
+export interface FormularioCartao {
+  nomeNoCartao: string
+  numero: string
+  validade: string
+  cvv: string
+  cpfTitular: string
+  cep: string
+  numeroEndereco: string
+  telefone: string
+}
+
+function validarFormularioCartao(f: FormularioCartao): { error: string } | {
+  creditCard: DadosCartao
+  titular: Omit<TitularCartao, 'email'>
+} {
+  const numero = apenasDigitos(f.numero)
+  const [mes, ano] = f.validade.split('/').map((p) => apenasDigitos(p))
+  const cvv = apenasDigitos(f.cvv)
+  const cpf = apenasDigitos(f.cpfTitular)
+  const cep = apenasDigitos(f.cep)
+  const telefone = apenasDigitos(f.telefone)
+
+  if (!f.nomeNoCartao.trim()) return { error: 'Informe o nome impresso no cartão.' }
+  if (numero.length < 13 || numero.length > 19) return { error: 'Número do cartão inválido.' }
+  if (!mes || !ano || Number(mes) < 1 || Number(mes) > 12 || (ano.length !== 2 && ano.length !== 4)) {
+    return { error: 'Validade inválida — use MM/AA.' }
   }
+  if (cvv.length < 3 || cvv.length > 4) return { error: 'CVV inválido.' }
+  if (cpf.length !== 11 && cpf.length !== 14) return { error: 'CPF do titular inválido.' }
+  if (cep.length !== 8) return { error: 'CEP inválido.' }
+  if (!f.numeroEndereco.trim()) return { error: 'Informe o número do endereço.' }
+  if (telefone.length < 10 || telefone.length > 11) return { error: 'Telefone inválido — use DDD + número.' }
+
+  return {
+    creditCard: {
+      holderName: f.nomeNoCartao.trim(),
+      number: numero,
+      expiryMonth: mes.padStart(2, '0'),
+      expiryYear: ano.length === 2 ? `20${ano}` : ano,
+      ccv: cvv,
+    },
+    titular: {
+      name: f.nomeNoCartao.trim(),
+      cpfCnpj: cpf,
+      postalCode: cep,
+      addressNumber: f.numeroEndereco.trim(),
+      phone: telefone,
+    },
+  }
+}
+
+/** Cobra a fatura em aberto com o cartão digitado na nossa tela e, se
+ * aprovado, vincula o mesmo cartão à assinatura — os meses seguintes passam
+ * a ser cobrados sozinhos. Os dados do cartão nunca são gravados. */
+export async function pagarMinhaAssinaturaComCartao(
+  assinaturaId: string,
+  formulario: FormularioCartao,
+): Promise<{ error: string } | { ok: true }> {
+  const validado = validarFormularioCartao(formulario)
+  if ('error' in validado) return validado
+
+  const user = await currentUser()
+  const email = user?.primaryEmailAddress?.emailAddress ?? user?.emailAddresses[0]?.emailAddress
+  if (!email) return { error: 'Sua conta não tem e-mail cadastrado — necessário para pagar com cartão.' }
+  const titular: TitularCartao = { ...validado.titular, email }
+
+  let alvo: Awaited<ReturnType<typeof assinaturaComPagamentoDoCliente>>
+  try {
+    alvo = await assinaturaComPagamentoDoCliente(assinaturaId)
+  } catch (err) {
+    return { error: err instanceof Error ? err.message : 'Assinatura não encontrada.' }
+  }
+  const { assinatura, paymentId } = alvo
+
+  let pagamento
+  try {
+    pagamento = await pagarCobrancaComCartao(paymentId, validado.creditCard, titular)
+  } catch (err) {
+    return { error: mensagemErroAsaas(err) ?? 'Pagamento não aprovado. Confira os dados ou tente outro cartão.' }
+  }
+
+  const db = getDb()
+  const ip = (await headers()).get('x-forwarded-for')?.split(',')[0].trim()
+  const novoStatus = mapStatusPagamentoAsaas(pagamento.status)
+  await db
+    .update(assinaturas)
+    .set({
+      ...(novoStatus ? { status: novoStatus, cartaoRecusado: false } : {}),
+      ...(ip ? { cartaoRemoteIp: ip } : {}),
+    })
+    .where(eq(assinaturas.id, assinaturaId))
+
+  if (assinatura.asaasSubscriptionId && ip) {
+    await vincularCartaoNaAssinatura(
+      assinatura.asaasSubscriptionId,
+      { creditCard: validado.creditCard, creditCardHolderInfo: titular },
+      ip,
+    ).catch((err) => {
+      console.error('[pagarComCartao] pago, mas falhou ao vincular cartão na assinatura', assinatura.asaasSubscriptionId, err)
+    })
+  } else {
+    console.error('[pagarComCartao] pago, mas sem IP do cliente — cartão não vinculado', assinatura.asaasSubscriptionId)
+  }
+
+  revalidatePath('/cliente/perfil')
+  revalidatePath('/cliente/assinar')
+  revalidatePath('/admin/assinaturas')
+  return { ok: true }
 }
 
 /** Inicia a troca de plano: cria a nova assinatura sem cancelar a atual.

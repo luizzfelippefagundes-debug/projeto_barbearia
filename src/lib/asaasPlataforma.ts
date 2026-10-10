@@ -137,8 +137,7 @@ export async function buscarPixQrCodePlataforma(paymentId: string): Promise<Asaa
 }
 
 /** Trava a cobrança em cartão de crédito e devolve o link seguro hospedado
- * pelo Asaas — mesma lógica de `definirCobrancaComoCartao` em lib/asaas.ts,
- * só que na conta da plataforma. */
+ * pelo Asaas, na conta da plataforma. */
 export async function definirCobrancaComoCartaoPlataforma(
   paymentId: string,
   value: number,

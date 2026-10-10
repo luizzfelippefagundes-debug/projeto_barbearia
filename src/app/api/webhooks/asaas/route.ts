@@ -113,18 +113,20 @@ export async function POST(req: Request) {
     }
   }
 
-  // Pagamento com cartão confirmado → vincula o cartão à assinatura, pra que
-  // os ciclos seguintes sejam cobrados automaticamente sem o cliente agir.
+  // Reforço pro vínculo feito na tela de cartão: só funciona quando a conta
+  // tem tokenização ativa (sem ela o Asaas não manda creditCardToken).
   const payment = payload.payment!
-  if (payment.billingType === 'CREDIT_CARD' && (paymentStatus === 'RECEIVED' || paymentStatus === 'CONFIRMED')) {
+  const remoteIp = assinaturaLocal?.cartaoRemoteIp
+  if (
+    remoteIp &&
+    payment.billingType === 'CREDIT_CARD' &&
+    (paymentStatus === 'RECEIVED' || paymentStatus === 'CONFIRMED')
+  ) {
     const creditCardToken =
       payment.creditCard?.creditCardToken ??
       (await buscarStatusPagamento(payment.id).catch(() => null))?.creditCard?.creditCardToken
-    const remoteIp = assinaturaLocal?.cartaoRemoteIp
-    if (!creditCardToken || !remoteIp) {
-      console.error('[webhook] cartão não vinculado à assinatura — faltando', !creditCardToken ? 'creditCardToken' : 'IP do cliente', subscriptionId)
-    } else {
-      await vincularCartaoNaAssinatura(subscriptionId, creditCardToken, remoteIp).catch((err) => {
+    if (creditCardToken) {
+      await vincularCartaoNaAssinatura(subscriptionId, { creditCardToken }, remoteIp).catch((err) => {
         console.error('[webhook] erro ao vincular cartão na assinatura', subscriptionId, err)
       })
     }
