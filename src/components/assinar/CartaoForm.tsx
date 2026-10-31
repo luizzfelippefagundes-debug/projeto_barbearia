@@ -30,7 +30,7 @@ export function CartaoForm({ assinaturaId, valor, cpfInicial, telefoneInicial, o
   const router = useRouter()
   const [pending, startTransition] = useTransition()
   const [erro, setErro] = useState<string | null>(null)
-  const [pago, setPago] = useState(false)
+  const [pago, setPago] = useState<false | 'ok' | 'recorrencia_pendente'>(false)
   const [form, setForm] = useState<FormularioCartao>({
     nomeNoCartao: '',
     numero: '',
@@ -61,16 +61,26 @@ export function CartaoForm({ assinaturaId, valor, cpfInicial, telefoneInicial, o
         setErro(resultado.error)
         return
       }
-      setPago(true)
+      setPago('recorrenciaPendente' in resultado && resultado.recorrenciaPendente ? 'recorrencia_pendente' : 'ok')
       router.refresh()
     })
   }
 
-  if (pago) {
+  if (pago === 'ok') {
     return (
       <p className="text-sm text-text-secondary">
         Pagamento enviado! Assim que o cartão for aprovado sua assinatura fica ativa, e os próximos meses são
         cobrados automaticamente nesse cartão.
+      </p>
+    )
+  }
+
+  if (pago === 'recorrencia_pendente') {
+    return (
+      <p className="text-sm text-text-secondary">
+        Pagamento enviado! Sua assinatura fica ativa assim que o cartão for aprovado. Houve um problema ao salvar o
+        cartão para os próximos meses — se não for cobrado automaticamente no vencimento, volte aqui pra cadastrar
+        de novo.
       </p>
     )
   }
@@ -104,8 +114,8 @@ export function CartaoForm({ assinaturaId, valor, cpfInicial, telefoneInicial, o
         {pending ? 'Processando...' : `Pagar ${formatBRL(valor)}`}
       </Button>
 
-      <p className="flex items-center justify-center gap-1 text-center text-xs text-text-secondary">
-        <Lock size={12} aria-hidden="true" />
+      <p className="flex items-start justify-center gap-1 text-center text-xs text-text-secondary">
+        <Lock size={12} className="mt-[1px] shrink-0" aria-hidden="true" />
         Pagamento processado pelo Asaas. Os próximos meses serão cobrados automaticamente neste cartão.
       </p>
     </form>

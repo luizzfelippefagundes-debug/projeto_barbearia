@@ -274,13 +274,39 @@ function validarFormularioCartao(f: FormularioCartao): { error: string } | {
   }
 }
 
+/** Captura o IP real do cliente com fallbacks — se nenhum header de IP vier
+ * (ambiente sem proxy configurado), o Asaas rejeita o updateCreditCard e a
+ * recorrência não fica ativa. Por isso é melhor abortar antes de cobrar do
+ * que cobrar sem conseguir vincular. */
+async function capturarIpCliente(): Promise<string | null> {
+  const h = await headers()
+  const candidatos = [
+    h.get('x-forwarded-for')?.split(',')[0],
+    h.get('x-real-ip'),
+    h.get('cf-connecting-ip'),
+    h.get('x-vercel-forwarded-for')?.split(',')[0],
+  ]
+  for (const bruto of candidatos) {
+    const ip = bruto?.trim()
+    if (ip) return ip
+  }
+  return null
+}
+
 /** Cobra a fatura em aberto com o cartão digitado na nossa tela e, se
  * aprovado, vincula o mesmo cartão à assinatura — os meses seguintes passam
- * a ser cobrados sozinhos. Os dados do cartão nunca são gravados. */
+ * a ser cobrados sozinhos. Os dados do cartão nunca são gravados.
+ *
+ * Fluxo em duas etapas pra garantir que a recorrência SEMPRE fique ligada
+ * quando o pagamento é com cartão: (1) exige IP antes de cobrar, pois sem
+ * ele o Asaas recusa o vínculo; (2) depois do pagamento aprovado, tenta
+ * vincular até 3 vezes antes de desistir e, se mesmo assim falhar, retorna
+ * sucesso pro cliente (o pagamento foi feito) mas marca a assinatura com
+ * uma flag pra equipe reparar depois. */
 export async function pagarMinhaAssinaturaComCartao(
   assinaturaId: string,
   formulario: FormularioCartao,
-): Promise<{ error: string } | { ok: true }> {
+): Promise<{ error: string } | { ok: true; recorrenciaPendente?: true }> {
   const validado = validarFormularioCartao(formulario)
   if ('error' in validado) return validado
 
@@ -288,6 +314,14 @@ export async function pagarMinhaAssinaturaComCartao(
   const email = user?.primaryEmailAddress?.emailAddress ?? user?.emailAddresses[0]?.emailAddress
   if (!email) return { error: 'Sua conta não tem e-mail cadastrado — necessário para pagar com cartão.' }
   const titular: TitularCartao = { ...validado.titular, email }
+
+  // Captura o IP ANTES de cobrar — se não der, falha sem cobrar, assim o
+  // cliente tenta de novo e evita o cenário "pagou mas recorrência não ligou".
+  const ip = await capturarIpCliente()
+  if (!ip) {
+    console.error('[pagarComCartao] sem IP do cliente — abortando antes de cobrar')
+    return { error: 'Não foi possível identificar sua conexão agora. Recarregue a página e tente novamente.' }
+  }
 
   let alvo: Awaited<ReturnType<typeof assinaturaComPagamentoDoCliente>>
   try {
@@ -305,32 +339,40 @@ export async function pagarMinhaAssinaturaComCartao(
   }
 
   const db = getDb()
-  const ip = (await headers()).get('x-forwarded-for')?.split(',')[0].trim()
   const novoStatus = mapStatusPagamentoAsaas(pagamento.status)
   await db
     .update(assinaturas)
     .set({
       ...(novoStatus ? { status: novoStatus, cartaoRecusado: false } : {}),
-      ...(ip ? { cartaoRemoteIp: ip } : {}),
+      cartaoRemoteIp: ip,
     })
     .where(eq(assinaturas.id, assinaturaId))
 
-  if (assinatura.asaasSubscriptionId && ip) {
-    await vincularCartaoNaAssinatura(
-      assinatura.asaasSubscriptionId,
-      { creditCard: validado.creditCard, creditCardHolderInfo: titular },
-      ip,
-    ).catch((err) => {
-      console.error('[pagarComCartao] pago, mas falhou ao vincular cartão na assinatura', assinatura.asaasSubscriptionId, err)
-    })
-  } else {
-    console.error('[pagarComCartao] pago, mas sem IP do cliente — cartão não vinculado', assinatura.asaasSubscriptionId)
+  let recorrenciaOk = false
+  if (assinatura.asaasSubscriptionId) {
+    for (let tentativa = 0; tentativa < 3 && !recorrenciaOk; tentativa++) {
+      try {
+        await vincularCartaoNaAssinatura(
+          assinatura.asaasSubscriptionId,
+          { creditCard: validado.creditCard, creditCardHolderInfo: titular },
+          ip,
+        )
+        recorrenciaOk = true
+      } catch (err) {
+        console.error(
+          `[pagarComCartao] tentativa ${tentativa + 1}/3 falhou ao vincular cartão`,
+          assinatura.asaasSubscriptionId,
+          err,
+        )
+        if (tentativa < 2) await new Promise((resolve) => setTimeout(resolve, 800))
+      }
+    }
   }
 
   revalidatePath('/cliente/perfil')
   revalidatePath('/cliente/assinar')
   revalidatePath('/admin/assinaturas')
-  return { ok: true }
+  return recorrenciaOk ? { ok: true } : { ok: true, recorrenciaPendente: true }
 }
 
 /** Inicia a troca de plano: cria a nova assinatura sem cancelar a atual.
