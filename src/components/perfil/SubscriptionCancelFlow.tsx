@@ -66,27 +66,34 @@ export function SubscriptionCancelFlow({
 
       {assinatura.status === 'cancelado' ? (
         <p className="text-xs text-text-secondary">Sua assinatura foi cancelada.</p>
-      ) : assinatura.status === 'atrasado' ? (
-        <div className="flex flex-wrap gap-2">
-          <Link href={`/cliente/assinar/${assinatura.id}/pagar`}>
-            <Button size="sm">Renovar agora</Button>
-          </Link>
-          <Link href="/cliente/assinar">
-            <Button size="sm" variant="ghost">Ver planos</Button>
-          </Link>
-          <Button size="sm" variant="danger" disabled={pending} onClick={() => setConfirmOpen(true)}>
-            Cancelar assinatura
-          </Button>
-        </div>
       ) : (
-        <div className="flex flex-wrap gap-2">
-          <Link href="/cliente/assinar">
-            <Button size="sm" variant="ghost">Ver/trocar plano</Button>
-          </Link>
-          <Button size="sm" variant="danger" disabled={pending} onClick={() => setConfirmOpen(true)}>
-            Cancelar assinatura
-          </Button>
-        </div>
+        <>
+          <div className="flex flex-wrap gap-2">
+            {assinatura.status === 'atrasado' && (
+              <Link href={`/cliente/assinar/${assinatura.id}/pagar`}>
+                <Button size="sm">Renovar agora</Button>
+              </Link>
+            )}
+            <Link href="/cliente/assinar">
+              <Button size="sm" variant="ghost">
+                {assinatura.status === 'atrasado' ? 'Ver planos' : 'Ver/trocar plano'}
+              </Button>
+            </Link>
+          </div>
+
+          {/* Cancelar o PLANO fica como link discreto, separado dos botões
+              principais — antes era um botão vermelho grande do lado de "Ver
+              plano" e cliente cancelava o plano achando que desmarcava um
+              horário (quem quer desmarcar horário usa "Meus agendamentos"). */}
+          <button
+            type="button"
+            disabled={pending}
+            onClick={() => setConfirmOpen(true)}
+            className="mt-3 text-xs text-text-secondary underline underline-offset-2 hover:text-status-red disabled:opacity-50"
+          >
+            Cancelar meu plano mensal
+          </button>
+        </>
       )}
 
       {erro && <p className="mt-2 text-xs text-status-red">{erro}</p>}
@@ -95,9 +102,9 @@ export function SubscriptionCancelFlow({
         open={confirmOpen}
         onClose={() => setConfirmOpen(false)}
         onConfirm={handleCancelar}
-        title="Cancelar assinatura"
-        description={`Tem certeza que quer cancelar o ${plano.nome}? Você perde os benefícios a partir da próxima cobrança.`}
-        confirmLabel="Sim, cancelar"
+        title="Cancelar seu plano mensal?"
+        description={`Atenção: isto cancela sua ASSINATURA (plano ${plano.nome}) — não é para desmarcar um horário. Se você só quer desmarcar um horário, feche aqui e use a seção "Meus agendamentos". Cancelando o plano, você perde os benefícios a partir da próxima cobrança.`}
+        confirmLabel="Sim, cancelar meu plano"
       />
     </Card>
   )
