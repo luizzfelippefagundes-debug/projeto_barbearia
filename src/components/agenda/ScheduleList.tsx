@@ -1,6 +1,8 @@
 import type { Agendamento, Assinatura, Barbeiro, Cliente, PlanoAssinatura, Servico } from '../../types'
 import { Card, EmptyState } from '../../components/ui'
 import { ScheduleRow } from './ScheduleRow'
+import { LivreGroup } from './LivreGroup'
+import { agruparLivres } from '../../lib/agendaUtils'
 
 interface ScheduleListProps {
   agendamentos: Agendamento[]
@@ -31,21 +33,35 @@ export function ScheduleList({
   }
 
   const ordenados = [...agendamentos].sort((a, b) => a.hora.localeCompare(b.hora))
+  const items = agruparLivres(ordenados)
 
   return (
     <Card>
-      {ordenados.map((agendamento) => (
-        <ScheduleRow
-          key={agendamento.id}
-          agendamento={agendamento}
-          barbeiros={barbeiros}
-          clientes={clientes}
-          servicos={servicos}
-          planos={planos}
-          assinaturas={assinaturas}
-          mostrarBarbeiro={mostrarBarbeiro}
-        />
-      ))}
+      {items.map((item) =>
+        item.type === 'agendamento' ? (
+          <ScheduleRow
+            key={item.agendamento.id}
+            agendamento={item.agendamento}
+            barbeiros={barbeiros}
+            clientes={clientes}
+            servicos={servicos}
+            planos={planos}
+            assinaturas={assinaturas}
+            mostrarBarbeiro={mostrarBarbeiro}
+          />
+        ) : (
+          <LivreGroup
+            key={`livres-${item.agendamentos[0].hora}`}
+            agendamentos={item.agendamentos}
+            barbeiros={barbeiros}
+            clientes={clientes}
+            servicos={servicos}
+            planos={planos}
+            assinaturas={assinaturas}
+            mostrarBarbeiro={mostrarBarbeiro}
+          />
+        ),
+      )}
     </Card>
   )
 }

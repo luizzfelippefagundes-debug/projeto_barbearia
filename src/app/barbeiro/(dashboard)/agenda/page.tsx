@@ -1,8 +1,10 @@
 import { SectionHeading, Card, EmptyState } from '../../../../components/ui'
 import { AgendaDatePicker } from '../../../../components/agenda/AgendaDatePicker'
 import { MinhaAgendaRow } from '../../../../components/barbeiro-self/MinhaAgendaRow'
+import { MeuLivreGroup } from '../../../../components/barbeiro-self/MeuLivreGroup'
 import { BloquearMeuDiaButton } from '../../../../components/barbeiro-self/BloquearMeuDiaButton'
 import { NovoAtendimentoAvulsoModal } from '../../../../components/barbeiro-self/NovoAtendimentoAvulsoModal'
+import { agruparLivres } from '../../../../lib/agendaUtils'
 import { requireBarbeiroAccess } from '../../../../lib/barbeiroAuth'
 import { getGradeAgendaDoDia } from '../../../../db/queries/agendamentos'
 import { getClientesResumo } from '../../../../db/queries/clientes'
@@ -59,17 +61,29 @@ export default async function MinhaAgendaPage({
         <EmptyState title="Nada marcado" description="Você não tem horários neste dia." />
       ) : (
         <Card>
-          {meus.map((agendamento) => (
-            <MinhaAgendaRow
-              key={agendamento.id}
-              agendamento={agendamento}
-              clientes={clientes}
-              servicos={servicos}
-              planos={planos}
-              assinaturas={assinaturas}
-              barbeiros={barbeiros}
-            />
-          ))}
+          {agruparLivres(meus).map((item) =>
+            item.type === 'agendamento' ? (
+              <MinhaAgendaRow
+                key={item.agendamento.id}
+                agendamento={item.agendamento}
+                clientes={clientes}
+                servicos={servicos}
+                planos={planos}
+                assinaturas={assinaturas}
+                barbeiros={barbeiros}
+              />
+            ) : (
+              <MeuLivreGroup
+                key={`livres-${item.agendamentos[0].hora}`}
+                agendamentos={item.agendamentos}
+                clientes={clientes}
+                servicos={servicos}
+                planos={planos}
+                assinaturas={assinaturas}
+                barbeiros={barbeiros}
+              />
+            ),
+          )}
         </Card>
       )}
     </div>

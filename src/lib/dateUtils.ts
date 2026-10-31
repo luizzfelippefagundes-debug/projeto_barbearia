@@ -20,18 +20,43 @@ export function getHoraAtualBrasil(): string {
 
 export const TIME_SLOTS = [
   '09:00',
+  '09:15',
+  '09:30',
   '09:45',
+  '10:00',
+  '10:15',
   '10:30',
+  '10:45',
+  '11:00',
   '11:15',
+  '11:30',
+  '11:45',
   '12:00',
+  '13:00',
+  '13:15',
   '13:30',
+  '13:45',
+  '14:00',
   '14:15',
+  '14:30',
+  '14:45',
   '15:00',
+  '15:15',
+  '15:30',
   '15:45',
+  '16:00',
+  '16:15',
   '16:30',
+  '16:45',
+  '17:00',
   '17:15',
+  '17:30',
+  '17:45',
   '18:00',
+  '18:15',
+  '18:30',
   '18:45',
+  '19:00',
 ]
 
 export const DIAS_SEMANA = ['dom', 'seg', 'ter', 'qua', 'qui', 'sex', 'sáb']
@@ -108,9 +133,10 @@ export function diaDaSemana(dataISO: string): number {
 }
 
 /** Descanso entre um atendimento e outro — soma na duração antes de
- * calcular quantos slots da grade ficam ocupados, pra sempre sobrar um
- * respiro pro barbeiro entre um cliente e o próximo. */
-const TEMPO_DESCANSO_MIN = 5
+ * calcular quantos slots da grade ficam ocupados. Zerado a pedido do
+ * dono: ele quer o próximo horário disponível assim que o serviço
+ * anterior termina, sem folga extra entre um cliente e o outro. */
+const TEMPO_DESCANSO_MIN = 0
 
 function minutosDoDia(hora: string): number {
   const [h, m] = hora.split(':').map(Number)

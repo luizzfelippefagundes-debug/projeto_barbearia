@@ -82,7 +82,7 @@ describe('criarAgendamentoComServicos', () => {
     await db.delete(agendamentos).where(eq(agendamentos.id, anchor.id))
   })
 
-  it('serviço de 50min (50+5=55 > 45min de gap) ocupa 2 slots — âncora + continuação', async () => {
+  it('serviço de 50min (50+5=55 > 15min de gap) ocupa 4 slots — âncora + 3 continuações', async () => {
     const anchor = await criarAgendamentoComServicos({
       data: DATA_TESTE,
       hora: '10:30',
@@ -99,14 +99,18 @@ describe('criarAgendamentoComServicos', () => {
       .where(and(eq(agendamentos.barbeiroId, barbeiroId), eq(agendamentos.data, DATA_TESTE)))
 
     const anchorRow = todos.find((r) => r.id === anchor.id)
-    const continuacaoRow = todos.find((r) => r.continuacaoDeId === anchor.id)
+    const continuacoes = todos
+      .filter((r) => r.continuacaoDeId === anchor.id)
+      .sort((a, b) => a.hora.localeCompare(b.hora))
 
     expect(anchorRow).toBeDefined()
     expect(anchorRow?.hora).toBe('10:30:00')
 
-    expect(continuacaoRow).toBeDefined()
-    expect(continuacaoRow?.hora).toBe('11:15:00')
-    expect(continuacaoRow?.clienteId).toBe(clienteId)
+    expect(continuacoes).toHaveLength(3)
+    expect(continuacoes[0].hora).toBe('10:45:00')
+    expect(continuacoes[1].hora).toBe('11:00:00')
+    expect(continuacoes[2].hora).toBe('11:15:00')
+    expect(continuacoes[0].clienteId).toBe(clienteId)
 
     await db.delete(agendamentos).where(eq(agendamentos.id, anchor.id))
   })
