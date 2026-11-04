@@ -31,6 +31,10 @@ export default async function AgendaPage({
   ])
 
   const barbeirosAtivos = barbeiros.filter((b) => b.ativo)
+  // "Novo atendimento avulso" sempre registra em nome de quem está logado
+  // (o dono) — só pode usar serviço de preço padrão ou exclusivo dele
+  // mesmo, nunca o preço exclusivo de outro barbeiro.
+  const servicosParaONovoAvulsoDoDono = servicos.filter((s) => !s.barbeiroId || s.barbeiroId === dono.id)
   const barbeiroSelecionado =
     barbeiro && (barbeiro === 'todos' || barbeirosAtivos.some((b) => b.id === barbeiro)) ? barbeiro : dono.id
 
@@ -56,7 +60,7 @@ export default async function AgendaPage({
               />
               <NovoAtendimentoAvulsoModal
                 clientes={clientes}
-                servicos={servicos}
+                servicos={servicosParaONovoAvulsoDoDono}
                 barbeiros={barbeirosAtivos}
                 horaSugerida={horaSugerida}
               />

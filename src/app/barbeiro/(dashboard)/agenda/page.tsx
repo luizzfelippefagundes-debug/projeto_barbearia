@@ -32,6 +32,9 @@ export default async function MinhaAgendaPage({
   ])
 
   const meus = [...grade].sort((a, b) => a.hora.localeCompare(b.hora))
+  // No modal de "novo atendimento avulso" só pode escolher serviço de
+  // preço padrão ou exclusivo dele mesmo — não o de outro barbeiro.
+  const servicosParaMim = servicos.filter((s) => !s.barbeiroId || s.barbeiroId === barbeiro.id)
 
   const horaAtual = getHoraAtualBrasil()
   const horaSugerida = [...TIME_SLOTS].reverse().find((h) => h <= horaAtual) ?? TIME_SLOTS[0]
@@ -44,7 +47,7 @@ export default async function MinhaAgendaPage({
             <BloquearMeuDiaButton dataISO={dataISO} ehHoje={dataISO === getHojeISO()} />
             <NovoAtendimentoAvulsoModal
               clientes={clientes}
-              servicos={servicos}
+              servicos={servicosParaMim}
               barbeiros={barbeiros}
               horaSugerida={horaSugerida}
             />

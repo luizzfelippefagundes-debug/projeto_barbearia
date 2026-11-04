@@ -81,6 +81,12 @@ export const servicos = pgTable('servicos', {
   nome: text('nome').notNull(),
   duracaoMin: integer('duracao_min').notNull(),
   precoAvulso: money('preco_avulso').notNull(),
+  /** Null = preço/serviço vale pra qualquer barbeiro (padrão). Quando
+   * preenchido, esse registro só aparece/cobra quando ESSE barbeiro
+   * específico atende — permite um mesmo serviço (ex: "Navalhado") ter
+   * preço diferente conforme quem corta, sem mexer no preço-base usado
+   * pelos demais. */
+  barbeiroId: uuid('barbeiro_id').references((): AnyPgColumn => barbeiros.id, { onDelete: 'cascade' }),
   ativo: boolean('ativo').notNull().default(true),
   criadoEm: timestamp('criado_em').notNull().defaultNow(),
 })

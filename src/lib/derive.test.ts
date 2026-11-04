@@ -16,10 +16,10 @@ import {
 const MES = '2026-09'
 
 const servicos: Servico[] = [
-  { id: 'cabelo', nome: 'Cabelo', duracaoMin: 30, precoAvulso: 40, ativo: true },
-  { id: 'barba', nome: 'Barba', duracaoMin: 20, precoAvulso: 30, ativo: true },
-  { id: 'pezinho', nome: 'Pezinho', duracaoMin: 10, precoAvulso: 15, ativo: true },
-  { id: 'sobrancelha', nome: 'Sobrancelha', duracaoMin: 10, precoAvulso: 10, ativo: true },
+  { id: 'cabelo', nome: 'Cabelo', duracaoMin: 30, precoAvulso: 40, barbeiroId: null, ativo: true },
+  { id: 'barba', nome: 'Barba', duracaoMin: 20, precoAvulso: 30, barbeiroId: null, ativo: true },
+  { id: 'pezinho', nome: 'Pezinho', duracaoMin: 10, precoAvulso: 15, barbeiroId: null, ativo: true },
+  { id: 'sobrancelha', nome: 'Sobrancelha', duracaoMin: 10, precoAvulso: 10, barbeiroId: null, ativo: true },
 ]
 
 const planoCompleto: PlanoAssinatura = {

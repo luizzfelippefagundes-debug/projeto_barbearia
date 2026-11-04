@@ -2,15 +2,16 @@
 
 import { useState } from 'react'
 import { Pencil, Plus } from 'lucide-react'
-import { Button, IconButton, Input, Modal } from '../../components/ui'
+import { Button, IconButton, Input, Modal, Select } from '../../components/ui'
 import { atualizarServico, criarServico } from '../../actions/servicos.actions'
-import type { Servico } from '../../types'
+import type { Barbeiro, Servico } from '../../types'
 
-export function ServicoFormModal({ servico }: { servico?: Servico }) {
+export function ServicoFormModal({ servico, barbeiros = [] }: { servico?: Servico; barbeiros?: Barbeiro[] }) {
   const [open, setOpen] = useState(false)
   const [nome, setNome] = useState(servico?.nome ?? '')
   const [duracaoMin, setDuracaoMin] = useState(servico?.duracaoMin ?? 30)
   const [preco, setPreco] = useState(servico?.precoAvulso ?? 0)
+  const [barbeiroId, setBarbeiroId] = useState(servico?.barbeiroId ?? '')
   const [salvando, setSalvando] = useState(false)
   const [erro, setErro] = useState<string | null>(null)
 
@@ -21,6 +22,7 @@ export function ServicoFormModal({ servico }: { servico?: Servico }) {
       setNome('')
       setDuracaoMin(30)
       setPreco(0)
+      setBarbeiroId('')
     }
   }
 
@@ -33,8 +35,8 @@ export function ServicoFormModal({ servico }: { servico?: Servico }) {
     setErro(null)
     try {
       const resultado = servico
-        ? await atualizarServico(servico.id, nome, duracaoMin, preco)
-        : await criarServico(nome, duracaoMin, preco)
+        ? await atualizarServico(servico.id, nome, duracaoMin, preco, barbeiroId || null)
+        : await criarServico(nome, duracaoMin, preco, barbeiroId || null)
       if ('error' in resultado) {
         setErro(resultado.error)
         return
@@ -78,6 +80,20 @@ export function ServicoFormModal({ servico }: { servico?: Servico }) {
               onChange={(e) => setPreco(Number(e.target.value))}
             />
           </div>
+          {barbeiros.length > 0 && (
+            <Select
+              label="Disponível para"
+              value={barbeiroId}
+              onChange={(e) => setBarbeiroId(e.target.value)}
+            >
+              <option value="">Todos os barbeiros (preço padrão)</option>
+              {barbeiros.map((b) => (
+                <option key={b.id} value={b.id}>
+                  Só {b.nome} (preço/serviço exclusivo dele)
+                </option>
+              ))}
+            </Select>
+          )}
           <p className="text-xs text-text-secondary">
             Pra incluir esse serviço em algum plano de assinatura (com ou sem limite mensal), vá em{' '}
             <span className="text-text-primary">Assinaturas</span>.

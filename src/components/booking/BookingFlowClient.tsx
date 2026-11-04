@@ -62,6 +62,13 @@ export function BookingFlowClient({
     (sum, id) => sum + (servicos.find((s) => s.id === id)?.duracaoMin ?? 0),
     0,
   )
+  // Serviço com preço exclusivo de um barbeiro só aparece pra escolha
+  // quando esse barbeiro específico foi selecionado — com "qualquer um",
+  // só os serviços de preço padrão (sem barbeiroId) ficam disponíveis, pra
+  // não cobrar um preço de exceção sem saber ainda quem vai atender.
+  const servicosDoBarbeiro = servicos.filter(
+    (s) => !s.barbeiroId || s.barbeiroId === state.barbeiroId,
+  )
 
   return (
     <div className="flex flex-col gap-5">
@@ -86,7 +93,7 @@ export function BookingFlowClient({
 
       {state.step === 2 && (
         <StepServico
-          servicos={servicos}
+          servicos={servicosDoBarbeiro}
           cliente={cliente}
           assinanteAtivo={assinanteAtivo}
           plano={plano}

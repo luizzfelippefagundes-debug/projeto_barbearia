@@ -7,18 +7,20 @@ import { PlanoResumoRow } from '../../../../components/servicos/PlanoResumoRow'
 import { assertAdmin } from '../../../../lib/adminAuth'
 import { getServicos } from '../../../../db/queries/servicos'
 import { getPlanosAssinatura } from '../../../../db/queries/assinaturas'
+import { getBarbeiros } from '../../../../db/queries/barbeiros'
 
 export default async function ServicosPage() {
   const dono = await assertAdmin()
-  const [servicos, planos] = await Promise.all([
+  const [servicos, planos, barbeiros] = await Promise.all([
     getServicos(dono.barbeariaId),
     getPlanosAssinatura(dono.barbeariaId),
+    getBarbeiros(dono.barbeariaId),
   ])
 
   return (
     <div className="flex flex-col gap-8">
       <div>
-        <SectionHeading action={<ServicoFormModal />}>Serviços</SectionHeading>
+        <SectionHeading action={<ServicoFormModal barbeiros={barbeiros} />}>Serviços</SectionHeading>
         {servicos.length === 0 ? (
           <EmptyState
             title="Nenhum serviço cadastrado"
@@ -27,7 +29,7 @@ export default async function ServicosPage() {
         ) : (
           <Card>
             {servicos.map((servico) => (
-              <ServicoRow key={servico.id} servico={servico} />
+              <ServicoRow key={servico.id} servico={servico} barbeiros={barbeiros} />
             ))}
           </Card>
         )}

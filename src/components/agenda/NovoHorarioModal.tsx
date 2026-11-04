@@ -6,6 +6,7 @@ import type { Barbeiro, Cliente, Servico } from '../../types'
 import { Button, Modal, Select, EmptyState } from '../../components/ui'
 import { criarOuAtualizarHorario } from '../../actions/agenda.actions'
 import { TIME_SLOTS } from '../../lib/dateUtils'
+import { formatBRL } from '../../lib/format'
 
 interface NovoHorarioModalProps {
   dataISO: string
@@ -24,6 +25,21 @@ export function NovoHorarioModal({ dataISO, barbeiros, clientes, servicos }: Nov
   const [erro, setErro] = useState<string | null>(null)
 
   const podeSalvar = barbeiros.length > 0 && clientes.length > 0 && servicos.length > 0
+  // Serviço com preço exclusivo de um barbeiro só aparece pra escolha
+  // quando esse barbeiro está selecionado no modal.
+  const servicosDoBarbeiro = servicos.filter((s) => !s.barbeiroId || s.barbeiroId === barbeiroId)
+
+  function escolherBarbeiro(novoBarbeiroId: string) {
+    setBarbeiroId(novoBarbeiroId)
+    // Tira da seleção qualquer serviço exclusivo que não vale mais pro
+    // barbeiro recém-escolhido.
+    setServicoIds((prev) =>
+      prev.filter((id) => {
+        const s = servicos.find((sv) => sv.id === id)
+        return s && (!s.barbeiroId || s.barbeiroId === novoBarbeiroId)
+      }),
+    )
+  }
 
   function toggleServico(servicoId: string) {
     setServicoIds((prev) =>
@@ -67,7 +83,7 @@ export function NovoHorarioModal({ dataISO, barbeiros, clientes, servicos }: Nov
           />
         ) : (
           <div className="flex flex-col gap-4">
-            <Select label="Barbeiro" value={barbeiroId} onChange={(e) => setBarbeiroId(e.target.value)}>
+            <Select label="Barbeiro" value={barbeiroId} onChange={(e) => escolherBarbeiro(e.target.value)}>
               {barbeiros.map((b) => (
                 <option key={b.id} value={b.id}>
                   {b.nome}
@@ -94,18 +110,21 @@ export function NovoHorarioModal({ dataISO, barbeiros, clientes, servicos }: Nov
             <div>
               <p className="mb-2 text-sm text-text-primary">Serviços</p>
               <div className="flex flex-col gap-2">
-                {servicos.map((s) => (
+                {servicosDoBarbeiro.map((s) => (
                   <label
                     key={s.id}
-                    className="flex items-center gap-2 rounded-xl border border-border p-2.5 text-sm text-text-primary"
+                    className="flex items-center justify-between gap-2 rounded-xl border border-border p-2.5 text-sm text-text-primary"
                   >
-                    <input
-                      type="checkbox"
-                      checked={servicoIds.includes(s.id)}
-                      onChange={() => toggleServico(s.id)}
-                      className="h-4 w-4 rounded border-border"
-                    />
-                    {s.nome}
+                    <span className="flex items-center gap-2">
+                      <input
+                        type="checkbox"
+                        checked={servicoIds.includes(s.id)}
+                        onChange={() => toggleServico(s.id)}
+                        className="h-4 w-4 rounded border-border"
+                      />
+                      {s.nome}
+                    </span>
+                    <span className="mono-value text-xs text-text-secondary">{formatBRL(s.precoAvulso)}</span>
                   </label>
                 ))}
               </div>

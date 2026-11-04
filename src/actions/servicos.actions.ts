@@ -21,6 +21,7 @@ export async function criarServico(
   nome: string,
   duracaoMin: number,
   precoAvulso: number,
+  barbeiroId: string | null = null,
 ): Promise<{ error: string } | (typeof servicos.$inferSelect)> {
   const dono = await assertAdmin()
   if (!nome.trim()) return { error: 'Nome é obrigatório' }
@@ -32,6 +33,7 @@ export async function criarServico(
       nome: nome.trim(),
       duracaoMin: Math.max(5, Math.round(duracaoMin)),
       precoAvulso,
+      barbeiroId,
     })
     .returning()
 
@@ -44,6 +46,7 @@ export async function atualizarServico(
   nome: string,
   duracaoMin: number,
   precoAvulso: number,
+  barbeiroId: string | null = null,
 ): Promise<{ error: string } | (typeof servicos.$inferSelect)> {
   const dono = await assertAdmin()
   if (!nome.trim()) return { error: 'Nome é obrigatório' }
@@ -54,6 +57,7 @@ export async function atualizarServico(
       nome: nome.trim(),
       duracaoMin: Math.max(5, Math.round(duracaoMin)),
       precoAvulso,
+      barbeiroId,
     })
     .where(and(eq(servicos.id, id), eq(servicos.barbeariaId, dono.barbeariaId)))
     .returning()
