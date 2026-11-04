@@ -7,6 +7,7 @@ import { assinaturas, clientes, planosAssinatura, planoServicosInclusos } from '
 import { assertAdmin } from '../lib/adminAuth'
 import { cancelarAssinaturaComAsaas } from '../lib/asaasCancelamento'
 import {
+  atualizarValorAssinaturaAsaas,
   buscarAssinatura,
   buscarTodosPagamentosDaAssinatura,
   cobrarPagamentoComTokenCartao,
@@ -202,6 +203,71 @@ export async function verificarECorrigirRecorrenciaCartao(): Promise<ResultadoVe
 
   revalidatePath('/admin/assinaturas')
   return { verificadas: comId.length, vinculadas, cobradas, semIp, semToken, erros }
+}
+
+export type ResultadoSincronizacaoPreco = {
+  plano: string
+  valorNovo: number
+  jaAtualizadas: number
+  atualizadas: number
+  erros: number
+}
+
+/** Sincroniza o valor cobrado no Asaas de TODAS as assinaturas ativas de um
+ * plano com o preço atual do plano no nosso banco. Usado após reajuste: o
+ * Asaas só aplica o novo valor na próxima fatura ainda não gerada, então
+ * quem já é assinante paga o valor antigo até o fim do ciclo vigente e cai
+ * no novo valor a partir da cobrança seguinte — sem cobrar retroativo. */
+export async function sincronizarPrecoPlanoNoAsaas(planoId: string): Promise<ResultadoSincronizacaoPreco | Resultado> {
+  const dono = await assertAdmin()
+
+  const [plano] = await getDb()
+    .select({ nome: planosAssinatura.nome, valorMensal: planosAssinatura.valorMensal })
+    .from(planosAssinatura)
+    .where(and(eq(planosAssinatura.id, planoId), eq(planosAssinatura.barbeariaId, dono.barbeariaId)))
+    .limit(1)
+  if (!plano) return { error: 'Plano não encontrado.' }
+
+  const valorNovo = Number(plano.valorMensal)
+  if (!Number.isFinite(valorNovo) || valorNovo <= 0) return { error: 'Preço do plano inválido.' }
+
+  const ativas = await getDb()
+    .select({
+      id: assinaturas.id,
+      asaasSubscriptionId: assinaturas.asaasSubscriptionId,
+    })
+    .from(assinaturas)
+    .where(
+      and(
+        eq(assinaturas.barbeariaId, dono.barbeariaId),
+        eq(assinaturas.planoId, planoId),
+        inArray(assinaturas.status, ['em_dia', 'atrasado']),
+      ),
+    )
+
+  const comId = ativas.filter((a) => a.asaasSubscriptionId)
+  let jaAtualizadas = 0
+  let atualizadas = 0
+  let erros = 0
+
+  for (const assinatura of comId) {
+    const subscriptionId = assinatura.asaasSubscriptionId!
+    try {
+      const sub = await buscarAssinatura(subscriptionId)
+      if (Number(sub.value) === valorNovo) {
+        jaAtualizadas++
+        continue
+      }
+      await atualizarValorAssinaturaAsaas(subscriptionId, valorNovo)
+      atualizadas++
+    } catch (err) {
+      console.error('[sincronizarPreco] erro', assinatura.id, err)
+      erros++
+    }
+  }
+
+  revalidatePath('/admin/assinaturas')
+  return { plano: plano.nome, valorNovo, jaAtualizadas, atualizadas, erros }
 }
 
 export type DetalheAssinaturaSemToken = {

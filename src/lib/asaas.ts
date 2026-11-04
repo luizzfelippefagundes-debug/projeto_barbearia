@@ -85,8 +85,24 @@ export async function criarAssinaturaAsaas(params: {
 /** Busca a assinatura direto — usada pra manter `proximaCobranca` sempre
  * atualizada. O `nextDueDate` aqui é o do PRÓXIMO ciclo ainda não faturado,
  * diferente do `dueDate` de um pagamento específico. */
-export async function buscarAssinatura(subscriptionId: string): Promise<{ nextDueDate: string; billingType: string }> {
-  return asaasFetch<{ nextDueDate: string; billingType: string }>(`/subscriptions/${encodeURIComponent(subscriptionId)}`)
+export async function buscarAssinatura(
+  subscriptionId: string,
+): Promise<{ nextDueDate: string; billingType: string; value: number }> {
+  return asaasFetch<{ nextDueDate: string; billingType: string; value: number }>(
+    `/subscriptions/${encodeURIComponent(subscriptionId)}`,
+  )
+}
+
+/** Atualiza o valor cobrado numa assinatura recorrente. O Asaas só aplica
+ * isso na PRÓXIMA fatura ainda não gerada — a fatura do ciclo atual (se já
+ * tiver sido gerada, pago ou não) mantém o valor com que foi criada. Usado
+ * pra reajuste de preço: quem já é assinante paga o valor antigo até o fim
+ * do ciclo vigente e só cai no valor novo a partir da cobrança seguinte. */
+export async function atualizarValorAssinaturaAsaas(subscriptionId: string, novoValor: number): Promise<void> {
+  await asaasFetch(`/subscriptions/${encodeURIComponent(subscriptionId)}`, {
+    method: 'PUT',
+    body: JSON.stringify({ value: novoValor }),
+  })
 }
 
 export function tokenCartaoMaisRecente(pagamentos: AsaasPayment[]): string | null {
