@@ -2,6 +2,7 @@ import type { Agendamento, Assinatura, Barbeiro, Cliente, PlanoAssinatura, Servi
 import { Card, EmptyState } from '../../components/ui'
 import { ScheduleRow } from './ScheduleRow'
 import { LivreGroup } from './LivreGroup'
+import { ContinuacaoGroup } from './ContinuacaoGroup'
 import { agruparLivres } from '../../lib/agendaUtils'
 
 interface ScheduleListProps {
@@ -37,19 +38,32 @@ export function ScheduleList({
 
   return (
     <Card>
-      {items.map((item) =>
-        item.type === 'agendamento' ? (
-          <ScheduleRow
-            key={item.agendamento.id}
-            agendamento={item.agendamento}
-            barbeiros={barbeiros}
-            clientes={clientes}
-            servicos={servicos}
-            planos={planos}
-            assinaturas={assinaturas}
-            mostrarBarbeiro={mostrarBarbeiro}
-          />
-        ) : (
+      {items.map((item) => {
+        if (item.type === 'agendamento') {
+          return (
+            <ScheduleRow
+              key={item.agendamento.id}
+              agendamento={item.agendamento}
+              barbeiros={barbeiros}
+              clientes={clientes}
+              servicos={servicos}
+              planos={planos}
+              assinaturas={assinaturas}
+              mostrarBarbeiro={mostrarBarbeiro}
+            />
+          )
+        }
+        if (item.type === 'continuacao') {
+          return (
+            <ContinuacaoGroup
+              key={`continuacao-${item.agendamentos[0].hora}`}
+              agendamentos={item.agendamentos}
+              barbeiros={barbeiros}
+              mostrarBarbeiro={mostrarBarbeiro}
+            />
+          )
+        }
+        return (
           <LivreGroup
             key={`livres-${item.agendamentos[0].hora}`}
             agendamentos={item.agendamentos}
@@ -60,8 +74,8 @@ export function ScheduleList({
             assinaturas={assinaturas}
             mostrarBarbeiro={mostrarBarbeiro}
           />
-        ),
-      )}
+        )
+      })}
     </Card>
   )
 }

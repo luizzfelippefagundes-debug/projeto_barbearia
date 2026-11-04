@@ -2,6 +2,7 @@ import { SectionHeading, Card, EmptyState } from '../../../../components/ui'
 import { AgendaDatePicker } from '../../../../components/agenda/AgendaDatePicker'
 import { MinhaAgendaRow } from '../../../../components/barbeiro-self/MinhaAgendaRow'
 import { MeuLivreGroup } from '../../../../components/barbeiro-self/MeuLivreGroup'
+import { MeuContinuacaoGroup } from '../../../../components/barbeiro-self/MeuContinuacaoGroup'
 import { BloquearMeuDiaButton } from '../../../../components/barbeiro-self/BloquearMeuDiaButton'
 import { NovoAtendimentoAvulsoModal } from '../../../../components/barbeiro-self/NovoAtendimentoAvulsoModal'
 import { agruparLivres } from '../../../../lib/agendaUtils'
@@ -64,18 +65,24 @@ export default async function MinhaAgendaPage({
         <EmptyState title="Nada marcado" description="Você não tem horários neste dia." />
       ) : (
         <Card>
-          {agruparLivres(meus).map((item) =>
-            item.type === 'agendamento' ? (
-              <MinhaAgendaRow
-                key={item.agendamento.id}
-                agendamento={item.agendamento}
-                clientes={clientes}
-                servicos={servicos}
-                planos={planos}
-                assinaturas={assinaturas}
-                barbeiros={barbeiros}
-              />
-            ) : (
+          {agruparLivres(meus).map((item) => {
+            if (item.type === 'agendamento') {
+              return (
+                <MinhaAgendaRow
+                  key={item.agendamento.id}
+                  agendamento={item.agendamento}
+                  clientes={clientes}
+                  servicos={servicos}
+                  planos={planos}
+                  assinaturas={assinaturas}
+                  barbeiros={barbeiros}
+                />
+              )
+            }
+            if (item.type === 'continuacao') {
+              return <MeuContinuacaoGroup key={`continuacao-${item.agendamentos[0].hora}`} agendamentos={item.agendamentos} />
+            }
+            return (
               <MeuLivreGroup
                 key={`livres-${item.agendamentos[0].hora}`}
                 agendamentos={item.agendamentos}
@@ -85,8 +92,8 @@ export default async function MinhaAgendaPage({
                 assinaturas={assinaturas}
                 barbeiros={barbeiros}
               />
-            ),
-          )}
+            )
+          })}
         </Card>
       )}
     </div>
