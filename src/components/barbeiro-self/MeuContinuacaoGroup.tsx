@@ -7,12 +7,11 @@ import type { Agendamento } from '../../types'
 export function MeuContinuacaoGroup({ agendamentos }: { agendamentos: Agendamento[] }) {
   const primeiro = agendamentos[0].hora
   const ultimo = agendamentos[agendamentos.length - 1].hora
+  const horaLabel = agendamentos.length === 1 ? primeiro : `${primeiro} – ${ultimo}`
 
   return (
     <div className="flex flex-wrap items-center gap-2 border-b border-border px-4 py-3 text-text-secondary last:border-b-0">
-      <span className="mono-value shrink-0 text-sm">
-        {primeiro} – {ultimo}
-      </span>
+      <span className="mono-value shrink-0 text-sm">{horaLabel}</span>
       <CornerDownRight size={14} className="shrink-0" aria-hidden="true" />
       <span className="text-xs">continuação do horário anterior</span>
     </div>
