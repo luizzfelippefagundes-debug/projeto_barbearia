@@ -7,7 +7,7 @@ import { Megaphone, X } from 'lucide-react'
  * cliente. Para remover o comunicado, apague este componente e os lugares
  * que o importam (home do cliente e tela de agendar). Trocar a VERSAO faz o
  * banner reaparecer pra quem já tinha dispensado. */
-const VERSAO = 'reajuste-2026-11'
+const VERSAO = 'reajuste-2026-11-v2'
 const STORAGE_KEY = `aviso-dispensado:${VERSAO}`
 
 export function AvisoReajusteBanner() {
