@@ -1,6 +1,7 @@
 import { BookingFlowClient } from '../../../components/booking/BookingFlowClient'
 import { ClienteDatePicker } from '../../../components/booking/ClienteDatePicker'
 import { CadastrarWhatsappCard } from '../../../components/perfil/CadastrarWhatsappCard'
+import { AvisoReajusteBanner } from '../../../components/ui/AvisoReajusteBanner'
 import { requireClienteAtual } from '../../../lib/clienteAuth'
 import { getBarbeiros } from '../../../db/queries/barbeiros'
 import { getServicosAtivos } from '../../../db/queries/servicos'
@@ -48,6 +49,7 @@ export default async function AgendarPage({
 
   return (
     <div className="lg:mx-auto lg:max-w-3xl">
+      <AvisoReajusteBanner />
       <ClienteDatePicker dataISO={dataISO} maxData={maxData} />
       <BookingFlowClient
         servicos={servicos}

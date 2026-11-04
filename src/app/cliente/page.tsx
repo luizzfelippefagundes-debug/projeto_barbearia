@@ -2,6 +2,7 @@ import Link from 'next/link'
 import { CalendarPlus, ChevronRight, CreditCard, User } from 'lucide-react'
 import { Card } from '../../components/ui'
 import { CadastrarWhatsappCard } from '../../components/perfil/CadastrarWhatsappCard'
+import { AvisoReajusteBanner } from '../../components/ui/AvisoReajusteBanner'
 import { requireClienteAtual } from '../../lib/clienteAuth'
 import { getBarbeariaPorId } from '../../db/queries/barbearias'
 
@@ -32,11 +33,14 @@ export default async function PublicHomePage() {
 
   return (
     <div className="flex flex-col gap-8">
-      <div className="rounded-2xl border border-border bg-surface p-6 lg:p-10">
-        <h1 className="text-2xl text-accent lg:text-4xl">{barbearia?.nome ?? 'Minha barbearia'}</h1>
-        <p className="mt-1 text-sm text-text-secondary lg:text-base">
-          Corte clássico, atendimento sob medida.
-        </p>
+      <div>
+        <AvisoReajusteBanner />
+        <div className="rounded-2xl border border-border bg-surface p-6 lg:p-10">
+          <h1 className="text-2xl text-accent lg:text-4xl">{barbearia?.nome ?? 'Minha barbearia'}</h1>
+          <p className="mt-1 text-sm text-text-secondary lg:text-base">
+            Corte clássico, atendimento sob medida.
+          </p>
+        </div>
       </div>
 
       {!cliente.telefone && (
