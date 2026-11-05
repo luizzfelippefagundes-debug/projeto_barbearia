@@ -15,7 +15,7 @@ export default async function PublicLayout({ children }: { children: React.React
         logoSrc={getLogoBarbearia(barbearia?.slug)}
       />
 
-      <main className="mx-auto max-w-md px-4 py-5 pb-24 lg:max-w-5xl lg:pb-10">{children}</main>
+      <main className="mx-auto max-w-md px-4 py-5 pb-28 lg:max-w-5xl lg:pb-10">{children}</main>
 
       <ClienteBottomNav />
     </div>

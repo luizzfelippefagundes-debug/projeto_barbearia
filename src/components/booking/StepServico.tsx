@@ -107,7 +107,7 @@ export function StepServico({
       </div>
 
       {selecionados.length > 0 && (
-        <div className="sticky bottom-0 mt-4 flex items-center justify-between gap-3 rounded-xl border border-border bg-surface p-3">
+        <div className="sticky bottom-24 mt-4 flex items-center justify-between gap-3 rounded-xl border border-border bg-surface p-3 lg:bottom-0">
           <div>
             <p className="text-xs text-text-secondary">
               {selecionados.length} {selecionados.length === 1 ? 'serviço' : 'serviços'} · {duracaoTotal} min

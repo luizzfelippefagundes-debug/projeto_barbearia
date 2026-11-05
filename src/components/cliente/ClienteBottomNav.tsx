@@ -16,8 +16,11 @@ export function ClienteBottomNav() {
   const pathname = usePathname()
 
   return (
-    <nav className="fixed inset-x-0 bottom-0 z-10 border-t border-border bg-surface pb-[env(safe-area-inset-bottom)] lg:hidden">
-      <div className="mx-auto flex max-w-md items-stretch justify-between px-2">
+    <nav
+      className="fixed inset-x-4 z-10 lg:hidden"
+      style={{ bottom: 'calc(env(safe-area-inset-bottom) + 1rem)' }}
+    >
+      <div className="mx-auto flex max-w-md items-stretch justify-between gap-1 rounded-full border border-border/60 bg-surface/70 px-2 py-1.5 shadow-lg shadow-black/20 backdrop-blur-xl">
         {ITEMS.map(({ href, label, icon: Icon }) => {
           const active = href === '/cliente' ? pathname === href : pathname.startsWith(href)
           return (
@@ -25,8 +28,8 @@ export function ClienteBottomNav() {
               key={href}
               href={href}
               className={cn(
-                'flex flex-1 flex-col items-center gap-1 py-2.5 text-xs',
-                active ? 'text-accent' : 'text-text-secondary',
+                'flex flex-1 flex-col items-center gap-0.5 rounded-full py-2 text-[11px] transition-colors',
+                active ? 'bg-accent/15 text-accent' : 'text-text-secondary',
               )}
             >
               <Icon size={20} aria-hidden="true" />
