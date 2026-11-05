@@ -7,6 +7,7 @@ import { Button, Modal, Select, EmptyState } from '../../components/ui'
 import { criarOuAtualizarHorario } from '../../actions/agenda.actions'
 import { TIME_SLOTS } from '../../lib/dateUtils'
 import { formatBRL } from '../../lib/format'
+import { servicosParaBarbeiro } from '../../lib/servicosPorBarbeiro'
 
 interface NovoHorarioModalProps {
   dataISO: string
@@ -25,9 +26,7 @@ export function NovoHorarioModal({ dataISO, barbeiros, clientes, servicos }: Nov
   const [erro, setErro] = useState<string | null>(null)
 
   const podeSalvar = barbeiros.length > 0 && clientes.length > 0 && servicos.length > 0
-  // Serviço com preço exclusivo de um barbeiro só aparece pra escolha
-  // quando esse barbeiro está selecionado no modal.
-  const servicosDoBarbeiro = servicos.filter((s) => !s.barbeiroId || s.barbeiroId === barbeiroId)
+  const servicosDoBarbeiro = servicosParaBarbeiro(servicos, barbeiroId)
 
   function escolherBarbeiro(novoBarbeiroId: string) {
     setBarbeiroId(novoBarbeiroId)

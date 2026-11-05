@@ -13,6 +13,7 @@ import { getServicosAtivos } from '../../../../db/queries/servicos'
 import { getAssinaturas, getPlanosAssinatura } from '../../../../db/queries/assinaturas'
 import { getBarbeiros } from '../../../../db/queries/barbeiros'
 import { getHojeISO, getHoraAtualBrasil, TIME_SLOTS } from '../../../../lib/dateUtils'
+import { servicosParaBarbeiro } from '../../../../lib/servicosPorBarbeiro'
 
 export default async function MinhaAgendaPage({
   searchParams,
@@ -35,7 +36,7 @@ export default async function MinhaAgendaPage({
   const meus = [...grade].sort((a, b) => a.hora.localeCompare(b.hora))
   // No modal de "novo atendimento avulso" só pode escolher serviço de
   // preço padrão ou exclusivo dele mesmo — não o de outro barbeiro.
-  const servicosParaMim = servicos.filter((s) => !s.barbeiroId || s.barbeiroId === barbeiro.id)
+  const servicosParaMim = servicosParaBarbeiro(servicos, barbeiro.id)
 
   const horaAtual = getHoraAtualBrasil()
   const horaSugerida = [...TIME_SLOTS].reverse().find((h) => h <= horaAtual) ?? TIME_SLOTS[0]

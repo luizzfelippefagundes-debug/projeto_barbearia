@@ -6,6 +6,7 @@ import { StepServico } from './StepServico'
 import { StepBarbeiro } from './StepBarbeiro'
 import { StepHorario } from './StepHorario'
 import { StepConfirmar } from './StepConfirmar'
+import { servicosParaBarbeiro } from '../../lib/servicosPorBarbeiro'
 
 type Step = 1 | 2 | 3 | 4
 
@@ -62,12 +63,12 @@ export function BookingFlowClient({
     (sum, id) => sum + (servicos.find((s) => s.id === id)?.duracaoMin ?? 0),
     0,
   )
-  // Serviço com preço exclusivo de um barbeiro só aparece pra escolha
-  // quando esse barbeiro específico foi selecionado — com "qualquer um",
-  // só os serviços de preço padrão (sem barbeiroId) ficam disponíveis, pra
-  // não cobrar um preço de exceção sem saber ainda quem vai atender.
-  const servicosDoBarbeiro = servicos.filter(
-    (s) => !s.barbeiroId || s.barbeiroId === state.barbeiroId,
+  // Com "qualquer um", nenhum barbeiro bate com barbeiroId nenhum, então só
+  // os serviços de preço padrão ficam disponíveis — não dá pra cobrar um
+  // preço de exceção sem saber ainda quem vai atender.
+  const servicosDoBarbeiro = servicosParaBarbeiro(
+    servicos,
+    state.barbeiroId === 'qualquer' ? undefined : state.barbeiroId,
   )
 
   return (

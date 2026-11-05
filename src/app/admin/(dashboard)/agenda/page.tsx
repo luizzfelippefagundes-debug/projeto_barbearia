@@ -12,6 +12,7 @@ import { getServicosAtivos } from '../../../../db/queries/servicos'
 import { getGradeAgendaDoDia } from '../../../../db/queries/agendamentos'
 import { getAssinaturas, getPlanosAssinatura } from '../../../../db/queries/assinaturas'
 import { getHojeISO, getHoraAtualBrasil, TIME_SLOTS } from '../../../../lib/dateUtils'
+import { servicosParaBarbeiro } from '../../../../lib/servicosPorBarbeiro'
 
 export default async function AgendaPage({
   searchParams,
@@ -34,7 +35,7 @@ export default async function AgendaPage({
   // "Novo atendimento avulso" sempre registra em nome de quem está logado
   // (o dono) — só pode usar serviço de preço padrão ou exclusivo dele
   // mesmo, nunca o preço exclusivo de outro barbeiro.
-  const servicosParaONovoAvulsoDoDono = servicos.filter((s) => !s.barbeiroId || s.barbeiroId === dono.id)
+  const servicosParaONovoAvulsoDoDono = servicosParaBarbeiro(servicos, dono.id)
   const barbeiroSelecionado =
     barbeiro && (barbeiro === 'todos' || barbeirosAtivos.some((b) => b.id === barbeiro)) ? barbeiro : dono.id
 
