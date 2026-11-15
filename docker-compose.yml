@@ -1,0 +1,14 @@
+services:
+  app:
+    build: .
+    container_name: jp-barbeiro
+    restart: always
+    ports:
+      - "127.0.0.1:3009:3000"
+    networks:
+      - app-net
+
+networks:
+  app-net:
+    external: true
+    name: app_app-net
