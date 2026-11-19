@@ -92,12 +92,23 @@ export async function POST(req: Request) {
     .where(eq(assinaturas.asaasSubscriptionId, subscriptionId))
     .limit(1)
 
+  // Próxima cobrança = a fatura PENDENTE mais próxima. O `nextDueDate` do
+  // Asaas é o vencimento do próximo ciclo AINDA NÃO GERADO — como ele gera a
+  // fatura do mês seguinte com antecedência, usar só ele mostrava um mês a
+  // mais (ex: "17/01" quando a próxima cobrança real é 17/12).
+  const pendenteMaisProxima = assinaturaAsaas
+    ? await buscarTodosPagamentosDaAssinatura(subscriptionId)
+        .then((ps) => ps.filter((p) => p.status === 'PENDING').map((p) => p.dueDate).sort()[0])
+        .catch(() => undefined)
+    : undefined
+  const proximaCobranca = pendenteMaisProxima ?? assinaturaAsaas?.nextDueDate
+
   await db
     .update(assinaturas)
     .set({
       ...(statusFinal ? { status: statusFinal } : {}),
       ...(cartaoRecusado !== undefined ? { cartaoRecusado } : {}),
-      ...(assinaturaAsaas ? { proximaCobranca: assinaturaAsaas.nextDueDate } : {}),
+      ...(proximaCobranca ? { proximaCobranca } : {}),
     })
     .where(eq(assinaturas.asaasSubscriptionId, subscriptionId))
 
