@@ -36,8 +36,10 @@ export function PlanoRowActions({ plano, servicos }: { plano: PlanoAssinatura; s
           setErro(r.error ?? 'Não foi possível sincronizar.')
           return
         }
-        const partes = [`${r.atualizadas} atualizada(s)`]
-        if (r.jaAtualizadas) partes.push(`${r.jaAtualizadas} já estava(m)`)
+        const partes = [`${r.atualizadas} assinatura(s) ajustada(s)`]
+        if (r.faturasCorrigidas) partes.push(`${r.faturasCorrigidas} fatura(s) pendente(s) corrigida(s)`)
+        if (r.jaAtualizadas) partes.push(`${r.jaAtualizadas} já estava(m) certa(s)`)
+        if (r.vencidasValorAntigo) partes.push(`${r.vencidasValorAntigo} vencida(s) no valor antigo (não mexidas)`)
         if (r.erros) partes.push(`${r.erros} com erro`)
         setAviso(`Preço sincronizado: ${partes.join(', ')}.`)
       } catch {
@@ -81,7 +83,7 @@ export function PlanoRowActions({ plano, servicos }: { plano: PlanoAssinatura; s
         onClose={() => setConfirmSync(false)}
         onConfirm={handleSync}
         title="Sincronizar preço no Asaas?"
-        description={`Aplica o preço atual de "${plano.nome}" (R$ ${Number(plano.valorMensal).toFixed(2).replace('.', ',')}) na cobrança recorrente de todos os assinantes ativos. O Asaas só cobra o valor novo a partir da próxima fatura — ninguém é cobrado retroativo.`}
+        description={`Aplica o preço atual de "${plano.nome}" (R$ ${Number(plano.valorMensal).toFixed(2).replace('.', ',')}) na cobrança recorrente de todos os assinantes ativos, incluindo a próxima fatura que o Asaas já gerou e ainda não foi paga. Faturas já pagas ou vencidas não mudam — ninguém é cobrado retroativo.`}
         confirmLabel="Sincronizar"
       />
 

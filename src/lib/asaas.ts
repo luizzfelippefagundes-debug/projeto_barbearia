@@ -93,15 +93,29 @@ export async function buscarAssinatura(
   )
 }
 
-/** Atualiza o valor cobrado numa assinatura recorrente. O Asaas só aplica
- * isso na PRÓXIMA fatura ainda não gerada — a fatura do ciclo atual (se já
- * tiver sido gerada, pago ou não) mantém o valor com que foi criada. Usado
- * pra reajuste de preço: quem já é assinante paga o valor antigo até o fim
- * do ciclo vigente e só cai no valor novo a partir da cobrança seguinte. */
+/** Atualiza o valor cobrado numa assinatura recorrente, incluindo as
+ * faturas PENDENTES que o Asaas já gerou (ele gera a do próximo ciclo com
+ * antecedência). Sem `updatePendingPayments`, o Asaas muda só a assinatura
+ * e a próxima fatura — já criada — continua no valor antigo ("Cobranças já
+ * geradas permanecem inalteradas"). Faturas já pagas ou vencidas não são
+ * mexidas. Atenção: a flag só tem efeito quando o valor MUDA de fato — se a
+ * assinatura já estiver no valor novo, use atualizarValorCobrancaAsaas
+ * direto na fatura pendente (validado no sandbox). */
 export async function atualizarValorAssinaturaAsaas(subscriptionId: string, novoValor: number): Promise<void> {
   await asaasFetch(`/subscriptions/${encodeURIComponent(subscriptionId)}`, {
     method: 'PUT',
-    body: JSON.stringify({ value: novoValor }),
+    body: JSON.stringify({ value: novoValor, updatePendingPayments: true }),
+  })
+}
+
+/** Corrige o valor de UMA fatura já gerada (ainda não paga) — usado pra
+ * consertar faturas pendentes que ficaram no valor antigo depois de um
+ * reajuste feito sem `updatePendingPayments`. Mantém vencimento e forma de
+ * pagamento como estavam. */
+export async function atualizarValorCobrancaAsaas(pagamento: AsaasPayment, novoValor: number): Promise<void> {
+  await asaasFetch(`/payments/${encodeURIComponent(pagamento.id)}`, {
+    method: 'PUT',
+    body: JSON.stringify({ value: novoValor, dueDate: pagamento.dueDate, billingType: pagamento.billingType }),
   })
 }
 

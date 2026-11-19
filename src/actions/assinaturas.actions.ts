@@ -8,6 +8,7 @@ import { assertAdmin } from '../lib/adminAuth'
 import { cancelarAssinaturaComAsaas } from '../lib/asaasCancelamento'
 import {
   atualizarValorAssinaturaAsaas,
+  atualizarValorCobrancaAsaas,
   buscarAssinatura,
   buscarTodosPagamentosDaAssinatura,
   cobrarPagamentoComTokenCartao,
@@ -210,14 +211,23 @@ export type ResultadoSincronizacaoPreco = {
   valorNovo: number
   jaAtualizadas: number
   atualizadas: number
+  /** Faturas PENDENTES (ainda não pagas, vencimento futuro) corrigidas
+   * pro valor novo. */
+  faturasCorrigidas: number
+  /** Faturas VENCIDAS ainda no valor antigo — não mexemos (são de antes,
+   * podem estar sendo pagas agora); só informamos. */
+  vencidasValorAntigo: number
   erros: number
 }
 
 /** Sincroniza o valor cobrado no Asaas de TODAS as assinaturas ativas de um
- * plano com o preço atual do plano no nosso banco. Usado após reajuste: o
- * Asaas só aplica o novo valor na próxima fatura ainda não gerada, então
- * quem já é assinante paga o valor antigo até o fim do ciclo vigente e cai
- * no novo valor a partir da cobrança seguinte — sem cobrar retroativo. */
+ * plano com o preço atual do plano no nosso banco. Usado após reajuste.
+ *
+ * O Asaas gera a fatura do próximo ciclo com antecedência, e mudar só o
+ * valor da assinatura NÃO altera essa fatura já gerada — por isso, além de
+ * atualizar a assinatura, corrigimos direto toda fatura PENDENTE que ainda
+ * esteja no valor antigo. Faturas pagas (o "mês que já pagou") e vencidas
+ * não são mexidas — nada de cobrança retroativa. */
 export async function sincronizarPrecoPlanoNoAsaas(planoId: string): Promise<ResultadoSincronizacaoPreco | Resultado> {
   const dono = await assertAdmin()
 
@@ -248,18 +258,39 @@ export async function sincronizarPrecoPlanoNoAsaas(planoId: string): Promise<Res
   const comId = ativas.filter((a) => a.asaasSubscriptionId)
   let jaAtualizadas = 0
   let atualizadas = 0
+  let faturasCorrigidas = 0
+  let vencidasValorAntigo = 0
   let erros = 0
+  const mesmoValor = (v: number) => Math.abs(Number(v) - valorNovo) < 0.005
 
   for (const assinatura of comId) {
     const subscriptionId = assinatura.asaasSubscriptionId!
     try {
       const sub = await buscarAssinatura(subscriptionId)
-      if (Number(sub.value) === valorNovo) {
-        jaAtualizadas++
-        continue
+      let mexeu = false
+      if (!mesmoValor(sub.value)) {
+        await atualizarValorAssinaturaAsaas(subscriptionId, valorNovo)
+        mexeu = true
       }
-      await atualizarValorAssinaturaAsaas(subscriptionId, valorNovo)
-      atualizadas++
+
+      // Confere as faturas DEPOIS da atualização: a flag
+      // updatePendingPayments não tem efeito quando a assinatura já estava
+      // no valor novo (reajuste feito antes, sem a flag) — essas faturas
+      // pendentes ficaram no valor antigo e precisam ser corrigidas direto.
+      const pagamentos = await buscarTodosPagamentosDaAssinatura(subscriptionId)
+      for (const p of pagamentos) {
+        if (mesmoValor(p.value)) continue
+        if (p.status === 'PENDING') {
+          await atualizarValorCobrancaAsaas(p, valorNovo)
+          faturasCorrigidas++
+          mexeu = true
+        } else if (p.status === 'OVERDUE') {
+          vencidasValorAntigo++
+        }
+      }
+
+      if (mexeu) atualizadas++
+      else jaAtualizadas++
     } catch (err) {
       console.error('[sincronizarPreco] erro', assinatura.id, err)
       erros++
@@ -267,7 +298,7 @@ export async function sincronizarPrecoPlanoNoAsaas(planoId: string): Promise<Res
   }
 
   revalidatePath('/admin/assinaturas')
-  return { plano: plano.nome, valorNovo, jaAtualizadas, atualizadas, erros }
+  return { plano: plano.nome, valorNovo, jaAtualizadas, atualizadas, faturasCorrigidas, vencidasValorAntigo, erros }
 }
 
 export type DetalheAssinaturaSemToken = {
