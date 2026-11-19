@@ -225,9 +225,9 @@ export type ResultadoSincronizacaoPreco = {
  *
  * O Asaas gera a fatura do próximo ciclo com antecedência, e mudar só o
  * valor da assinatura NÃO altera essa fatura já gerada — por isso, além de
- * atualizar a assinatura, corrigimos direto toda fatura em aberto (PENDING
- * ou OVERDUE) que ainda esteja no valor antigo. Faturas pagas (o "mês que já
- * pagou") não são mexidas. */
+ * atualizar a assinatura, corrigimos direto toda fatura PENDENTE que ainda
+ * esteja no valor antigo. Faturas VENCIDAS são ajustadas quando o cliente
+ * clica em renovar. Faturas pagas não são mexidas. */
 export async function sincronizarPrecoPlanoNoAsaas(planoId: string): Promise<ResultadoSincronizacaoPreco | Resultado> {
   const dono = await assertAdmin()
 
@@ -276,14 +276,19 @@ export async function sincronizarPrecoPlanoNoAsaas(planoId: string): Promise<Res
       // Confere as faturas DEPOIS da atualização: a flag
       // updatePendingPayments não tem efeito quando a assinatura já estava
       // no valor novo (reajuste feito antes, sem a flag) — essas faturas
-      // em aberto (pendentes ou vencidas) ficaram no valor antigo e precisam ser corrigidas direto.
+      // pendentes ficaram no valor antigo e precisam ser corrigidas direto.
       const pagamentos = await buscarTodosPagamentosDaAssinatura(subscriptionId)
       for (const p of pagamentos) {
         if (mesmoValor(p.value)) continue
-        if (p.status === 'PENDING' || p.status === 'OVERDUE') {
+        if (p.status === 'PENDING') {
           await atualizarValorCobrancaAsaas(p, valorNovo)
           faturasCorrigidas++
           mexeu = true
+        } else if (p.status === 'OVERDUE') {
+          // Vencida só é ajustada quando o cliente for renovar (aí o
+          // vencimento vai pra hoje junto com o valor novo) — mexer em massa
+          // aqui jogaria o vencimento de todo mundo pra hoje.
+          vencidasValorAntigo++
         }
       }
 

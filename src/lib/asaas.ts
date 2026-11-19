@@ -109,15 +109,23 @@ export async function atualizarValorAssinaturaAsaas(subscriptionId: string, novo
 }
 
 /** Corrige o valor de UMA fatura já gerada (ainda não paga) — usado pra
- * consertar faturas pendentes ou vencidas que ficaram no valor antigo depois
- * de um reajuste. Omite dueDate pro Asaas não rejeitar faturas vencidas
- * ("data de vencimento inferior a hoje"). Mantém vencimento e forma de
- * pagamento como estavam. */
+ * consertar faturas que ficaram no valor antigo depois de um reajuste.
+ * Fatura PENDENTE: muda só o valor (vencimento continua o mesmo).
+ * Fatura VENCIDA: o Asaas recusa qualquer alteração com vencimento no
+ * passado ("A data mínima de vencimento para novas cobranças é hoje"), então
+ * o vencimento vai pra hoje junto com o valor novo — o cliente está pagando
+ * agora mesmo. Atualiza o objeto recebido com o que ficou no Asaas. */
 export async function atualizarValorCobrancaAsaas(pagamento: AsaasPayment, novoValor: number): Promise<void> {
+  const hoje = new Date().toLocaleDateString('en-CA', { timeZone: 'America/Sao_Paulo' })
+  const vencida = pagamento.status === 'OVERDUE' || pagamento.dueDate < hoje
+  const body: Record<string, unknown> = { value: novoValor }
+  if (vencida) body.dueDate = hoje
   await asaasFetch(`/payments/${encodeURIComponent(pagamento.id)}`, {
     method: 'PUT',
-    body: JSON.stringify({ value: novoValor }),
+    body: JSON.stringify(body),
   })
+  pagamento.value = novoValor
+  if (vencida) pagamento.dueDate = hoje
 }
 
 /** Depois de um pagamento confirmado: a assinatura só está "em dia" se não

@@ -208,7 +208,6 @@ async function alinharFaturaAoPrecoDoPlano(planoId: string, subscriptionId: stri
 
   try {
     await atualizarValorCobrancaAsaas(fatura, preco)
-    fatura.value = preco
   } catch (err) {
     console.error('[renovar] não deu pra ajustar o valor da fatura', fatura.id, 'de', fatura.value, 'para', preco, err)
   }

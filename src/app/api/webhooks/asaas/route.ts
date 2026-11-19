@@ -2,10 +2,12 @@ import { and, eq, inArray, ne } from 'drizzle-orm'
 import { NextResponse } from 'next/server'
 import { revalidatePath } from 'next/cache'
 import { getDb } from '../../../../db'
-import { asaasWebhookEventos, assinaturas } from '../../../../db/schema'
+import { asaasWebhookEventos, assinaturas, planosAssinatura } from '../../../../db/schema'
 import {
+  atualizarValorCobrancaAsaas,
   buscarAssinatura,
   buscarStatusPagamento,
+  buscarTodosPagamentosDaAssinatura,
   cancelarAssinaturaAsaas,
   confirmarStatusEmDia,
   mapStatusPagamentoAsaas,
@@ -80,7 +82,12 @@ export async function POST(req: Request) {
 
   // Busca a assinatura antes de atualizar pra ter o clienteId disponível
   const [assinaturaLocal] = await db
-    .select({ id: assinaturas.id, clienteId: assinaturas.clienteId, cartaoRemoteIp: assinaturas.cartaoRemoteIp })
+    .select({
+      id: assinaturas.id,
+      clienteId: assinaturas.clienteId,
+      planoId: assinaturas.planoId,
+      cartaoRemoteIp: assinaturas.cartaoRemoteIp,
+    })
     .from(assinaturas)
     .where(eq(assinaturas.asaasSubscriptionId, subscriptionId))
     .limit(1)
@@ -136,8 +143,37 @@ export async function POST(req: Request) {
     }
   }
 
+  // Pagamento confirmado → o Asaas gera a fatura do próximo mês logo em
+  // seguida. Em assinatura de cartão com histórico pago, o Asaas NÃO deixa
+  // mudar o valor da assinatura, então essa fatura nova nasce no valor
+  // antigo. Corrige direto as faturas pendentes pro preço atual do plano.
+  if (assinaturaLocal && (paymentStatus === 'RECEIVED' || paymentStatus === 'CONFIRMED')) {
+    await alinharFaturasPendentesAoPlano(subscriptionId, assinaturaLocal.planoId).catch((err) => {
+      console.error('[webhook] erro ao alinhar faturas pendentes ao preço do plano', subscriptionId, err)
+    })
+  }
+
   revalidatePath('/cliente/perfil')
   revalidatePath('/admin/assinaturas')
 
   return NextResponse.json({ ok: true })
+}
+
+async function alinharFaturasPendentesAoPlano(subscriptionId: string, planoId: string) {
+  const [plano] = await getDb()
+    .select({ valorMensal: planosAssinatura.valorMensal })
+    .from(planosAssinatura)
+    .where(eq(planosAssinatura.id, planoId))
+    .limit(1)
+  const preco = Number(plano?.valorMensal)
+  if (!Number.isFinite(preco) || preco <= 0) return
+
+  const pagamentos = await buscarTodosPagamentosDaAssinatura(subscriptionId)
+  for (const p of pagamentos) {
+    if (p.status !== 'PENDING') continue
+    if (Math.abs(Number(p.value) - preco) < 0.005) continue
+    await atualizarValorCobrancaAsaas(p, preco).catch((err) => {
+      console.error('[webhook] não deu pra ajustar a fatura', p.id, 'para', preco, err)
+    })
+  }
 }
