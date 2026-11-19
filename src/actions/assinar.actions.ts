@@ -2,13 +2,15 @@
 
 import { and, eq } from 'drizzle-orm'
 import { revalidatePath } from 'next/cache'
-import { headers } from 'next/headers'
 import { getDb } from '../db'
 import { assinaturas, clientes, planosAssinatura } from '../db/schema'
 import { getClienteAtualOuFalhar } from '../lib/clienteAuth'
 import { getAssinaturaAtivaDoCliente } from '../db/queries/assinaturas'
 import { cancelarAssinaturaComAsaas } from '../lib/asaasCancelamento'
 import {
+  atualizarValorAssinaturaAsaas,
+  atualizarValorCobrancaAsaas,
+  buscarAssinatura,
   buscarPixQrCode,
   buscarPrimeiroPagamentoDaAssinatura,
   buscarQualquerPagamentoDaAssinatura,
@@ -19,11 +21,13 @@ import {
   mensagemErroAsaas,
   pagarCobrancaComCartao,
   vincularCartaoNaAssinatura,
+  type AsaasPayment,
   type DadosCartao,
   type TitularCartao,
 } from '../lib/asaas'
 import { currentUser } from '@clerk/nextjs/server'
 import { getHojeISO } from '../lib/dateUtils'
+import { capturarIpCliente } from '../lib/ipCliente'
 
 function apenasDigitos(valor: string): string {
   return valor.replace(/\D/g, '')
@@ -183,6 +187,37 @@ export async function verificarPagamentoAssinatura(assinaturaId: string): Promis
   return novoStatus
 }
 
+/** Antes do cliente pagar (Pix ou cartão), garante que a fatura em aberto
+ * cobra o preço ATUAL do plano — o mesmo que a tela mostra. Depois de um
+ * reajuste, a fatura que o Asaas já tinha gerado podia continuar no valor
+ * antigo, e o cliente via um valor e pagava outro. Também atualiza a
+ * assinatura pros meses seguintes. Melhor esforço: se o Asaas recusar
+ * (ex: assinatura de cartão com histórico pago não aceita mudar valor), só
+ * registra no log e segue — nunca impede o cliente de pagar. */
+async function alinharFaturaAoPrecoDoPlano(planoId: string, subscriptionId: string, fatura: AsaasPayment) {
+  const [plano] = await getDb()
+    .select({ valorMensal: planosAssinatura.valorMensal })
+    .from(planosAssinatura)
+    .where(eq(planosAssinatura.id, planoId))
+    .limit(1)
+  const preco = Number(plano?.valorMensal)
+  if (!Number.isFinite(preco) || preco <= 0) return
+  if (Math.abs(Number(fatura.value) - preco) < 0.005) return
+
+  try {
+    await atualizarValorCobrancaAsaas(fatura, preco)
+    fatura.value = preco
+  } catch (err) {
+    console.error('[renovar] não deu pra ajustar o valor da fatura', fatura.id, 'de', fatura.value, 'para', preco, err)
+  }
+  try {
+    const sub = await buscarAssinatura(subscriptionId)
+    if (Math.abs(Number(sub.value) - preco) >= 0.005) await atualizarValorAssinaturaAsaas(subscriptionId, preco)
+  } catch (err) {
+    console.error('[renovar] não deu pra ajustar o valor da assinatura', subscriptionId, err)
+  }
+}
+
 async function assinaturaComPagamentoDoCliente(assinaturaId: string) {
   const clienteRow = await getClienteAtualOuFalhar()
 
@@ -201,7 +236,10 @@ async function assinaturaComPagamentoDoCliente(assinaturaId: string) {
   // e o cliente era mandado pra um link de cobrança que não servia mais.
   if (assinatura.asaasSubscriptionId) {
     const pagamentoAtual = await buscarPrimeiroPagamentoDaAssinatura(assinatura.asaasSubscriptionId)
-    if (pagamentoAtual) return { assinatura, paymentId: pagamentoAtual.id }
+    if (pagamentoAtual) {
+      await alinharFaturaAoPrecoDoPlano(assinatura.planoId, assinatura.asaasSubscriptionId, pagamentoAtual)
+      return { assinatura, paymentId: pagamentoAtual.id }
+    }
   }
 
   if (!assinatura.asaasFirstPaymentId) {
@@ -278,20 +316,6 @@ function validarFormularioCartao(f: FormularioCartao): { error: string } | {
  * (ambiente sem proxy configurado), o Asaas rejeita o updateCreditCard e a
  * recorrência não fica ativa. Por isso é melhor abortar antes de cobrar do
  * que cobrar sem conseguir vincular. */
-async function capturarIpCliente(): Promise<string | null> {
-  const h = await headers()
-  const candidatos = [
-    h.get('x-forwarded-for')?.split(',')[0],
-    h.get('x-real-ip'),
-    h.get('cf-connecting-ip'),
-    h.get('x-vercel-forwarded-for')?.split(',')[0],
-  ]
-  for (const bruto of candidatos) {
-    const ip = bruto?.trim()
-    if (ip) return ip
-  }
-  return null
-}
 
 /** Cobra a fatura em aberto com o cartão digitado na nossa tela e, se
  * aprovado, vincula o mesmo cartão à assinatura — os meses seguintes passam
