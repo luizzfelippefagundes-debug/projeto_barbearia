@@ -188,14 +188,12 @@ export async function verificarPagamentoAssinatura(assinaturaId: string): Promis
   return novoStatus
 }
 
-/** Antes do cliente pagar (Pix ou cartão), garante que uma fatura AINDA NÃO
- * VENCIDA cobra o preço atual do plano — depois de um reajuste, a fatura que
- * o Asaas já tinha gerado podia continuar no valor antigo. Fatura VENCIDA
- * fica com o valor original: ela é de um ciclo anterior (pode ser de antes
- * do reajuste), e quem já devia aquele mês paga o valor daquele mês. Também
- * atualiza a assinatura pros meses seguintes. Melhor esforço: se o Asaas
- * recusar, só registra no log e segue — nunca impede o cliente de pagar. A
- * tela sempre mostra o valor real da fatura (valorParaPagarMinhaAssinatura),
+/** Antes do cliente pagar (Pix ou cartão), garante que a fatura em aberto
+ * (seja pendente ou vencida) cobra o preço atual do plano — depois de um
+ * reajuste, a fatura que o Asaas já tinha gerado podia continuar no valor
+ * antigo. Também atualiza a assinatura pros meses seguintes. Melhor esforço:
+ * se o Asaas recusar, só registra no log e segue — nunca impede o cliente de
+ * pagar. A tela sempre mostra o valor real da fatura (valorParaPagarMinhaAssinatura),
  * então o que aparece é o que é cobrado. */
 async function alinharFaturaAoPrecoDoPlano(planoId: string, subscriptionId: string, fatura: AsaasPayment) {
   const [plano] = await getDb()
@@ -205,7 +203,7 @@ async function alinharFaturaAoPrecoDoPlano(planoId: string, subscriptionId: stri
     .limit(1)
   const preco = Number(plano?.valorMensal)
   if (!Number.isFinite(preco) || preco <= 0) return
-  if (fatura.status !== 'PENDING') return
+  if (!['PENDING', 'OVERDUE'].includes(fatura.status)) return
   if (Math.abs(Number(fatura.value) - preco) < 0.005) return
 
   try {

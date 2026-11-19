@@ -109,13 +109,14 @@ export async function atualizarValorAssinaturaAsaas(subscriptionId: string, novo
 }
 
 /** Corrige o valor de UMA fatura já gerada (ainda não paga) — usado pra
- * consertar faturas pendentes que ficaram no valor antigo depois de um
- * reajuste feito sem `updatePendingPayments`. Mantém vencimento e forma de
+ * consertar faturas pendentes ou vencidas que ficaram no valor antigo depois
+ * de um reajuste. Omite dueDate pro Asaas não rejeitar faturas vencidas
+ * ("data de vencimento inferior a hoje"). Mantém vencimento e forma de
  * pagamento como estavam. */
 export async function atualizarValorCobrancaAsaas(pagamento: AsaasPayment, novoValor: number): Promise<void> {
   await asaasFetch(`/payments/${encodeURIComponent(pagamento.id)}`, {
     method: 'PUT',
-    body: JSON.stringify({ value: novoValor, dueDate: pagamento.dueDate, billingType: pagamento.billingType }),
+    body: JSON.stringify({ value: novoValor }),
   })
 }
 
