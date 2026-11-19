@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react'
 import type { PlanoAssinatura } from '../../types'
 import { formatBRL } from '../../lib/format'
+import { descricaoServicosDoPlano } from '../../lib/descricaoPlano'
 import { cn } from '../../lib/cn'
 
 export function PlanoResumoRow({ plano, actions }: { plano: PlanoAssinatura; actions?: ReactNode }) {
@@ -19,9 +20,7 @@ export function PlanoResumoRow({ plano, actions }: { plano: PlanoAssinatura; act
         <p className="text-xs text-text-secondary">
           {plano.servicosInclusos.length === 0
             ? 'Nenhum serviço incluso'
-            : plano.servicosInclusos
-                .map((s) => (s.limiteMensal != null ? `${s.nome} (${s.limiteMensal}x/mês)` : s.nome))
-                .join(', ')}
+            : descricaoServicosDoPlano(plano.servicosInclusos)}
         </p>
       </div>
       <div className="flex items-center gap-4">

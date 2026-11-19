@@ -7,6 +7,7 @@ import type { Assinatura, PlanoAssinatura } from '../../types'
 import { Button, Card, ConfirmDialog, StatusPill } from '../../components/ui'
 import { cancelarMinhaAssinatura } from '../../actions/booking.actions'
 import { formatBRL, formatDataCurta, proximaBillingDate } from '../../lib/format'
+import { descricaoServicosDoPlano } from '../../lib/descricaoPlano'
 
 export function SubscriptionCancelFlow({
   assinatura,
@@ -46,9 +47,7 @@ export function SubscriptionCancelFlow({
             {plano.servicosInclusos.length > 0 && (
               <>
                 {' · '}
-                {plano.servicosInclusos
-                  .map((s) => (s.limiteMensal != null ? `${s.nome} (${s.limiteMensal}x/mês)` : s.nome))
-                  .join(', ')}
+                {descricaoServicosDoPlano(plano.servicosInclusos)}
               </>
             )}
           </p>

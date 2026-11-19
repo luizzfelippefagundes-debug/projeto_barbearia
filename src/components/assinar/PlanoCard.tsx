@@ -7,6 +7,7 @@ import type { PlanoAssinatura } from '../../types'
 import { Button, Card, Input, Modal } from '../../components/ui'
 import { assinarPlano, trocarPlano } from '../../actions/assinar.actions'
 import { formatBRL } from '../../lib/format'
+import { descricaoServicosDoPlano } from '../../lib/descricaoPlano'
 
 export function PlanoCard({
   plano,
@@ -49,9 +50,7 @@ export function PlanoCard({
   const descricaoServicos =
     plano.servicosInclusos.length === 0
       ? 'Consulte os benefícios'
-      : plano.servicosInclusos
-          .map((s) => (s.limiteMensal != null ? `${s.nome} (${s.limiteMensal}x/mês)` : s.nome))
-          .join(', ')
+      : descricaoServicosDoPlano(plano.servicosInclusos)
 
   return (
     <>
