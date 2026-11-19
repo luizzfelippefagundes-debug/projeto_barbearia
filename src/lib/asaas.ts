@@ -119,6 +119,23 @@ export async function atualizarValorCobrancaAsaas(pagamento: AsaasPayment, novoV
   })
 }
 
+/** Depois de um pagamento confirmado: a assinatura só está "em dia" se não
+ * sobrou nenhuma outra fatura VENCIDA. Sem isso, pagar a fatura mais antiga
+ * de quem devia dois meses marcava "em dia" com o outro mês ainda em aberto.
+ * Em caso de erro ao consultar, devolve o status que já ia ser usado. */
+export async function confirmarStatusEmDia(
+  subscriptionId: string,
+  statusPretendido: 'em_dia' | 'atrasado',
+): Promise<'em_dia' | 'atrasado'> {
+  if (statusPretendido !== 'em_dia') return statusPretendido
+  try {
+    const pagamentos = await buscarTodosPagamentosDaAssinatura(subscriptionId)
+    return pagamentos.some((p) => p.status === 'OVERDUE') ? 'atrasado' : 'em_dia'
+  } catch {
+    return statusPretendido
+  }
+}
+
 export function tokenCartaoMaisRecente(pagamentos: AsaasPayment[]): string | null {
   const pagos = pagamentos
     .filter(

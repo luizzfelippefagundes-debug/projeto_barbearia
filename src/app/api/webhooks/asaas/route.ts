@@ -7,6 +7,7 @@ import {
   buscarAssinatura,
   buscarStatusPagamento,
   cancelarAssinaturaAsaas,
+  confirmarStatusEmDia,
   mapStatusPagamentoAsaas,
   vincularCartaoNaAssinatura,
 } from '../../../../lib/asaas'
@@ -68,7 +69,10 @@ export async function POST(req: Request) {
   const assinaturaAsaas = await buscarAssinatura(subscriptionId).catch(() => null)
 
   // REPROVED = cartão recusado: força atrasado mesmo sem status mapeado
-  const statusFinal = novoStatus ?? (paymentStatus === 'REPROVED' ? 'atrasado' as const : null)
+  const statusEvento = novoStatus ?? (paymentStatus === 'REPROVED' ? 'atrasado' as const : null)
+  // Um pagamento confirmado não deixa "em dia" se ainda sobrou outra fatura
+  // vencida (ex: devia dois meses e pagou só um).
+  const statusFinal = statusEvento ? await confirmarStatusEmDia(subscriptionId, statusEvento) : null
 
   if (!statusFinal && cartaoRecusado === undefined && !assinaturaAsaas) {
     return NextResponse.json({ ok: true })

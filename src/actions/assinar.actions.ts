@@ -15,6 +15,7 @@ import {
   buscarPrimeiroPagamentoDaAssinatura,
   buscarQualquerPagamentoDaAssinatura,
   buscarStatusPagamento,
+  confirmarStatusEmDia,
   criarAssinaturaAsaas,
   criarClienteAsaas,
   mapStatusPagamentoAsaas,
@@ -187,13 +188,15 @@ export async function verificarPagamentoAssinatura(assinaturaId: string): Promis
   return novoStatus
 }
 
-/** Antes do cliente pagar (Pix ou cartão), garante que a fatura em aberto
- * cobra o preço ATUAL do plano — o mesmo que a tela mostra. Depois de um
- * reajuste, a fatura que o Asaas já tinha gerado podia continuar no valor
- * antigo, e o cliente via um valor e pagava outro. Também atualiza a
- * assinatura pros meses seguintes. Melhor esforço: se o Asaas recusar
- * (ex: assinatura de cartão com histórico pago não aceita mudar valor), só
- * registra no log e segue — nunca impede o cliente de pagar. */
+/** Antes do cliente pagar (Pix ou cartão), garante que uma fatura AINDA NÃO
+ * VENCIDA cobra o preço atual do plano — depois de um reajuste, a fatura que
+ * o Asaas já tinha gerado podia continuar no valor antigo. Fatura VENCIDA
+ * fica com o valor original: ela é de um ciclo anterior (pode ser de antes
+ * do reajuste), e quem já devia aquele mês paga o valor daquele mês. Também
+ * atualiza a assinatura pros meses seguintes. Melhor esforço: se o Asaas
+ * recusar, só registra no log e segue — nunca impede o cliente de pagar. A
+ * tela sempre mostra o valor real da fatura (valorParaPagarMinhaAssinatura),
+ * então o que aparece é o que é cobrado. */
 async function alinharFaturaAoPrecoDoPlano(planoId: string, subscriptionId: string, fatura: AsaasPayment) {
   const [plano] = await getDb()
     .select({ valorMensal: planosAssinatura.valorMensal })
@@ -202,6 +205,7 @@ async function alinharFaturaAoPrecoDoPlano(planoId: string, subscriptionId: stri
     .limit(1)
   const preco = Number(plano?.valorMensal)
   if (!Number.isFinite(preco) || preco <= 0) return
+  if (fatura.status !== 'PENDING') return
   if (Math.abs(Number(fatura.value) - preco) < 0.005) return
 
   try {
@@ -238,14 +242,27 @@ async function assinaturaComPagamentoDoCliente(assinaturaId: string) {
     const pagamentoAtual = await buscarPrimeiroPagamentoDaAssinatura(assinatura.asaasSubscriptionId)
     if (pagamentoAtual) {
       await alinharFaturaAoPrecoDoPlano(assinatura.planoId, assinatura.asaasSubscriptionId, pagamentoAtual)
-      return { assinatura, paymentId: pagamentoAtual.id }
+      return { assinatura, paymentId: pagamentoAtual.id, valor: Number(pagamentoAtual.value) as number | null }
     }
   }
 
   if (!assinatura.asaasFirstPaymentId) {
     throw new Error('A cobrança ainda está sendo gerada — atualize a página em alguns segundos.')
   }
-  return { assinatura, paymentId: assinatura.asaasFirstPaymentId }
+  return { assinatura, paymentId: assinatura.asaasFirstPaymentId, valor: null as number | null }
+}
+
+/** Valor REAL da fatura que vai ser cobrada agora (a em aberto mais antiga)
+ * — a tela de pagamento mostra isso, não o preço do plano, pra nunca exibir
+ * um valor e cobrar outro. null = não deu pra saber (a tela cai no preço do
+ * plano). */
+export async function valorParaPagarMinhaAssinatura(assinaturaId: string): Promise<number | null> {
+  try {
+    const { valor } = await assinaturaComPagamentoDoCliente(assinaturaId)
+    return valor != null && Number.isFinite(valor) ? valor : null
+  } catch {
+    return null
+  }
 }
 
 /** QR code + copia-e-cola do Pix pra pagar a primeira cobrança da minha
@@ -363,7 +380,11 @@ export async function pagarMinhaAssinaturaComCartao(
   }
 
   const db = getDb()
-  const novoStatus = mapStatusPagamentoAsaas(pagamento.status)
+  const statusPagamento = mapStatusPagamentoAsaas(pagamento.status)
+  const novoStatus =
+    statusPagamento && assinatura.asaasSubscriptionId
+      ? await confirmarStatusEmDia(assinatura.asaasSubscriptionId, statusPagamento)
+      : statusPagamento
   await db
     .update(assinaturas)
     .set({

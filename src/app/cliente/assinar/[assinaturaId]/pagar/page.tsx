@@ -6,7 +6,7 @@ import { AutoRefresh } from '../../../../../components/painel-ao-vivo/AutoRefres
 import { PagamentoAssinaturaCard } from '../../../../../components/assinar/PagamentoAssinaturaCard'
 import { requireClienteAtual } from '../../../../../lib/clienteAuth'
 import { getAssinaturaPorId, getPlanosAssinatura } from '../../../../../db/queries/assinaturas'
-import { verificarPagamentoAssinatura } from '../../../../../actions/assinar.actions'
+import { valorParaPagarMinhaAssinatura, verificarPagamentoAssinatura } from '../../../../../actions/assinar.actions'
 
 export default async function PagarAssinaturaPage({
   params,
@@ -43,6 +43,10 @@ export default async function PagarAssinaturaPage({
     )
   }
 
+  // Mostra o valor da fatura que vai ser cobrada de fato (pode ser de um mês
+  // anterior, com o valor da época) — cai no preço do plano se não souber.
+  const valorFatura = await valorParaPagarMinhaAssinatura(assinaturaId)
+
   return (
     <div className="flex flex-col gap-4 lg:mx-auto lg:max-w-3xl">
       <AutoRefresh intervaloMs={5000} />
@@ -56,7 +60,7 @@ export default async function PagarAssinaturaPage({
 
       <PagamentoAssinaturaCard
         assinaturaId={assinaturaId}
-        valor={plano?.valorMensal ?? 0}
+        valor={valorFatura ?? plano?.valorMensal ?? 0}
         cpf={cliente.cpfCnpj}
         telefone={cliente.telefone}
       />
