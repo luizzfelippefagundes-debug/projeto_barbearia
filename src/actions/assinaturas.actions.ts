@@ -269,8 +269,17 @@ export async function sincronizarPrecoPlanoNoAsaas(planoId: string): Promise<Res
       const sub = await buscarAssinatura(subscriptionId)
       let mexeu = false
       if (!mesmoValor(sub.value)) {
-        await atualizarValorAssinaturaAsaas(subscriptionId, valorNovo)
-        mexeu = true
+        try {
+          await atualizarValorAssinaturaAsaas(subscriptionId, valorNovo)
+          mexeu = true
+        } catch (err) {
+          // Assinatura de cartão com fatura já paga: o Asaas não deixa mudar
+          // o valor da ASSINATURA. Não desiste — segue pra corrigir direto a
+          // fatura pendente do próximo mês, que é o que o cartão vai cobrar.
+          // (Os meses seguintes são corrigidos pelo webhook a cada pagamento.)
+          console.error('[sincronizarPreco] assinatura recusou mudar valor, tentando a fatura', assinatura.id, err)
+          erros++
+        }
       }
 
       // Confere as faturas DEPOIS da atualização: a flag
@@ -281,9 +290,14 @@ export async function sincronizarPrecoPlanoNoAsaas(planoId: string): Promise<Res
       for (const p of pagamentos) {
         if (mesmoValor(p.value)) continue
         if (p.status === 'PENDING') {
-          await atualizarValorCobrancaAsaas(p, valorNovo)
-          faturasCorrigidas++
-          mexeu = true
+          try {
+            await atualizarValorCobrancaAsaas(p, valorNovo)
+            faturasCorrigidas++
+            mexeu = true
+          } catch (err) {
+            console.error('[sincronizarPreco] fatura recusou mudar valor', assinatura.id, p.id, err)
+            erros++
+          }
         } else if (p.status === 'OVERDUE') {
           // Vencida só é ajustada quando o cliente for renovar (aí o
           // vencimento vai pra hoje junto com o valor novo) — mexer em massa
