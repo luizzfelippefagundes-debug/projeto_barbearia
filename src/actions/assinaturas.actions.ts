@@ -217,6 +217,9 @@ export type ResultadoSincronizacaoPreco = {
   /** Faturas VENCIDAS ainda no valor antigo — não mexemos (são de antes,
    * podem estar sendo pagas agora); só informamos. */
   vencidasValorAntigo: number
+  /** Assinaturas no cartão que o Asaas não deixa mudar de valor (nem a
+   * assinatura nem a fatura) — continuam cobrando o valor antigo. */
+  travadasNoCartao: number
   erros: number
 }
 
@@ -260,6 +263,7 @@ export async function sincronizarPrecoPlanoNoAsaas(planoId: string): Promise<Res
   let atualizadas = 0
   let faturasCorrigidas = 0
   let vencidasValorAntigo = 0
+  let travadasNoCartao = 0
   let erros = 0
   const mesmoValor = (v: number) => Math.abs(Number(v) - valorNovo) < 0.005
 
@@ -268,17 +272,20 @@ export async function sincronizarPrecoPlanoNoAsaas(planoId: string): Promise<Res
     try {
       const sub = await buscarAssinatura(subscriptionId)
       let mexeu = false
+      let recusou = false
       if (!mesmoValor(sub.value)) {
         try {
           await atualizarValorAssinaturaAsaas(subscriptionId, valorNovo)
           mexeu = true
         } catch (err) {
           // Assinatura de cartão com fatura já paga: o Asaas não deixa mudar
-          // o valor da ASSINATURA. Não desiste — segue pra corrigir direto a
-          // fatura pendente do próximo mês, que é o que o cartão vai cobrar.
-          // (Os meses seguintes são corrigidos pelo webhook a cada pagamento.)
+          // o valor da ASSINATURA ("...que já possuam faturas pagas") e
+          // também não deixa mudar a FATURA depois que o cliente informou o
+          // cartão ("...já informou os dados de Cartão de Crédito") — testado
+          // em produção em 19/11/2026. Ainda tenta a fatura (vale pra
+          // assinatura sem cartão), mas conta como travada, não como erro.
           console.error('[sincronizarPreco] assinatura recusou mudar valor, tentando a fatura', assinatura.id, err)
-          erros++
+          recusou = true
         }
       }
 
@@ -296,7 +303,7 @@ export async function sincronizarPrecoPlanoNoAsaas(planoId: string): Promise<Res
             mexeu = true
           } catch (err) {
             console.error('[sincronizarPreco] fatura recusou mudar valor', assinatura.id, p.id, err)
-            erros++
+            recusou = true
           }
         } else if (p.status === 'OVERDUE') {
           // Vencida só é ajustada quando o cliente for renovar (aí o
@@ -306,7 +313,9 @@ export async function sincronizarPrecoPlanoNoAsaas(planoId: string): Promise<Res
         }
       }
 
-      if (mexeu) atualizadas++
+      // Travada pelo Asaas não é "já estava certa": continua no valor antigo.
+      if (recusou) travadasNoCartao++
+      else if (mexeu) atualizadas++
       else jaAtualizadas++
     } catch (err) {
       console.error('[sincronizarPreco] erro', assinatura.id, err)
@@ -315,7 +324,7 @@ export async function sincronizarPrecoPlanoNoAsaas(planoId: string): Promise<Res
   }
 
   revalidatePath('/admin/assinaturas')
-  return { plano: plano.nome, valorNovo, jaAtualizadas, atualizadas, faturasCorrigidas, vencidasValorAntigo, erros }
+  return { plano: plano.nome, valorNovo, jaAtualizadas, atualizadas, faturasCorrigidas, vencidasValorAntigo, travadasNoCartao, erros }
 }
 
 export type DetalheAssinaturaSemToken = {

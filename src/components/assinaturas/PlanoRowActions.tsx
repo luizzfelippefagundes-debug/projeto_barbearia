@@ -40,6 +40,7 @@ export function PlanoRowActions({ plano, servicos }: { plano: PlanoAssinatura; s
         if (r.faturasCorrigidas) partes.push(`${r.faturasCorrigidas} fatura(s) pendente(s) corrigida(s)`)
         if (r.jaAtualizadas) partes.push(`${r.jaAtualizadas} já estava(m) certa(s)`)
         if (r.vencidasValorAntigo) partes.push(`${r.vencidasValorAntigo} vencida(s) no valor antigo (não mexidas)`)
+        if (r.travadasNoCartao) partes.push(`${r.travadasNoCartao} no cartão travada(s) pelo Asaas no valor antigo`)
         if (r.erros) partes.push(`${r.erros} com erro`)
         setAviso(`Preço sincronizado: ${partes.join(', ')}.`)
       } catch {
