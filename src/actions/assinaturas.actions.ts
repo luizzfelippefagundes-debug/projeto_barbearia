@@ -5,13 +5,16 @@ import { revalidatePath } from 'next/cache'
 import { getDb } from '../db'
 import { assinaturas, clientes, planosAssinatura, planoServicosInclusos } from '../db/schema'
 import { assertAdmin } from '../lib/adminAuth'
+import { getHojeISO } from '../lib/dateUtils'
 import { cancelarAssinaturaComAsaas } from '../lib/asaasCancelamento'
 import {
   atualizarValorAssinaturaAsaas,
   atualizarValorCobrancaAsaas,
   buscarAssinatura,
   buscarTodosPagamentosDaAssinatura,
+  cancelarAssinaturaAsaas,
   cobrarPagamentoComTokenCartao,
+  criarAssinaturaAsaas,
   tokenCartaoMaisRecente,
   vincularCartaoNaAssinatura,
 } from '../lib/asaas'
@@ -387,6 +390,149 @@ export async function detalharAssinaturasSemToken(): Promise<DetalheAssinaturaSe
   }
 
   return resultado
+}
+
+export type ItemMigracaoCartao = {
+  nomeCliente: string
+  proximaCobranca: string | null
+  situacao: 'vai_migrar' | 'migrada' | 'vence_hoje' | 'tem_vencida' | 'erro'
+  detalhe?: string
+}
+
+/** Assinaturas de CARTÃO que ficaram travadas no valor antigo (o Asaas não
+ * deixa mudar valor de assinatura nem de fatura depois que o cliente
+ * informou o cartão). Pra cada uma: cria uma assinatura nova SEM forma de
+ * pagamento, no valor atual do plano, com o mesmo vencimento da próxima
+ * cobrança, e apaga a antiga (o que apaga também a fatura pendente dela no
+ * valor antigo). O cliente deixa de ser cobrado automaticamente: no
+ * vencimento a fatura fica esperando, ele cai em "atrasado", clica em
+ * Renovar, paga com cartão o valor novo — e a cobrança automática volta,
+ * já no valor novo.
+ *
+ * `executar: false` só simula (lista quem seria migrado). Quem vence hoje
+ * fica de fora: o Asaas pode estar cobrando o cartão nesse momento.
+ * A linha local é a MESMA (só troca o asaasSubscriptionId) — criar outra
+ * linha faria o webhook cancelar uma das duas como "troca de plano". */
+export async function migrarCartaoTravadoParaValorNovo(
+  planoId: string,
+  executar: boolean,
+): Promise<{ itens: ItemMigracaoCartao[] } | Resultado> {
+  const dono = await assertAdmin()
+
+  const [plano] = await getDb()
+    .select({ nome: planosAssinatura.nome, valorMensal: planosAssinatura.valorMensal })
+    .from(planosAssinatura)
+    .where(and(eq(planosAssinatura.id, planoId), eq(planosAssinatura.barbeariaId, dono.barbeariaId)))
+    .limit(1)
+  if (!plano) return { error: 'Plano não encontrado.' }
+  const valorNovo = Number(plano.valorMensal)
+  if (!Number.isFinite(valorNovo) || valorNovo <= 0) return { error: 'Preço do plano inválido.' }
+
+  const ativas = await getDb()
+    .select({
+      id: assinaturas.id,
+      asaasSubscriptionId: assinaturas.asaasSubscriptionId,
+      nomeCliente: clientes.nome,
+    })
+    .from(assinaturas)
+    .innerJoin(clientes, eq(clientes.id, assinaturas.clienteId))
+    .where(
+      and(
+        eq(assinaturas.barbeariaId, dono.barbeariaId),
+        eq(assinaturas.planoId, planoId),
+        inArray(assinaturas.status, ['em_dia', 'atrasado']),
+      ),
+    )
+
+  const hoje = getHojeISO()
+  const itens: ItemMigracaoCartao[] = []
+
+  for (const a of ativas) {
+    if (!a.asaasSubscriptionId) continue
+    const antigaId = a.asaasSubscriptionId
+    let sub: Awaited<ReturnType<typeof buscarAssinatura>>
+    try {
+      sub = await buscarAssinatura(antigaId)
+    } catch {
+      continue // assinatura que o Asaas não acha mais: fora do escopo daqui
+    }
+    if (sub.billingType !== 'CREDIT_CARD') continue
+    if (Math.abs(Number(sub.value) - valorNovo) < 0.005) continue
+
+    let proxima: string
+    let temVencida = false
+    try {
+      const pagamentos = await buscarTodosPagamentosDaAssinatura(antigaId)
+      const pendente = pagamentos.filter((p) => p.status === 'PENDING').map((p) => p.dueDate).sort()[0]
+      proxima = pendente ?? sub.nextDueDate
+      temVencida = pagamentos.some((p) => p.status === 'OVERDUE')
+    } catch (err) {
+      itens.push({ nomeCliente: a.nomeCliente, proximaCobranca: null, situacao: 'erro', detalhe: 'não deu pra ler as faturas' })
+      console.error('[migrarCartao] erro lendo faturas', a.id, err)
+      continue
+    }
+
+    // Fatura vencida em aberto = dívida real (ex: cartão recusado). Apagar a
+    // assinatura antiga apagaria essa dívida junto — fica de fora.
+    if (temVencida) {
+      itens.push({ nomeCliente: a.nomeCliente, proximaCobranca: proxima, situacao: 'tem_vencida' })
+      continue
+    }
+    if (proxima <= hoje) {
+      itens.push({ nomeCliente: a.nomeCliente, proximaCobranca: proxima, situacao: 'vence_hoje' })
+      continue
+    }
+    if (!executar) {
+      itens.push({ nomeCliente: a.nomeCliente, proximaCobranca: proxima, situacao: 'vai_migrar' })
+      continue
+    }
+
+    // 1) cria a nova (sem forma de pagamento, valor novo, mesma data)
+    let novaId: string
+    try {
+      const nova = await criarAssinaturaAsaas({
+        customer: sub.customer,
+        nextDueDate: proxima,
+        value: valorNovo,
+        description: sub.description || `Assinatura ${plano.nome}`,
+      })
+      novaId = nova.id
+    } catch (err) {
+      console.error('[migrarCartao] erro criando assinatura nova', a.id, err)
+      itens.push({ nomeCliente: a.nomeCliente, proximaCobranca: proxima, situacao: 'erro', detalhe: 'Asaas recusou criar a nova' })
+      continue
+    }
+
+    // 2) aponta a mesma linha local pra nova ANTES de apagar a antiga — assim
+    // os avisos do Asaas sobre a antiga (fatura apagada) são ignorados.
+    try {
+      await getDb()
+        .update(assinaturas)
+        .set({ asaasSubscriptionId: novaId, asaasFirstPaymentId: null, proximaCobranca: proxima })
+        .where(eq(assinaturas.id, a.id))
+    } catch (err) {
+      console.error('[migrarCartao] erro salvando no banco, desfazendo', a.id, err)
+      await cancelarAssinaturaAsaas(novaId).catch(() => {})
+      itens.push({ nomeCliente: a.nomeCliente, proximaCobranca: proxima, situacao: 'erro', detalhe: 'erro no banco (desfeito)' })
+      continue
+    }
+
+    // 3) apaga a antiga (e a fatura pendente dela no valor antigo)
+    try {
+      await cancelarAssinaturaAsaas(antigaId)
+    } catch (err) {
+      console.error('[migrarCartao] erro apagando a antiga, desfazendo', a.id, err)
+      await getDb().update(assinaturas).set({ asaasSubscriptionId: antigaId }).where(eq(assinaturas.id, a.id)).catch(() => {})
+      await cancelarAssinaturaAsaas(novaId).catch(() => {})
+      itens.push({ nomeCliente: a.nomeCliente, proximaCobranca: proxima, situacao: 'erro', detalhe: 'Asaas recusou apagar a antiga (desfeito)' })
+      continue
+    }
+
+    itens.push({ nomeCliente: a.nomeCliente, proximaCobranca: proxima, situacao: 'migrada' })
+  }
+
+  if (executar) revalidatePath('/admin/assinaturas')
+  return { itens }
 }
 
 export async function apagarPlano(id: string): Promise<Resultado> {
